@@ -18,6 +18,8 @@ every enabled agent.
 1. The PR diff is loaded once for all agents: `git diff base...head` on the local
    clone, falling back to a diff rebuilt from persisted `pr_files` patches.
    If loading fails, **every** queued run is marked `failed` with the error.
+   Then the PR intent is taken from `pr_intent` when it matches the head, or
+   derived (one call) — see `intent.md`. A failure there only drops the block.
 2. Per agent, sequentially:
    - resolve the agent's LLM provider (a missing key fails that run only);
    - gather repo context unless the agent opted out of repo-intel: callers of
