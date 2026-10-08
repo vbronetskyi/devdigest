@@ -12,6 +12,7 @@ import { ReviewService } from './service.js';
  *   POST   /pulls/:id/review  {agentId} | {all:true}  → run review(s); returns runs
  *   GET    /runs/:id/events                            → SSE stream of RunEvent (replay-first)
  *   GET    /runs/:id/trace                             → the single-document RunTrace
+ *   GET    /runs/:id/review                            → run + PR + its review (MCP get_findings)
  *   GET    /pulls/:id/intent                           → stored PR intent or null (L03)
  *   POST   /pulls/:id/intent                           → derive it now (one model call)
  *   GET    /pulls/:id/reviews                          → persisted reviews + findings for a PR
@@ -141,6 +142,12 @@ export default async function reviewsRoutes(appBase: FastifyInstance) {
       return service.deriveIntent(workspaceId, req.params.id);
     },
   );
+
+  // ---- One run with its PR and review (MCP get_findings, deep links) ------
+  app.get('/runs/:id/review', { schema: { params: IdParams } }, async (req) => {
+    const { workspaceId } = await getContext(container, req);
+    return service.runResult(workspaceId, req.params.id);
+  });
 
   // ---- Reads --------------------------------------------------------------
   app.get('/pulls/:id/reviews', { schema: { params: IdParams } }, async (req) => {
