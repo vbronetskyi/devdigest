@@ -45,4 +45,5 @@ pnpm test       # vitest + jsdom, fetch mocked — no API or browser needed
 - Rendering money / run cost → `specs/run-cost-display.md`
 - Severity counts, filters or the PR list findings preview → `specs/findings-by-severity.md`
 - Skills Lab (skills, conventions), the agent Skills tab or skills in the trace → `specs/skills-ui.md`
+- The Files changed tab (Smart Diff, finding markers in the diff viewer) → `specs/smart-diff.md`
 - Before any task in this package → `insights/INSIGHTS.md`
