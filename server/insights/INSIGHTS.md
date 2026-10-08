@@ -249,6 +249,14 @@ fails with a reason instead of approving nothing with score 100. This mattered
 once MCP started reviews over the API: nobody opens the PR page there.
 Evidence: `src/modules/reviews/diff-loader.ts:24`, `src/modules/reviews/diff-loader.ts:8`, `test/run-result.it.test.ts:1`
 
+### 2026-10-08 — A run was marked done before its trace was written
+`run-executor` set `agent_runs.status` to done/failed and only then saved `run_traces`.
+Anything that waits for a terminal status and reads the trace — the UI, and tests via
+`waitForPrRuns` — could get the previous (or no) trace. Under a loaded full integration
+run two trace assertions failed this way. The trace is now saved first at all three
+completion points.
+Evidence: `src/modules/reviews/run-executor.ts:324`
+
 ## Session Notes
 
 ### 2026-10-07 — Lab 1: run cost
