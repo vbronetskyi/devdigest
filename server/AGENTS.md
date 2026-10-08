@@ -47,6 +47,7 @@ pnpm db:migrate && pnpm db:seed                   # not run on boot
 - Changing what `GET /repos/:id/pulls` computes → `specs/pr-list.md`
 - Touching skills, their import or how a run uses them → `specs/skills.md`
 - Touching the conventions extractor → `specs/conventions.md`
+- Touching blast radius → `specs/blast.md`
 - Touching the PR intent layer → `specs/intent.md`
 - Touching the smart diff (Files changed order, markers, split) → `specs/smart-diff.md`
 - Writing tests → `../TESTING.md` (and the `.it.test.ts` rule)

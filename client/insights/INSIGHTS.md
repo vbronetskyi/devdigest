@@ -124,6 +124,12 @@ click during the loop started a second accept in parallel (and could race for on
 name). The page passes `locked` to every card while a bulk action runs.
 Evidence: `src/app/repos/[repoId]/conventions/page.tsx:84`
 
+### 2026-10-08 — Starter message files are not plural-aware
+`blast.json` shipped `"{count} callers"` and bare `"symbols"`, so the card read
+"1 callers", "1 symbols". Use ICU plurals and pass `count` even to labels that
+sit next to a separately rendered number.
+Evidence: `src/app/repos/[repoId]/pulls/[number]/_components/BlastRadiusCard/BlastRadiusCard.tsx:48`
+
 ## Session Notes
 
 ### 2026-10-07 — Lab 1: run cost
