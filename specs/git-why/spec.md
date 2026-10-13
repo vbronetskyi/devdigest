@@ -80,8 +80,10 @@ UI
 ## Inputs (provenance)
 
 - [deterministic: git] `git fetch pull/N/head`, `git merge-base`, `git blame
-  --line-porcelain -L n,n <base> -- <file>`, `git rev-list`; `pr_files` patches; PR
-  titles from `pull_requests`. No model call.
+  --line-porcelain -L n,n <base> -- <file>`, `git ls-tree -z --name-only <base> -- <file>`,
+  `git rev-list` / `rev-parse` / `log -1` (which merge brought the commit),
+  `rev-parse --is-shallow-repository`; `pr_files` patches; PR titles from
+  `pull_requests`. No model call.
 
 ## Untrusted inputs
 
