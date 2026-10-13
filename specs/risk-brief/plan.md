@@ -49,7 +49,7 @@ and the stored intent, and modules may not import each other. Pure parts in
 | AC-6 | T1 | git-history "reads non-ASCII paths and treats pathspec magic…", "sends at most 100 paths to git", "option-looking path gives null" | cf83609, 045373c |
 | AC-7 | T1, T5, T6 | brief.it "says the history is limited on a shallow clone…"; git-history "a shallow clone says so…"; BriefCard "says when the history is limited or unavailable…" | 566e72e, c5fce8b, 045373c |
 | AC-8 | T5 | brief.it "one call over the review diff…" (one call, `maxRetries: 0`) | 566e72e |
-| AC-9 | T3 | brief-helpers "every repository-made or derived text sits in its own untrusted block", "the diff is cut at 12,000 characters and the file list at 100 files" | 16eb122, c5fce8b |
+| AC-9 | T3 | brief-helpers "every repository-made or derived text sits in its own untrusted block", "every new-side line carries its number…", "the diff is cut at 12,000 characters and the file list at 100 files" | 16eb122, c5fce8b, 2eaf5b7 |
 | AC-10 | T3 | brief-helpers "an unknown kind or severity does not match the schema" | 16eb122 |
 | AC-11 | T3 | brief-helpers "keeps a valid line or range…" (a range across two hunks → path), "grounded model risks plus signals…" | 16eb122, c5fce8b |
 | AC-12 | T3 | brief-helpers "grounded model risks plus signals…", "never more than six risks…" | 16eb122 |

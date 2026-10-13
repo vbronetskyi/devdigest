@@ -31,8 +31,9 @@ subjects, and their `(#N)` names an unrelated PR here.
 Feature model `risk_brief` (Settings → registry default → OpenRouter
 `deepseek/deepseek-v4-flash`), template `src/prompts/risk-brief.system.md`, schema
 `BriefOutput`, `maxRetries: 0`, 90 s deadline. Title, description (4,000 chars), stored
-intent, file list (100), diff (12,000 chars), signals (100 files each) and history each go
-in an `<untrusted>` block (`buildBriefMessages`). The adapter still retries a failed
+intent, file list (100), diff (12,000 chars, each new-side line prefixed by its number —
+`numberedDiff`, because models miscount from the hunk header), signals (100 files each)
+and history each go in an `<untrusted>` block (`buildBriefMessages`). The adapter still retries a failed
 request (network, 429, 5xx), and the deadline does not cancel the request — it may finish
 and bill after the brief fell back (`_shared/deadline.ts`).
 
