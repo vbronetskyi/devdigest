@@ -59,6 +59,20 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
     const past = { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', GIT_AUTHOR_DATE: '2001-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2001-01-01T00:00:00Z' };
     await simpleGit(dir).env(past).raw(['-c', 'user.name=dev', '-c', 'user.email=dev@example.com', 'merge', '-q', '--no-ff', 'later', '-m', 'Merge pull request #12 from acme/later']);
 
+    // A branch that merged main into itself before its own PR was merged: the first
+    // merge descending from its commit is that sync merge, off the mainline.
+    await git.checkout(['-q', '-b', 'synced', 'HEAD~1']);
+    await writeFile(join(dir, 'src', 'd.ts'), 'd\n');
+    await git.add('.');
+    sha.synced = await commit('add d');
+    await git.raw(['-c', 'user.name=dev', '-c', 'user.email=dev@example.com', 'merge', '-q', '--no-ff', 'main', '-m', "Merge branch 'main' into synced"]);
+    await git.checkout(['-q', 'main']);
+    await git.raw(['-c', 'user.name=dev', '-c', 'user.email=dev@example.com', 'merge', '-q', '--no-ff', 'synced', '-m', 'Merge pull request #13 from acme/synced']);
+    sha.merge13 = (await git.revparse(['HEAD'])).trim();
+
+    // A clone git cannot read: a .git that is not a repository.
+    await mkdir(join(root, 'acme', 'broken', '.git'), { recursive: true });
+
     // A shallow clone of it, cut at its tip.
     await git.clone(`file://${dir}`, join(root, 'acme', 'shallow'), ['--depth', '1', '-q']);
   });
@@ -105,6 +119,8 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
     // Two merges descend from it (#7, then #12): the oldest by ancestry wins.
     expect(await client.mergedVia(repo, sha.feature!)).toEqual({ sha: sha.merge, subject: 'Merge pull request #7 from acme/feature' });
     expect(await client.mergedVia(repo, 'f'.repeat(40))).toBeNull();
+    // The sync merge (main into the branch) comes first but is off the mainline: #13 brought it.
+    expect(await client.mergedVia(repo, sha.synced!)).toEqual({ sha: sha.merge13, subject: 'Merge pull request #13 from acme/synced' });
     // A commit made on the mainline itself arrived without a merge — even with merges after it.
     expect(await client.mergedVia(repo, sha.squash!)).toBeNull();
     expect(await client.mergedVia(repo, sha.root!)).toBeNull();
@@ -121,6 +137,18 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
     expect(await client.isShallow(shallow)).toBe(true);
     expect(await client.blameLine(shallow, 'src/a.ts', 1)).toMatchObject({ boundary: true });
     expect(await client.isShallow({ owner: 'acme', name: 'none' })).toBeNull();
+    expect(await client.isShallow({ owner: 'acme', name: 'broken' })).toBeNull();
+  });
+
+  it('SPEC-04 AC-9/AC-10: tells whether a path is in the tree at a revision, the path after --', async () => {
+    const client = new SimpleGitClient(root);
+    expect(await client.hasFile(repo, 'src/a.ts', sha.root!)).toBe(true);
+    expect(await client.hasFile(repo, 'src/привіт.ts', sha.root!)).toBe(false);
+    expect(await client.hasFile(repo, 'src/привіт.ts', 'main')).toBe(true);
+    expect(await client.hasFile(repo, 'src/*.ts', 'main')).toBe(false);
+    expect(await client.hasFile(repo, '--output=x', 'main')).toBe(false);
+    expect(await client.hasFile(repo, 'src/a.ts', '--all')).toBeNull();
+    expect(await client.hasFile({ owner: 'acme', name: 'broken' }, 'src/a.ts', 'main')).toBeNull();
   });
 
   it('SPEC-03 AC-6: sends at most 100 paths to git', async () => {

@@ -14,7 +14,7 @@ nothing before the fourth passes:
 | PR not in the workspace | 404 |
 | PR base is not the repo's default branch | 409 |
 | `file` not in the PR's `pr_files`, or `line` not a removed/context line inside a hunk of its patch (`oldSideLines`, bounded by the header counts) | 404 |
-| no clone (or one git cannot read); PR head not in the clone even after `fetchPullHead` | 409 |
+| no usable clone (none, or git cannot read it); PR head not in the clone even after `fetchPullHead` | 409, saying which |
 
 Then:
 
@@ -22,7 +22,8 @@ Then:
    HEAD would give wrong lines once the default branch moved.
 2. `blameLine(file, line, base)` (`--line-porcelain -L n,n <base> -- <file>`). No blame
    → `commit: null` and `missing`: `file` when the merge base lacks the file (new or
-   renamed in the PR), `line` when it has the file but not the line.
+   renamed in the PR), `line` when it has the file but not the line (`hasFile`:
+   `ls-tree -z --name-only <base> -- <file>`).
 3. `mergedVia(sha)` — the oldest merge on HEAD's first-parent line among the merges that
    descend from the commit (`rev-list --ancestry-path --merges --topo-order --reverse`).
    A commit that is itself on the first-parent line returns null, so a direct or squash

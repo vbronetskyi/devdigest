@@ -60,4 +60,9 @@ describe("parsePatch", () => {
       ["add", "new", null, 5],
     ]);
   });
+
+  it("stops each hunk at its header counts: extra blank lines after a patch are not lines", () => {
+    const lines = parsePatch("@@ -1 +1 @@\n-a\n+b\n\n\n@@ -9,1 +9,1 @@\n c\n");
+    expect(lines.map((l) => l.kind)).toEqual(["hunk", "del", "add", "hunk", "ctx"]);
+  });
 });

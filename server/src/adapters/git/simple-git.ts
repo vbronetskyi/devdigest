@@ -174,6 +174,18 @@ export class SimpleGitClient implements GitClient {
     }
   }
 
+  async hasFile(repo: RepoRef, path: string, rev: string): Promise<boolean | null> {
+    if (!/^[\w./-]+$/.test(rev) || rev.startsWith('-')) return null;
+    if (!(await this.exists(join(this.clonePathFor(repo), '.git')))) return null;
+    try {
+      // -z: names come back unquoted (non-ASCII), NUL-separated.
+      const raw = await this.git(repo).raw(['--literal-pathspecs', 'ls-tree', '-z', '--name-only', rev, '--', path]);
+      return raw.split('\0').includes(path);
+    } catch {
+      return null;
+    }
+  }
+
   async mergeBase(repo: RepoRef, a: string, b: string): Promise<string | null> {
     if (![a, b].every((r) => /^[\w./-]+$/.test(r) && !r.startsWith('-'))) return null;
     if (!(await this.exists(join(this.clonePathFor(repo), '.git')))) return null;

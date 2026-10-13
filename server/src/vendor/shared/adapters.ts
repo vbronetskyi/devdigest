@@ -246,6 +246,8 @@ export interface GitClient {
   history(repo: RepoRef, paths: string[], limit: number): Promise<HistoryCommit[]>;
   /** The commit that last changed line `line` of `path` at `rev` (default HEAD); null without a clone, past the end or when the file is not there. */
   blameLine(repo: RepoRef, path: string, line: number, rev?: string): Promise<BlameLineInfo | null>;
+  /** Whether `path` is in the tree at `rev` (the path after `--`); null without a usable clone or for a bad rev. */
+  hasFile(repo: RepoRef, path: string, rev: string): Promise<boolean | null>;
   /** `git merge-base a b`; null when either is unknown to the clone. */
   mergeBase(repo: RepoRef, a: string, b: string): Promise<string | null>;
   /** Whether the clone has cut-off history; null without a clone. */

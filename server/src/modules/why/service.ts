@@ -34,7 +34,9 @@ export class WhyService {
 
     const ref = { owner: pull.owner, name: pull.name };
     const git = this.container.git;
-    if ((await git.isShallow(ref)) === null) throw new ConflictError('This repository has no local clone yet. Index it first.');
+    if ((await git.isShallow(ref)) === null) {
+      throw new ConflictError('This repository has no usable local clone (none yet, or git cannot read it). Index it first.');
+    }
     let base = await git.mergeBase(ref, 'HEAD', pull.headSha);
     if (!base) {
       await git.fetchPullHead(ref, pull.number).catch(() => undefined);
@@ -45,7 +47,7 @@ export class WhyService {
     const blame = await git.blameLine(ref, file, line, base);
     if (!blame) {
       // AC-9: a file the merge base lacks is new or renamed; otherwise the line is not there.
-      const atBase = (await git.readCommitted(ref, file, base)) !== null;
+      const atBase = (await git.hasFile(ref, file, base)) === true;
       return { file, line, commit: null, boundary: false, pr: null, missing: atBase ? 'line' : 'file', note: atBase ? NOT_AT_BASE : NO_HISTORY };
     }
 

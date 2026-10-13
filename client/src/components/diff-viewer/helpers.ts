@@ -3,6 +3,9 @@ import type React from "react";
 import type { Severity, SmartDiffFinding } from "@devdigest/shared";
 import { HUNK_HEADER_RE } from "./constants";
 
+/** The line counts of a hunk header; a missing count means 1. */
+const HUNK_COUNTS_RE = /@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@/;
+
 export interface Line {
   kind: "add" | "del" | "ctx" | "hunk";
   text: string;
@@ -16,29 +19,38 @@ export function parsePatch(patch: string | null | undefined): Line[] {
   const out: Line[] = [];
   let oldNo = 0;
   let newNo = 0;
-  const rows = patch.split("\n");
-  // A patch ending in a newline has no empty last line; `\ No newline at end of file`
-  // is a marker, not a line — neither may get line numbers (or a "why").
-  if (rows.length > 1 && rows[rows.length - 1] === "") rows.pop();
-  for (const raw of rows) {
-    if (raw.startsWith("\\")) continue;
+  // Lines the current hunk still has to show (from its header), as the server counts
+  // them: trailing newlines and `\ No newline at end of file` never become lines, so
+  // they get no numbers (and no "why").
+  let oldLeft = 0;
+  let newLeft = 0;
+  for (const raw of patch.split("\n")) {
     if (raw.startsWith("@@")) {
       const m = raw.match(HUNK_HEADER_RE);
       if (m) {
         oldNo = parseInt(m[1]!, 10);
         newNo = parseInt(m[2]!, 10);
+        const counts = raw.match(HUNK_COUNTS_RE);
+        oldLeft = counts?.[1] === undefined ? 1 : parseInt(counts[1], 10);
+        newLeft = counts?.[2] === undefined ? 1 : parseInt(counts[2], 10);
       }
       out.push({ kind: "hunk", text: raw });
+    } else if ((oldLeft === 0 && newLeft === 0) || raw.startsWith("\\")) {
+      continue;
     } else if (raw.startsWith("+")) {
       out.push({ kind: "add", text: raw.slice(1), newNo });
       newNo++;
+      newLeft--;
     } else if (raw.startsWith("-")) {
       out.push({ kind: "del", text: raw.slice(1), oldNo });
       oldNo++;
+      oldLeft--;
     } else {
       out.push({ kind: "ctx", text: raw.slice(raw.startsWith(" ") ? 1 : 0), oldNo, newNo });
       oldNo++;
       newNo++;
+      oldLeft--;
+      newLeft--;
     }
   }
   return out;

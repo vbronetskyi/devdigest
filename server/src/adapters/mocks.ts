@@ -316,6 +316,13 @@ export class MockGitClient implements GitClient {
     this.worktreeReads.push(path);
     return this.opts.files?.[path] ?? '';
   }
+  /** `hasFile` calls, in order. */
+  public fileChecks: { path: string; rev: string }[] = [];
+  async hasFile(_repo: RepoRef, path: string, rev: string): Promise<boolean | null> {
+    this.fileChecks.push({ path, rev });
+    if (this.opts.noClone) return null;
+    return path in (this.opts.files ?? {});
+  }
   async readCommitted(_repo: RepoRef, path: string): Promise<string | null> {
     this.reads.push(path);
     if (this.opts.noClone) return null;
