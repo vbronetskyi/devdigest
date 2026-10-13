@@ -15,6 +15,8 @@ Goals
 
 Non-goals
 - Lines the PR adds (no history yet), renamed files' old paths, a per-line history view.
+- Keyboard and touch access to per-line actions: the diff viewer offers them on hover
+  (the comment "+" too); making diff lines keyboard-navigable is its own feature.
 - PRs whose base is not the repository's default branch.
 
 ## Request
@@ -35,8 +37,8 @@ AC-1, AC-2, AC-4 and AC-5 in this order, and no git call happens before AC-4 pas
 - **AC-4** IF `file` is not a changed file of the PR, or `line` is not an old-side line
   (removed or context) inside a hunk of that file's patch, THEN the system shall answer
   404.
-- **AC-5** IF the repository has no clone, or the PR head cannot be fetched into it,
-  THEN the system shall answer 409 saying which.
+- **AC-5** IF the repository has no usable clone (none, or one git cannot read), or the
+  PR head cannot be fetched into it, THEN the system shall answer 409 saying which.
 
 Answer
 - **AC-6** The system shall blame the line at the merge base of the default branch and
@@ -61,7 +63,7 @@ Answer
 
 UI
 - **AC-11** In the Files changed tab, removed and context lines shall offer a "why"
-  action; added lines shall not; WHERE the PR's base is not the default branch, no line
+  action on hover; added lines shall not; WHERE the PR's base is not the default branch, no line
   shall offer it.
 - **AC-12** The action shall show, under the line, the commit (short sha, subject,
   author, date), the PR linked on GitHub when there is one, and the "earlier history"
@@ -102,3 +104,6 @@ path is checked against the PR's file list before git sees it (AC-4, AC-10).
   ancestry order; the `(#N)` fallback also applies when the merge names no PR; AC-9
   tells a missing file from a line the merge base does not have; the marker line and
   the client cache named in the edge cases.
+- 2026-10-13 — after the second verification: per-line actions are hover-only (a
+  non-goal, as for comments); AC-5 names an unreadable clone. The existence check for
+  AC-9 now passes the file after `--` (AC-10 unchanged).
