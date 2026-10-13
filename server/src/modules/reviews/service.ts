@@ -1,5 +1,5 @@
 import type { Container } from '../../platform/container.js';
-import type { FindingActionKind, PrIntentRecord, RunEventKind, RunResult, RunTrace } from '@devdigest/shared';
+import type { FindingActionKind, PrIntentRecord, RiskBriefResponse, RunEventKind, RunResult, RunTrace } from '@devdigest/shared';
 import { AppError, NotFoundError } from '../../platform/errors.js';
 import type { AgentRow } from '../../db/rows.js';
 import { ReviewRepository } from './repository.js';
@@ -8,6 +8,7 @@ import { ReviewRunExecutor, type Logger } from './run-executor.js';
 import { actOnFinding as actOnFindingImpl } from './findings.js';
 import { reviewToDto } from './helpers.js';
 import { IntentDeriver } from './intent.js';
+import { BriefBuilder } from './brief/builder.js';
 import { loadDiff } from './diff-loader.js';
 
 // Re-export DTO types + converters for backward-compatible imports from
@@ -32,12 +33,14 @@ export class ReviewService {
   private agents: Container['agentsRepo'];
   private executor: ReviewRunExecutor;
   private intents: IntentDeriver;
+  private briefs: BriefBuilder;
 
   constructor(private container: Container) {
     this.repo = new ReviewRepository(container.db);
     this.agents = container.agentsRepo;
     this.executor = new ReviewRunExecutor(container, this.repo, this.agents);
     this.intents = new IntentDeriver(container, this.repo);
+    this.briefs = new BriefBuilder(container, this.repo);
   }
 
   // ===========================================================================
@@ -193,6 +196,23 @@ export class ReviewService {
     const diff = await loadDiff(this.container, this.repo, workspaceId, pull, repo);
     const { record } = await this.intents.derive(workspaceId, pull, { owner: repo.owner, name: repo.name }, diff);
     return { intent: record };
+  }
+
+  /** SPEC-03: the stored risk brief and whether the PR head moved since — no model call. */
+  async getBrief(workspaceId: string, prId: string): Promise<RiskBriefResponse> {
+    const pull = await this.repo.getPull(workspaceId, prId);
+    if (!pull) throw new NotFoundError('Pull request not found');
+    return this.briefs.get(pull);
+  }
+
+  /** SPEC-03: generate the brief for the PR's current head (one model call, or signals-only). */
+  async generateBrief(workspaceId: string, prId: string): Promise<RiskBriefResponse> {
+    const pull = await this.repo.getPull(workspaceId, prId);
+    if (!pull) throw new NotFoundError('Pull request not found');
+    const repo = await this.repo.getRepo(pull.repoId);
+    if (!repo) throw new NotFoundError('Repo not found');
+    const ref = { owner: repo.owner, name: repo.name };
+    return this.briefs.generate(workspaceId, pull, ref, () => loadDiff(this.container, this.repo, workspaceId, pull, repo));
   }
 
   /**

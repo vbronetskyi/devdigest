@@ -143,6 +143,21 @@ export default async function reviewsRoutes(appBase: FastifyInstance) {
     },
   );
 
+  // ---- Risk brief (HW L05, SPEC-03): read is free; generating is one model call
+  app.get('/pulls/:id/brief', { schema: { params: IdParams } }, async (req) => {
+    const { workspaceId } = await getContext(container, req);
+    return service.getBrief(workspaceId, req.params.id);
+  });
+
+  app.post(
+    '/pulls/:id/brief',
+    { schema: { params: IdParams }, config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (req) => {
+      const { workspaceId } = await getContext(container, req);
+      return service.generateBrief(workspaceId, req.params.id);
+    },
+  );
+
   // ---- One run with its PR and review (MCP get_findings, deep links) ------
   app.get('/runs/:id/review', { schema: { params: IdParams } }, async (req) => {
     const { workspaceId } = await getContext(container, req);

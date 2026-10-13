@@ -22,6 +22,7 @@ import * as reviewRepo from './repository/review.repo.js';
 import * as runRepo from './repository/run.repo.js';
 import * as pullRepo from './repository/pull.repo.js';
 import * as intentRepo from './repository/intent.repo.js';
+import * as briefRepo from './repository/brief.repo.js';
 
 export class ReviewRepository {
   constructor(private db: Db) {}
@@ -42,6 +43,17 @@ export class ReviewRepository {
 
   upsertIntent(values: Parameters<typeof intentRepo.upsertIntent>[1]) {
     return intentRepo.upsertIntent(this.db, values);
+  }
+
+  // ---- Risk brief (SPEC-03) ----
+  getBrief(prId: string) {
+    return briefRepo.getBrief(this.db, prId);
+  }
+  upsertBrief(prId: string, json: unknown) {
+    return briefRepo.upsertBrief(this.db, prId, json);
+  }
+  pullTitles(repoId: string, numbers: number[]) {
+    return briefRepo.pullTitles(this.db, repoId, numbers);
   }
 
   getPrFiles(prId: string): Promise<(typeof t.prFiles.$inferSelect)[]> {
