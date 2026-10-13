@@ -2,4 +2,4 @@
    Public surface: the DiffViewer component + the DiffCommentApi contract. */
 export { DiffViewer } from "./DiffViewer";
 export type { DiffCommentApi } from "./comments";
-export type { DiffFindingApi, FileAnnotation } from "./helpers";
+export type { DiffFindingApi, FileAnnotation, WhyApi } from "./helpers";

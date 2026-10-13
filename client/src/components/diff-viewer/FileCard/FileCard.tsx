@@ -9,7 +9,16 @@ import { Icon, SEV } from "@devdigest/ui";
 import type { Severity } from "@devdigest/shared";
 import type { PrFile } from "@/lib/types";
 import { AUTO_EXPAND_MAX_LINES } from "../constants";
-import { anchorFindings, bySeverity, markFor, parsePatch, type DiffFindingApi, type FileAnnotation, type Line } from "../helpers";
+import {
+  anchorFindings,
+  bySeverity,
+  markFor,
+  parsePatch,
+  type DiffFindingApi,
+  type FileAnnotation,
+  type Line,
+  type WhyApi,
+} from "../helpers";
 import {
   buildThreads,
   keysForLine,
@@ -38,16 +47,24 @@ export function FileCard({
   commenting,
   annotation,
   findingApi,
+  why,
 }: {
   file: PrFile;
   commenting?: DiffCommentApi;
   annotation?: FileAnnotation;
   findingApi?: DiffFindingApi;
+  why?: WhyApi;
 }) {
   const t = useTranslations("shell");
+  const focus = annotation?.focus;
   const [open, setOpen] = React.useState(
-    annotation?.defaultOpen ?? (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
+    !!focus || (annotation?.defaultOpen ?? (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES)
   );
+  const cardRef = React.useRef<HTMLDivElement>(null);
+  // A deep link without a line scrolls to the file; with a line, the line scrolls itself.
+  React.useEffect(() => {
+    if (focus && focus.line == null) cardRef.current?.scrollIntoView?.({ block: "start" });
+  }, [focus]);
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
   const findings = annotation?.findings ?? [];
   const anchors = React.useMemo(() => anchorFindings(lines, findings), [lines, findings]);
@@ -69,7 +86,7 @@ export function FileCard({
     : 0;
 
   return (
-    <div style={s.fileCard}>
+    <div style={s.fileCard} ref={cardRef} data-focus={focus ? "true" : undefined}>
       <div onClick={() => setOpen((o) => !o)} style={s.fileHeader}>
         <Icon.ChevronRight size={13} style={chevronFor(open)} />
         <Icon.FileText size={14} style={s.fileIcon} />
@@ -105,6 +122,8 @@ export function FileCard({
                 commenting={commenting}
                 mark={markFor(ln, findings, anchors)}
                 findings={findingApi}
+                focused={focus?.line != null && ln.kind !== "del" && ln.newNo === focus.line}
+                why={why}
               />
             ))
           )}

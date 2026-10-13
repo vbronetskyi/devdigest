@@ -9,9 +9,15 @@
   "noHistory": "No prior PRs overlap these files.",
   "overlap": "{count} overlap",
   "unavailable": "Brief not available yet.",
-  "unavailableHint": "Run a review or open the PR to compute it.",
+  "unavailableHint": "Generate it from the PR's Overview.",
   "why": {
     "title": "git-why",
+    "action": "why",
+    "loading": "Asking git…",
+    "meta": "{author} · {date}",
+    "boundary": "Oldest commit in the clone — earlier history is not available.",
+    "newFile": "No history: the file is new or renamed in this PR.",
+    "loadError": "Couldn’t ask git: {message}",
     "blame": "blame",
     "noHistory": "No history available for this line.",
     "noCommits": "No commits found for this line."
@@ -31,5 +37,39 @@
     "stale": "The PR has new commits since this was derived. The next review derives it again.",
     "failed": "Could not derive the intent: {message}",
     "loadError": "Could not load the intent."
+  },
+  "risk": {
+    "title": "Risk brief",
+    "emptyTitle": "No brief yet",
+    "emptyBody": "Rules find the risky files (migrations, dependencies, auth, public contracts) and git finds other PRs on the same files — free. One model call then explains, ranks and picks where to read first.",
+    "generate": "Generate brief",
+    "generating": "Generating…",
+    "regenerate": "Regenerate",
+    "failed": "Couldn’t generate the brief: {message}",
+    "risks": "Risk areas",
+    "noRisks": "No notable risks found.",
+    "whyRisk": "Why this is a risk",
+    "focus": "Review focus — read these first",
+    "history": "Other PRs touching these files",
+    "noHistory": "No other PR touched these files.",
+    "historyLimited": "The clone is shallow, so older PRs may be missing.",
+    "historyUnavailable": "No local clone, so no PR history.",
+    "mergedBy": "merged by {author} · {date}",
+    "metaModel": "Written by {model} · {cost} · for {sha}",
+    "metaSignals": "Signals only, no model ({reason}) · for {sha}",
+    "stale": "The PR has new commits since this brief. Regenerate to update it.",
+    "kind": {
+      "security": "security",
+      "db_migration": "migration",
+      "breaking_api": "public API",
+      "perf": "performance",
+      "deps": "dependencies",
+      "correctness": "correctness"
+    },
+    "severity": {
+      "high": "high",
+      "medium": "medium",
+      "low": "low"
+    }
   }
 }

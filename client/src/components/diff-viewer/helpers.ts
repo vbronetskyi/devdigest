@@ -1,5 +1,5 @@
 /** Pure helpers for the DiffViewer. */
-import type { ReactNode } from "react";
+import type React from "react";
 import type { Severity, SmartDiffFinding } from "@devdigest/shared";
 import { HUNK_HEADER_RE } from "./constants";
 
@@ -46,6 +46,14 @@ export interface FileAnnotation {
   note?: string;
   /** Overrides the size-based default fold. */
   defaultOpen?: boolean;
+  /** Deep link target: the card opens and scrolls into view, the new-side line (if any) is highlighted. */
+  focus?: { line: number | null };
+}
+
+/** Optional git-why (HW L05): what to show under a removed or context line, by its base line number. */
+export interface WhyApi {
+  render: (path: string, oldLine: number) => React.ReactNode;
+  label: string;
 }
 
 /**
@@ -56,7 +64,7 @@ export interface DiffFindingApi {
   /** Shared with the comments toggle: hiding it leaves the diff clean. */
   visible: boolean;
   /** The full card for a finding, or null when the page has no details for it. */
-  render: (finding: SmartDiffFinding) => ReactNode;
+  render: (finding: SmartDiffFinding) => React.ReactNode;
 }
 
 /** What a diff line shows for the findings covering it. */

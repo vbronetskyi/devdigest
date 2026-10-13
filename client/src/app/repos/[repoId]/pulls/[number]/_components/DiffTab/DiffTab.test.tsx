@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import type { FindingRecord, PrFile, SmartDiff } from "@devdigest/shared";
 import prReview from "../../../../../../../../messages/en/prReview.json";
 import shell from "../../../../../../../../messages/en/shell.json";
+import brief from "../../../../../../../../messages/en/brief.json";
 
 const h = vi.hoisted(() => ({
   smart: { data: undefined as SmartDiff | undefined, isLoading: false, isError: false },
@@ -11,6 +12,14 @@ const h = vi.hoisted(() => ({
   mutate: vi.fn(),
 }));
 vi.mock("@/lib/hooks/smart-diff", () => ({ useSmartDiff: () => h.smart }));
+vi.mock("@/lib/hooks/brief", () => ({
+  useWhy: (_pr: string, file: string, line: number) => ({
+    data: { file, line, commit: { sha: "c0ffee1234567", author: "dev", date: "2026-09-01T10:00:00Z", subject: `blame ${file}:${line}` }, boundary: false, pr: null, note: null },
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
+}));
 vi.mock("@/lib/hooks/reviews", () => ({
   usePrComments: () => ({ data: [] }),
   useCreatePrComment: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -74,10 +83,10 @@ const SMART: SmartDiff = {
   markers_stale: false,
 };
 
-const renderTab = () =>
+const renderTab = (extra: Partial<React.ComponentProps<typeof DiffTab>> = {}) =>
   render(
-    <NextIntlClientProvider locale="en" messages={{ prReview, shell }}>
-      <DiffTab prId="p1" filesCount={FILES.length} files={FILES} canComment={false} />
+    <NextIntlClientProvider locale="en" messages={{ prReview, shell, brief }}>
+      <DiffTab prId="p1" filesCount={FILES.length} files={FILES} canComment={false} {...extra} />
     </NextIntlClientProvider>,
   );
 
@@ -204,5 +213,35 @@ describe("roleSections", () => {
       "server/test/share.test.ts",
       "docs/share.md",
     ]);
+  });
+});
+
+// HW L05: deep links from the risk brief (SPEC-03 AC-22) and git-why (SPEC-04 AC-11).
+describe("DiffTab — brief deep link and git-why", () => {
+  it("SPEC-03 AC-22: a deep link opens a folded file and highlights the new-side line", () => {
+    h.smart = { data: SMART, isLoading: false, isError: false };
+    renderTab({ focus: { file: "pnpm-lock.yaml", line: 2 } });
+    const focused = screen.getByText("lock-line-content").closest("[data-focused]");
+    expect(focused).not.toBeNull();
+  });
+
+  it("SPEC-04 AC-11/AC-12: 'why' on context lines only, showing the answer under the line", () => {
+    h.smart = { data: SMART, isLoading: false, isError: false };
+    renderTab({ whyEnabled: true, focus: { file: "server/src/index.ts", line: null } });
+    const context = screen.getAllByText("a").map((el) => el.closest("[data-finding], div")!.parentElement!);
+    fireEvent.mouseEnter(context[0]!);
+    fireEvent.click(screen.getByRole("button", { name: "why" }));
+    expect(screen.getByText("blame server/src/index.ts:1")).toBeTruthy();
+
+    const added = screen.getByText("import share from './share.js';").closest("div")!.parentElement!;
+    fireEvent.mouseEnter(added);
+    expect(screen.getAllByRole("button", { name: "why" })).toHaveLength(1);
+  });
+
+  it("SPEC-04 AC-11: no 'why' when the PR is not into the default branch", () => {
+    h.smart = { data: SMART, isLoading: false, isError: false };
+    renderTab({ whyEnabled: false, focus: { file: "server/src/index.ts", line: null } });
+    fireEvent.mouseEnter(screen.getAllByText("a")[0]!.closest("div")!.parentElement!);
+    expect(screen.queryByRole("button", { name: "why" })).toBeNull();
   });
 });

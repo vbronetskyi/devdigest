@@ -7,7 +7,13 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { SEV } from "@devdigest/ui";
 import type { PrFile, SmartDiffRole } from "@devdigest/shared";
-import { DiffViewer, type DiffCommentApi, type DiffFindingApi, type FileAnnotation } from "@/components/diff-viewer";
+import {
+  DiffViewer,
+  type DiffCommentApi,
+  type DiffFindingApi,
+  type FileAnnotation,
+  type WhyApi,
+} from "@/components/diff-viewer";
 import { ROLE_COLOR } from "../../constants";
 import { worstSeverity } from "../../helpers";
 import { s, swatchFor, findingsBadgeFor } from "./styles";
@@ -18,12 +24,14 @@ export function RoleGroup({
   annotations,
   commenting,
   findingApi,
+  why,
 }: {
   role: SmartDiffRole;
   files: PrFile[];
   annotations: Record<string, FileAnnotation>;
   commenting?: DiffCommentApi;
   findingApi?: DiffFindingApi;
+  why?: WhyApi;
 }) {
   const t = useTranslations("prReview");
   const label = t(`smartDiff.${role}Label`);
@@ -46,7 +54,7 @@ export function RoleGroup({
           {t("smartDiff.filesCount", { count: files.length })}
         </span>
       </div>
-      <DiffViewer files={files} commenting={commenting} annotations={annotations} findingApi={findingApi} />
+      <DiffViewer files={files} commenting={commenting} annotations={annotations} findingApi={findingApi} why={why} />
     </section>
   );
 }

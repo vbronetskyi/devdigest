@@ -128,3 +128,23 @@ export function findingLabelFor(color: string): CSSProperties {
     textOverflow: "ellipsis",
   };
 }
+
+/** Deep-link target line. */
+export const focusRing = { boxShadow: "inset 0 0 0 1px var(--accent)", background: "var(--accent-bg)" } satisfies CSSProperties;
+
+/** The "why" action at the end of a base line. */
+export function whyButton(open: boolean): CSSProperties {
+  return {
+    flexShrink: 0,
+    marginRight: 8,
+    padding: "0 7px",
+    fontSize: 11,
+    lineHeight: "18px",
+    borderRadius: 4,
+    border: "1px solid var(--border)",
+    background: open ? "var(--bg-hover)" : "var(--bg-elevated)",
+    color: "var(--text-secondary)",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  };
+}

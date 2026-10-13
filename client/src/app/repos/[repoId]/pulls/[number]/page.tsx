@@ -66,6 +66,21 @@ export default function PRDetailPage() {
     router.replace(`/repos/${repoId}/pulls/${number}${sp.toString() ? `?${sp.toString()}` : ""}`);
   };
   const setTab = (t: string) => setParam("tab", t);
+  // Risk brief → Files changed at a file (and line): one URL change, so Back returns to Overview.
+  const openFile = (file: string, line: number | null) => {
+    const sp = new URLSearchParams(search.toString());
+    sp.set("tab", "diff");
+    sp.set("file", file);
+    if (line == null) sp.delete("line");
+    else sp.set("line", String(line));
+    router.push(`/repos/${repoId}/pulls/${number}?${sp.toString()}`);
+  };
+  const focusFile = search.get("file");
+  const focusLine = Number(search.get("line"));
+  const diffFocus = React.useMemo(
+    () => (focusFile ? { file: focusFile, line: Number.isInteger(focusLine) && focusLine > 0 ? focusLine : null } : null),
+    [focusFile, focusLine],
+  );
 
   // Reviews come newest-first; each is its own run (grouped into accordions).
   const runs = reviews ?? [];
@@ -141,6 +156,7 @@ export default function PRDetailPage() {
             repo={repoFullName}
             defaultBranch={activeRepo?.default_branch ?? "main"}
             headSha={pr.head_sha}
+            onOpenFile={openFile}
           />
         )}
 
@@ -177,6 +193,8 @@ export default function PRDetailPage() {
             canComment={pr.status === "open"}
             repoFullName={repoFullName}
             headSha={pr.head_sha}
+            focus={diffFocus}
+            whyEnabled={!!activeRepo && pr.base === activeRepo.default_branch}
           />
         )}
       </div>

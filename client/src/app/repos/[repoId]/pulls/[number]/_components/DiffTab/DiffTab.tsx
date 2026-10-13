@@ -8,16 +8,17 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { SectionLabel, Button, Skeleton } from "@devdigest/ui";
-import { DiffViewer, type DiffCommentApi, type DiffFindingApi } from "@/components/diff-viewer";
+import { DiffViewer, type DiffCommentApi, type DiffFindingApi, type WhyApi } from "@/components/diff-viewer";
 import { usePrComments, useCreatePrComment, usePrReviews, useFindingAction } from "@/lib/hooks/reviews";
 import { useSmartDiff } from "@/lib/hooks/smart-diff";
 import { notify } from "@/lib/toast";
 import type { FindingRecord, PrFile } from "@devdigest/shared";
 import { FindingCard } from "../FindingCard";
 import { ORDERS, type DiffOrder } from "./constants";
-import { annotationsFor, roleSections } from "./helpers";
+import { annotationsFor, roleSections, withFocus } from "./helpers";
 import { RoleGroup } from "./_components/RoleGroup";
 import { SplitBanner } from "./_components/SplitBanner";
+import { WhyPanel } from "./_components/WhyPanel";
 import { s } from "./styles";
 
 interface DiffTabProps {
@@ -29,9 +30,22 @@ interface DiffTabProps {
   /** For the finding cards' links to the file on GitHub. */
   repoFullName?: string | null;
   headSha?: string | null;
+  /** Deep link from the risk brief: open this file, scroll to this new-side line. */
+  focus?: { file: string; line: number | null } | null;
+  /** git-why needs a PR into the default branch (SPEC-04 AC-11). */
+  whyEnabled?: boolean;
 }
 
-export function DiffTab({ prId, filesCount, files, canComment, repoFullName, headSha }: DiffTabProps) {
+export function DiffTab({
+  prId,
+  filesCount,
+  files,
+  canComment,
+  repoFullName,
+  headSha,
+  focus = null,
+  whyEnabled = false,
+}: DiffTabProps) {
   const t = useTranslations("prReview");
   const { data: comments } = usePrComments(prId);
   const create = useCreatePrComment(prId);
@@ -94,9 +108,12 @@ export function DiffTab({ prId, filesCount, files, canComment, repoFullName, hea
   const smartReady = !!data && data.groups.length > 0;
   const shown: DiffOrder = smartReady ? order : "original";
   const annotations = React.useMemo(
-    () => annotationsFor(data, shown, (reason) => t(`smartDiff.reason.${reason}`)),
-    [data, shown, t],
+    () => withFocus(annotationsFor(data, shown, (reason) => t(`smartDiff.reason.${reason}`)), focus),
+    [data, shown, t, focus],
   );
+  const tBrief = useTranslations("brief");
+  const why: WhyApi | undefined =
+    whyEnabled && prId ? { label: tBrief("why.action"), render: (path, line) => <WhyPanel prId={prId} file={path} line={line} /> } : undefined;
 
   return (
     <section>
@@ -154,10 +171,11 @@ export function DiffTab({ prId, filesCount, files, canComment, repoFullName, hea
                 annotations={annotations}
                 commenting={commenting}
                 findingApi={findingApi}
+                why={why}
               />
             ))
           ) : (
-            <DiffViewer files={files} commenting={commenting} annotations={annotations} findingApi={findingApi} />
+            <DiffViewer files={files} commenting={commenting} annotations={annotations} findingApi={findingApi} why={why} />
           )}
         </>
       )}

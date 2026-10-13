@@ -13,3 +13,4 @@ export * from "./intent";
 export * from "./smart-diff";
 export * from "./context";
 export * from "./onboarding";
+export * from "./brief";

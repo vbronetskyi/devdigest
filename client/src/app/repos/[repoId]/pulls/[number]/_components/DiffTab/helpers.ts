@@ -63,3 +63,13 @@ export function worstSeverity(findings: readonly SmartDiffFinding[]): Severity |
 export function shortPath(path: string): string {
   return path.split("/").slice(-2).join("/");
 }
+
+/** A deep link (HW L05 risk brief) on top of the smart-diff annotations: that file opens and scrolls. */
+export function withFocus(
+  annotations: Record<string, FileAnnotation>,
+  focus: { file: string; line: number | null } | null,
+): Record<string, FileAnnotation> {
+  if (!focus) return annotations;
+  const current = annotations[focus.file] ?? { findings: [] };
+  return { ...annotations, [focus.file]: { ...current, defaultOpen: true, focus: { line: focus.line } } };
+}

@@ -8,8 +8,8 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Icon, SEV } from "@devdigest/ui";
 import { commentTargetFor, type CommentThread, type DiffCommentApi, cs } from "../comments";
-import { type DiffFindingApi, type Line, type LineMark } from "../helpers";
-import { s, findingBarFor, findingLabelFor, lineRowFor, lineSignFor } from "../styles";
+import { type DiffFindingApi, type Line, type LineMark, type WhyApi } from "../helpers";
+import { s, findingBarFor, findingLabelFor, lineRowFor, lineSignFor, whyButton, focusRing } from "../styles";
 import { CommentThreadView } from "../CommentThreadView";
 import { InlineComposer } from "../InlineComposer";
 
@@ -20,6 +20,8 @@ export function CodeLine({
   commenting,
   mark: rawMark,
   findings,
+  focused = false,
+  why,
 }: {
   ln: Line;
   path: string;
@@ -27,11 +29,20 @@ export function CodeLine({
   commenting?: DiffCommentApi;
   mark?: LineMark | null;
   findings?: DiffFindingApi;
+  /** Deep-link target: highlighted and scrolled into view. */
+  focused?: boolean;
+  /** git-why: offered on removed and context lines (they exist in the base). */
+  why?: WhyApi;
 }) {
   const [hover, setHover] = React.useState(false);
   const [composing, setComposing] = React.useState(false);
   const [expanded, setExpanded] = React.useState(false);
   const mark = findings?.visible === false ? null : rawMark;
+  const [whyOpen, setWhyOpen] = React.useState(false);
+  const rowRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (focused) rowRef.current?.scrollIntoView?.({ block: "center" });
+  }, [focused]);
 
   if (ln.kind === "hunk") {
     return (
@@ -42,6 +53,7 @@ export function CodeLine({
   }
 
   const sign = ln.kind === "add" ? "+" : ln.kind === "del" ? "−" : "";
+  const whyLine = why && ln.kind !== "add" && ln.oldNo !== undefined ? ln.oldNo : null;
   const target = commenting?.canComment ? commentTargetFor(ln) : null;
   const showAdd = hover && !!target && !composing;
 
@@ -51,7 +63,12 @@ export function CodeLine({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <div style={{ ...lineRowFor(ln.kind), position: "relative" }} data-finding={mark?.severity}>
+      <div
+        ref={rowRef}
+        style={{ ...lineRowFor(ln.kind), position: "relative", ...(focused ? focusRing : {}) }}
+        data-finding={mark?.severity}
+        data-focused={focused || undefined}
+      >
         {mark && <span style={findingBarFor(SEV[mark.severity].c)} aria-hidden />}
         <span className="mono tnum" style={{ ...s.lineNo, position: "relative" }}>
           {showAdd && target && (
@@ -76,7 +93,13 @@ export function CodeLine({
         {mark && mark.starting.length > 0 && (
           <FindingLabel mark={mark} expanded={expanded} onToggle={findings ? () => setExpanded((v) => !v) : undefined} />
         )}
+        {whyLine !== null && (hover || whyOpen) && (
+          <button type="button" style={whyButton(whyOpen)} onClick={() => setWhyOpen((o) => !o)} aria-expanded={whyOpen}>
+            {why!.label}
+          </button>
+        )}
       </div>
+      {whyLine !== null && whyOpen && why!.render(path, whyLine)}
 
       {mark && expanded && findings && (
         <div style={s.findingDetails}>
