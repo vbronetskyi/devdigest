@@ -114,12 +114,22 @@ export interface ReviewOutcome {
   raw: string;
 }
 
+/**
+ * Files a finding can cite. A deleted file has no new-side lines, so grounding would
+ * drop its line findings: it gets no map call of its own (its removed lines are still
+ * in the single-pass diff).
+ */
+function reviewableFiles(diff: UnifiedDiff): UnifiedDiff['files'] {
+  return diff.files.filter((f) => f.hunks.some((h) => h.newLineNumbers.length > 0));
+}
+
 function selectMode(strategy: ReviewStrategy, diff: UnifiedDiff, threshold: number): ReviewMode {
+  const files = reviewableFiles(diff);
   if (strategy === 'single-pass') return 'single-pass';
-  if (strategy === 'map-reduce') return diff.files.length > 1 ? 'map-reduce' : 'single-pass';
+  if (strategy === 'map-reduce') return files.length > 1 ? 'map-reduce' : 'single-pass';
   // auto: map-reduce only when the diff is both large AND multi-file (else 1 call).
-  const totalLines = diff.files.reduce((n, f) => n + f.additions + f.deletions, 0);
-  return totalLines > threshold && diff.files.length > 1 ? 'map-reduce' : 'single-pass';
+  const totalLines = files.reduce((n, f) => n + f.additions + f.deletions, 0);
+  return totalLines > threshold && files.length > 1 ? 'map-reduce' : 'single-pass';
 }
 
 export async function reviewPullRequest(input: ReviewInput): Promise<ReviewOutcome> {
@@ -146,13 +156,13 @@ export async function reviewPullRequest(input: ReviewInput): Promise<ReviewOutco
 
   const chunks =
     mode === 'map-reduce'
-      ? input.diff.files.map((f) => ({ label: f.path, diffText: sliceDiff(input.diff, f.path) }))
+      ? reviewableFiles(input.diff).map((f) => ({ label: f.path, diffText: sliceDiff(input.diff, f.path) }))
       : [{ label: 'all files', diffText: input.diff.raw }];
 
   emit(
     'info',
     mode === 'map-reduce'
-      ? `Large diff → map-reduce over ${input.diff.files.length} files`
+      ? `Large diff → map-reduce over ${chunks.length} files`
       : `Reviewing ${input.diff.files.length} changed file(s) in one pass`,
   );
 

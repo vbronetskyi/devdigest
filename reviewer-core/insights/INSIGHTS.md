@@ -79,4 +79,11 @@ error and fixed it by prefixing each new-side line with its number (server
 same here would change every review prompt, so it was left for a reviewer-core task.
 Evidence: `src/prompt.ts:182`, `../server/src/modules/reviews/brief/helpers.ts:48`
 
+### 2026-10-13 — Map-reduce skips files with no new-side lines
+Once the server's parser kept deleted files, map-reduce would have spent one model call
+per deleted file whose line findings grounding then drops. `reviewableFiles` keeps map
+chunks (and the mode choice) to files with new-side lines; single-pass still shows the
+removed lines in the raw diff.
+Evidence: `src/review/run.ts:122`, `test/run.test.ts:108`
+
 ## Open Questions

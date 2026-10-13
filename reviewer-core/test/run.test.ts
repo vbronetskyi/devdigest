@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { LLMProvider, StructuredResult } from '@devdigest/shared';
 import { MockLLMProvider, MockGitClient } from '../../server/src/adapters/mocks.js';
+import { parseUnifiedDiff } from '../../server/src/adapters/git/diff-parser.js';
 import { reviewPullRequest } from '../src/index.js';
 
 /**
@@ -102,6 +103,34 @@ describe('reviewPullRequest (engine)', () => {
         },
       }),
     ).rejects.toThrow('cancelled');
+  });
+
+  it('map-reduce: a deleted file gets no map call — nothing on it could be grounded', async () => {
+    const prompts: string[] = [];
+    const recorder: LLMProvider = {
+      id: 'openrouter',
+      async completeStructured<T>(req): Promise<StructuredResult<T>> {
+        prompts.push(req.messages.map((m) => m.content).join('\n'));
+        return { data: { verdict: 'approve', summary: 'ok', score: 100, findings: [] } as unknown as T, model: req.model, tokensIn: 0, tokensOut: 0, costUsd: 0, raw: '', attempts: 1 };
+      },
+      async listModels() {
+        return [];
+      },
+      async complete() {
+        throw new Error('not used');
+      },
+      async embed() {
+        return [];
+      },
+    };
+    const file = (path: string) => [`diff --git a/${path} b/${path}`, `--- a/${path}`, `+++ b/${path}`, '@@ -1,1 +1,2 @@', ' a', '+b'];
+    const diff = parseUnifiedDiff(
+      [...file('src/a.ts'), ...file('src/b.ts'), 'diff --git a/src/gone.ts b/src/gone.ts', '--- a/src/gone.ts', '+++ /dev/null', '@@ -1,1 +0,0 @@', '-bye'].join('\n'),
+    );
+    expect(diff.files.map((f) => f.path)).toEqual(['src/a.ts', 'src/b.ts', 'src/gone.ts']);
+    await reviewPullRequest({ systemPrompt: 's', model: 'm', diff, llm: recorder, strategy: 'map-reduce' });
+    expect(prompts).toHaveLength(2);
+    expect(prompts.some((p) => p.includes('src/gone.ts'))).toBe(false);
   });
 
   it('forwards sessionId to every LLM call (OpenRouter session grouping)', async () => {
