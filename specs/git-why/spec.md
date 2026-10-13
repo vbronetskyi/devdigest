@@ -1,4 +1,4 @@
-# Spec: git-why | Spec ID: SPEC-04 | Status: approved
+# Spec: git-why | Spec ID: SPEC-04 | Status: implemented
 
 ## Problem and why
 

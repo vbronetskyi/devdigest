@@ -84,7 +84,7 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
     expect(await client.mergeBase(repo, '--all', 'main')).toBeNull();
   });
 
-  it('SPEC-04 AC-1/AC-2: blames one line and finds the merge that brought its commit in', async () => {
+  it('SPEC-04 AC-6/AC-7: blames one line and finds the merge that brought its commit in', async () => {
     const client = new SimpleGitClient(root);
     const line = await client.blameLine(repo, 'src/a.ts', 2);
     expect(line).toMatchObject({ sha: sha.feature, author: 'dev', summary: 'change two', boundary: false });
@@ -94,12 +94,12 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
     expect(await client.mergedVia(repo, sha.root!)).toBeNull();
   });
 
-  it('SPEC-04 AC-5: marks the root commit as the boundary of known history', async () => {
+  it('SPEC-04 AC-8: marks the root commit as the boundary of known history', async () => {
     const line = await new SimpleGitClient(root).blameLine(repo, 'src/a.ts', 1);
     expect(line).toMatchObject({ sha: sha.root, boundary: true });
   });
 
-  it('SPEC-04 AC-4/AC-6: past the end, a bad line or an option-looking path gives null — never a git option', async () => {
+  it('SPEC-04 AC-9/AC-10: past the end, a bad line or an option-looking path gives null — never a git option', async () => {
     const client = new SimpleGitClient(root);
     expect(await client.blameLine(repo, 'src/a.ts', 99)).toBeNull();
     expect(await client.blameLine(repo, 'src/a.ts', 0)).toBeNull();

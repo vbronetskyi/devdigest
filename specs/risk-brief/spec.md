@@ -1,4 +1,4 @@
-# Spec: Risk brief and PR history | Spec ID: SPEC-03 | Status: approved
+# Spec: Risk brief and PR history | Spec ID: SPEC-03 | Status: implemented
 
 ## Problem and why
 
