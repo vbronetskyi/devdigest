@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { startPg, dockerAvailable, type PgFixture } from './helpers/pg.js';
@@ -60,6 +60,7 @@ d('HW L05 git-why — SPEC-04 (Testcontainers pg)', () => {
       commit: { sha: BLAME.sha, author: 'dev', date: BLAME.date, subject: 'Wire the routes' },
       boundary: false,
       pr: { number: 4, title: 'Add the routes module', url: `https://github.com/acme/${name}/pull/4` },
+      missing: null,
       note: null,
     });
     expect(mock.blameRevs).toEqual(['base000']);
@@ -74,27 +75,64 @@ d('HW L05 git-why — SPEC-04 (Testcontainers pg)', () => {
     const root = await setup({ blame: { [`${FILE}:11`]: { ...BLAME, boundary: true } } });
     expect((await root.why(FILE, 11)).json()).toMatchObject({ boundary: true, note: expect.stringMatching(/earlier history is not available/) });
     const fresh = await setup({ blame: {} });
-    expect((await fresh.why(FILE, 11)).json()).toMatchObject({ commit: null, pr: null, note: expect.stringMatching(/new or renamed/) });
+    expect((await fresh.why(FILE, 11)).json()).toMatchObject({ commit: null, pr: null, missing: 'file', note: expect.stringMatching(/new or renamed/) });
+    // The file is at the merge base, the line is not: a different note.
+    const moved = await setup({ blame: {}, files: { [FILE]: 'short\n' } });
+    expect((await moved.why(FILE, 11)).json()).toMatchObject({ commit: null, missing: 'line', note: expect.stringMatching(/has no such line/) });
   });
 
-  it('AC-1–AC-5: 404 PR, 409 non-default base, 422 bad line, 404 file or line, 409 no clone or unknown merge base — before any blame', async () => {
+  it('AC-6/AC-7: the merge base of HEAD and the PR head; the merge outranks the commit\'s own (#N), which is used when the merge names none', async () => {
+    const both = await setup({ blame: { [`${FILE}:11`]: { ...BLAME, summary: 'Add rate limits (#7)' } } });
+    const mergeBase = vi.spyOn(both.mock, 'mergeBase');
+    expect((await both.why(FILE, 11)).json().pr).toMatchObject({ number: 4 });
+    expect(mergeBase.mock.calls[0]!.slice(1)).toEqual(['HEAD', 'head1']);
+
+    const branch = await setup({
+      mergedVia: { [BLAME.sha]: { sha: 'm2', subject: "Merge branch 'develop'" } },
+      blame: { [`${FILE}:11`]: { ...BLAME, summary: 'Add rate limits (#7)' } },
+    });
+    expect((await branch.why(FILE, 11)).json().pr).toMatchObject({ number: 7 });
+  });
+
+  it('AC-1–AC-5: 422 malformed first, then 404 PR, 409 non-default base, 404 file or line, 409 no clone or unknown merge base — no git before AC-4', async () => {
     const ok = await setup();
+    const gitCalls = (['isShallow', 'mergeBase', 'fetchPullHead', 'blameLine', 'readCommitted', 'mergedVia'] as const).map((m) => vi.spyOn(ok.mock, m));
     expect((await ok.why(FILE, 11, randomUUID())).statusCode).toBe(404);
+    expect((await ok.why(FILE, 0, randomUUID())).statusCode).toBe(422); // AC-3 before AC-1
+    expect((await ok.why(FILE, 11, 'not-a-uuid')).statusCode).toBe(422);
     for (const bad of ['abc', '0', '-3', '1.5']) expect((await ok.why(FILE, bad)).statusCode).toBe(422);
     expect((await ok.why('server/src/other.ts', 11)).statusCode).toBe(404);
     expect((await ok.why(FILE, 13)).statusCode).toBe(404); // added on the new side only
     expect((await ok.why('--output=/tmp/x', 11)).statusCode).toBe(404);
-    expect(ok.mock.blameRevs).toEqual([]);
+    for (const spy of gitCalls) expect(spy).not.toHaveBeenCalled();
 
     const develop = await setup({}, 'develop');
     const res = await develop.why(FILE, 11);
     expect(res.statusCode).toBe(409);
     expect(res.json().error.message).toMatch(/default branch/);
+    expect((await develop.why('server/src/other.ts', 11)).statusCode).toBe(409); // AC-2 before AC-4
 
-    expect((await (await setup({ noClone: true })).why(FILE, 11)).statusCode).toBe(409);
+    const noClone = await setup({ noClone: true });
+    expect((await noClone.why('server/src/other.ts', 11)).statusCode).toBe(404); // AC-4 before AC-5
+    const nc = await noClone.why(FILE, 11);
+    expect(nc.statusCode).toBe(409);
+    expect(nc.json().error.message).toMatch(/no local clone/);
+
     const unknown = await setup({ mergeBase: null });
+    const fetch = vi.spyOn(unknown.mock, 'fetchPullHead');
     const r = await unknown.why(FILE, 11);
     expect(r.statusCode).toBe(409);
     expect(r.json().error.message).toMatch(/could not be fetched/);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('AC-5: a PR head missing from the clone is fetched, then answered', async () => {
+    const late = await setup();
+    vi.spyOn(late.mock, 'mergeBase').mockResolvedValueOnce(null);
+    const fetch = vi.spyOn(late.mock, 'fetchPullHead');
+    const res = await late.why(FILE, 11);
+    expect(res.statusCode).toBe(200);
+    expect(fetch).toHaveBeenCalledWith(expect.anything(), 9);
+    expect(late.mock.blameRevs).toEqual(['base000']);
   });
 });

@@ -47,6 +47,20 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
     await writeFile(join(dir, 'src', 'b.ts'), 'b\nbee\nbuzz\n');
     await git.add('.');
     sha.direct = await commit('tweak b');
+
+    // A later PR merged on top (dated in the past): the commit from #7 is contained by
+    // both merges, and #7 is the one that brought it in.
+    await git.checkout(['-q', '-b', 'later']);
+    await writeFile(join(dir, 'src', 'c.ts'), 'c\n');
+    await git.add('.');
+    await commit('add c');
+    await git.checkout(['-q', 'main']);
+    // Only what git needs: simple-git refuses an environment carrying GIT_EDITOR and friends.
+    const past = { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', GIT_AUTHOR_DATE: '2001-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2001-01-01T00:00:00Z' };
+    await simpleGit(dir).env(past).raw(['-c', 'user.name=dev', '-c', 'user.email=dev@example.com', 'merge', '-q', '--no-ff', 'later', '-m', 'Merge pull request #12 from acme/later']);
+
+    // A shallow clone of it, cut at its tip.
+    await git.clone(`file://${dir}`, join(root, 'acme', 'shallow'), ['--depth', '1', '-q']);
   });
   afterAll(async () => {
     await rm(root, { recursive: true, force: true });
@@ -88,7 +102,9 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
     const client = new SimpleGitClient(root);
     const line = await client.blameLine(repo, 'src/a.ts', 2);
     expect(line).toMatchObject({ sha: sha.feature, author: 'dev', summary: 'change two', boundary: false });
+    // Two merges descend from it (#7, then #12): the oldest by ancestry wins.
     expect(await client.mergedVia(repo, sha.feature!)).toEqual({ sha: sha.merge, subject: 'Merge pull request #7 from acme/feature' });
+    expect(await client.mergedVia(repo, 'f'.repeat(40))).toBeNull();
     // A commit made on the mainline itself arrived without a merge — even with merges after it.
     expect(await client.mergedVia(repo, sha.squash!)).toBeNull();
     expect(await client.mergedVia(repo, sha.root!)).toBeNull();
@@ -97,6 +113,22 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
   it('SPEC-04 AC-8: marks the root commit as the boundary of known history', async () => {
     const line = await new SimpleGitClient(root).blameLine(repo, 'src/a.ts', 1);
     expect(line).toMatchObject({ sha: sha.root, boundary: true });
+  });
+
+  it('SPEC-03 AC-7 / SPEC-04 AC-8: a shallow clone says so, and its cut is the boundary', async () => {
+    const client = new SimpleGitClient(root);
+    const shallow = { owner: 'acme', name: 'shallow' };
+    expect(await client.isShallow(shallow)).toBe(true);
+    expect(await client.blameLine(shallow, 'src/a.ts', 1)).toMatchObject({ boundary: true });
+    expect(await client.isShallow({ owner: 'acme', name: 'none' })).toBeNull();
+  });
+
+  it('SPEC-03 AC-6: sends at most 100 paths to git', async () => {
+    const client = new SimpleGitClient(root);
+    const filler = Array.from({ length: 100 }, (_, i) => `src/missing-${i}.ts`);
+    // The only real path is the 101st: it never reaches git.
+    expect(await client.history(repo, [...filler, 'src/a.ts'], 10)).toEqual([]);
+    expect((await client.history(repo, [...filler.slice(1), 'src/a.ts'], 10)).length).toBeGreaterThan(0);
   });
 
   it('SPEC-04 AC-9/AC-10: past the end, a bad line or an option-looking path gives null — never a git option', async () => {

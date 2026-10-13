@@ -138,8 +138,11 @@ export const WhyAnswer = z.object({
     .nullable(),
   /** The commit is the oldest the clone has: earlier history is not available. */
   boundary: z.boolean(),
-  pr: z.object({ number: z.number().int(), title: z.string().nullable(), url: z.string() }).nullable(),
-  /** Said when there is no commit (new or renamed file). */
+  /** Only a PR DevDigest knows as merged in this repository (a fork inherits the upstream's numbers). */
+  pr: z.object({ number: z.number().int(), title: z.string(), url: z.string() }).nullable(),
+  /** Why there is no commit: the file is not at the merge base, or the line is not. */
+  missing: z.enum(['file', 'line']).nullable(),
+  /** A sentence for API callers (boundary or missing); the UI words its own. */
   note: z.string().nullable(),
 });
 export type WhyAnswer = z.infer<typeof WhyAnswer>;

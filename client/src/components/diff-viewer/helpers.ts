@@ -16,7 +16,12 @@ export function parsePatch(patch: string | null | undefined): Line[] {
   const out: Line[] = [];
   let oldNo = 0;
   let newNo = 0;
-  for (const raw of patch.split("\n")) {
+  const rows = patch.split("\n");
+  // A patch ending in a newline has no empty last line; `\ No newline at end of file`
+  // is a marker, not a line — neither may get line numbers (or a "why").
+  if (rows.length > 1 && rows[rows.length - 1] === "") rows.pop();
+  for (const raw of rows) {
+    if (raw.startsWith("\\")) continue;
     if (raw.startsWith("@@")) {
       const m = raw.match(HUNK_HEADER_RE);
       if (m) {

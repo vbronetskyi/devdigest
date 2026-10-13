@@ -6,19 +6,22 @@ export function oldSideLines(patch: string | null): Set<number> {
   const out = new Set<number>();
   if (!patch) return out;
   let old = 0;
-  let inHunk = false;
+  // Old-side lines the current hunk still has to show; the header says how many, so a
+  // trailing newline or a `\ No newline` marker never becomes a line.
+  let left = 0;
   for (const line of patch.split('\n')) {
-    const header = line.match(/^@@ -(\d+)(?:,\d+)? \+\d+(?:,\d+)? @@/);
+    const header = line.match(/^@@ -(\d+)(?:,(\d+))? \+\d+(?:,\d+)? @@/);
     if (header) {
       old = Number(header[1]);
-      inHunk = true;
+      left = header[2] === undefined ? 1 : Number(header[2]);
       continue;
     }
-    if (!inHunk || line.startsWith('\\')) continue;
-    if (line.startsWith('+')) continue;
+    if (left === 0 || line.startsWith('\\') || line.startsWith('+')) continue;
+    // A blank context line may have lost its leading space on the way.
     if (line.startsWith('-') || line.startsWith(' ') || line === '') {
       out.add(old);
       old++;
+      left--;
     }
   }
   return out;

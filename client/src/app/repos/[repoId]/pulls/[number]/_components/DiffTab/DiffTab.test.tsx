@@ -14,7 +14,7 @@ const h = vi.hoisted(() => ({
 vi.mock("@/lib/hooks/smart-diff", () => ({ useSmartDiff: () => h.smart }));
 vi.mock("@/lib/hooks/brief", () => ({
   useWhy: (_pr: string, file: string, line: number) => ({
-    data: { file, line, commit: { sha: "c0ffee1234567", author: "dev", date: "2026-09-01T10:00:00Z", subject: `blame ${file}:${line}` }, boundary: false, pr: null, note: null },
+    data: { file, line, commit: { sha: "c0ffee1234567", author: "dev", date: "2026-09-01T10:00:00Z", subject: `blame ${file}:${line}` }, boundary: false, pr: null, missing: null, note: null },
     isLoading: false,
     isError: false,
     error: null,
@@ -58,7 +58,7 @@ const record = (id: string, title: string, start: number, extra: Partial<Finding
 // GitHub's order: alphabetical. The reviewer order puts the risky code first.
 const FILES: PrFile[] = [
   { path: "pnpm-lock.yaml", additions: 1, deletions: 0, patch: "@@ -1,1 +1,2 @@\n a\n+lock-line-content" },
-  { path: "server/src/index.ts", additions: 1, deletions: 0, patch: "@@ -1,1 +1,2 @@\n a\n+import share from './share.js';" },
+  { path: "server/src/index.ts", additions: 1, deletions: 1, patch: "@@ -1,2 +1,2 @@\n a\n-removed-line\n+import share from './share.js';" },
   { path: "server/src/share.ts", additions: 3, deletions: 0, patch: "@@ -0,0 +1,3 @@\n+const url = req.body.url;\n+await fetch(url);\n+return ok;" },
   { path: "server/test/share.test.ts", additions: 1, deletions: 0, patch: "@@ -0,0 +1,1 @@\n+it('shares');" },
   { path: "docs/share.md", additions: 1, deletions: 0, patch: "@@ -0,0 +1,1 @@\n+# Share" },
@@ -248,9 +248,16 @@ describe("DiffTab — brief deep link and git-why", () => {
     fireEvent.click(screen.getByRole("button", { name: "why" }));
     expect(screen.getByText("blame server/src/index.ts:1")).toBeTruthy();
 
+    // A removed line exists in the base too: it offers "why" by its old number.
+    fireEvent.mouseEnter(screen.getByText("removed-line").closest("div")!.parentElement!);
+    const buttons = screen.getAllByRole("button", { name: "why" });
+    fireEvent.click(buttons[buttons.length - 1]!);
+    expect(screen.getByText("blame server/src/index.ts:2")).toBeTruthy();
+
     const added = screen.getByText("import share from './share.js';").closest("div")!.parentElement!;
     fireEvent.mouseEnter(added);
-    expect(screen.getAllByRole("button", { name: "why" })).toHaveLength(1);
+    // Only the two open panels' toggles — the added line offers none.
+    expect(screen.getAllByRole("button", { name: "why" })).toHaveLength(2);
   });
 
   it("SPEC-04 AC-11: no 'why' when the PR is not into the default branch", () => {

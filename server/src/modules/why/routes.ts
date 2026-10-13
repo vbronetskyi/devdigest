@@ -5,9 +5,9 @@ import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
 import { WhyService } from './service.js';
 
-/** `line` is the old-side (base) line number the diff shows; anything else is a 422. */
+/** `line` is the old-side (base) line number the diff shows; anything else is a 422 (SPEC-04 AC-3). */
 const WhyQuery = z.object({
-  file: z.string().min(1).max(500),
+  file: z.string().min(1).max(4096),
   line: z.coerce.number().int().positive(),
 });
 

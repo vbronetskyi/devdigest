@@ -7,6 +7,13 @@ describe('oldSideLines', () => {
     expect([...oldSideLines(patch)]).toEqual([10, 11, 12, 40]);
     expect(oldSideLines(null).size).toBe(0);
   });
+
+  it('SPEC-04 AC-4: stops where the hunk header says — no phantom line after a trailing newline', () => {
+    expect([...oldSideLines('@@ -1,2 +1,2 @@\n a\n-b\n+c\n')]).toEqual([1, 2]);
+    expect([...oldSideLines('@@ -5 +5 @@\n-x\n+y\n\n')]).toEqual([5]);
+    // A blank context line that lost its space still counts inside the hunk.
+    expect([...oldSideLines('@@ -1,3 +1,3 @@\n a\n\n c')]).toEqual([1, 2, 3]);
+  });
 });
 
 describe('githubPrUrl', () => {

@@ -186,23 +186,34 @@ export class SimpleGitClient implements GitClient {
 
   async isShallow(repo: RepoRef): Promise<boolean | null> {
     if (!(await this.exists(join(this.clonePathFor(repo), '.git')))) return null;
-    return (await this.git(repo).raw(['rev-parse', '--is-shallow-repository'])).trim() === 'true';
+    try {
+      return (await this.git(repo).raw(['rev-parse', '--is-shallow-repository'])).trim() === 'true';
+    } catch {
+      return null; // a clone git cannot read is as good as none
+    }
   }
 
   async mergedVia(repo: RepoRef, sha: string): Promise<{ sha: string; subject: string } | null> {
     if (!/^[0-9a-f]{7,40}$/.test(sha)) return null;
     if (!(await this.exists(join(this.clonePathFor(repo), '.git')))) return null;
     const git = this.git(repo);
-    const mainline = new Set((await git.raw(['rev-list', '--first-parent', 'HEAD'])).split('\n').filter(Boolean));
-    // A commit on the mainline itself was committed there (or squash-merged): no merge brought it in.
-    const full = (await git.raw(['rev-parse', '--verify', `${sha}^{commit}`])).trim();
-    if (mainline.has(full)) return null;
-    // Merges that descend from the commit, oldest first; the first one on the mainline brought it in.
-    const merges = (await git.raw(['rev-list', '--ancestry-path', '--merges', '--reverse', `${sha}..HEAD`])).split('\n').filter(Boolean);
-    const via = merges.find((m) => mainline.has(m));
-    if (!via) return null;
-    const subject = (await git.raw(['log', '-1', '--format=%s', via])).trim();
-    return { sha: via, subject };
+    try {
+      const mainline = new Set((await git.raw(['rev-list', '--first-parent', 'HEAD'])).split('\n').filter(Boolean));
+      // A commit on the mainline itself was committed there (or squash-merged): no merge brought it in.
+      const full = (await git.raw(['rev-parse', '--verify', `${sha}^{commit}`])).trim();
+      if (mainline.has(full)) return null;
+      // Merges that descend from the commit, ancestors first (topological, so skewed
+      // commit dates cannot reorder them); the first one on the mainline brought it in.
+      const merges = (await git.raw(['rev-list', '--ancestry-path', '--merges', '--topo-order', '--reverse', `${sha}..HEAD`]))
+        .split('\n')
+        .filter(Boolean);
+      const via = merges.find((m) => mainline.has(m));
+      if (!via) return null;
+      const subject = (await git.raw(['log', '-1', '--format=%s', via])).trim();
+      return { sha: via, subject };
+    } catch {
+      return null; // unknown to the clone: no PR can be named
+    }
   }
 
   async readCommitted(repo: RepoRef, path: string, commit = 'HEAD'): Promise<string | null> {

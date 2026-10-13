@@ -6,6 +6,7 @@ import { WhyRepository } from './repository.js';
 import { githubPrUrl, oldSideLines } from './helpers.js';
 
 const NO_HISTORY = 'No history for this file at the merge base — it is new or renamed in this PR.';
+const NOT_AT_BASE = 'The file at the merge base has no such line — the stored diff and the merge base disagree.';
 const BOUNDARY = 'This is the oldest commit the clone has; earlier history is not available.';
 
 /**
@@ -42,7 +43,11 @@ export class WhyService {
     if (!base) throw new ConflictError('The PR head could not be fetched into the clone, so its merge base is unknown.');
 
     const blame = await git.blameLine(ref, file, line, base);
-    if (!blame) return { file, line, commit: null, boundary: false, pr: null, note: NO_HISTORY };
+    if (!blame) {
+      // AC-9: a file the merge base lacks is new or renamed; otherwise the line is not there.
+      const atBase = (await git.readCommitted(ref, file, base)) !== null;
+      return { file, line, commit: null, boundary: false, pr: null, missing: atBase ? 'line' : 'file', note: atBase ? NOT_AT_BASE : NO_HISTORY };
+    }
 
     const via = await git.mergedVia(ref, blame.sha);
     const number = (via ? prNumberOf(via.subject) : null) ?? prNumberOf(blame.summary);
@@ -56,6 +61,7 @@ export class WhyService {
       commit: { sha: blame.sha, author: blame.author, date: blame.date, subject: blame.summary },
       boundary: blame.boundary,
       pr,
+      missing: null,
       note: blame.boundary ? BOUNDARY : null,
     };
   }

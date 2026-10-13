@@ -49,3 +49,15 @@ describe("anchorFindings", () => {
     expect(anchorFindings([], [below]).outside).toEqual([below]);
   });
 });
+
+describe("parsePatch", () => {
+  it("numbers both sides; the no-newline marker and a trailing newline are not lines (SPEC-04 AC-11)", () => {
+    const lines = parsePatch("@@ -4,2 +4,2 @@\n keep\n-old\n+new\n\\ No newline at end of file\n");
+    expect(lines.map((l) => [l.kind, l.text, l.oldNo ?? null, l.newNo ?? null])).toEqual([
+      ["hunk", "@@ -4,2 +4,2 @@", null, null],
+      ["ctx", "keep", 4, 4],
+      ["del", "old", 5, null],
+      ["add", "new", null, 5],
+    ]);
+  });
+});

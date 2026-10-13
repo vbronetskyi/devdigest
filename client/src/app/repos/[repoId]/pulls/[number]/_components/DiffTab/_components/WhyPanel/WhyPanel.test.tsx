@@ -22,7 +22,7 @@ const renderPanel = () =>
 describe("WhyPanel", () => {
   it("AC-12: shows the commit and the PR linked on GitHub, and the boundary note", () => {
     h.state = {
-      data: { file: "src/a.ts", line: 11, commit: { sha: "c0ffee1234567", author: "dev", date: "2026-09-01T10:00:00Z", subject: "Wire the routes" }, boundary: true, pr: { number: 4, title: "Add routes", url: "https://github.com/acme/api/pull/4" }, note: "x" },
+      data: { file: "src/a.ts", line: 11, commit: { sha: "c0ffee1234567", author: "Dana Dev", date: "2026-09-01T10:00:00Z", subject: "Wire the routes" }, boundary: true, pr: { number: 4, title: "Add routes", url: "https://github.com/acme/api/pull/4" }, missing: null, note: "x" },
       isLoading: false,
       isError: false,
       error: null,
@@ -30,14 +30,20 @@ describe("WhyPanel", () => {
     renderPanel();
     expect(screen.getByText("c0ffee1")).toBeTruthy();
     expect(screen.getByText("Wire the routes")).toBeTruthy();
+    expect(screen.getByText(`Dana Dev · ${new Date("2026-09-01T10:00:00Z").toLocaleDateString()}`)).toBeTruthy();
+    expect(screen.getByRole("link").textContent).toBe("#4 Add routes");
     expect(screen.getByRole("link").getAttribute("href")).toBe("https://github.com/acme/api/pull/4");
     expect(screen.getByText(/earlier history is not available/)).toBeTruthy();
   });
 
-  it("AC-12: says there is no history for a new or renamed file", () => {
-    h.state = { data: { file: "src/a.ts", line: 11, commit: null, boundary: false, pr: null, note: "x" }, isLoading: false, isError: false, error: null };
+  it("AC-12 / AC-9: says there is no history for a new or renamed file — or for a line the merge base lacks", () => {
+    h.state = { data: { file: "src/a.ts", line: 11, commit: null, boundary: false, pr: null, missing: "file", note: "x" }, isLoading: false, isError: false, error: null };
     renderPanel();
     expect(screen.getByText(/new or renamed in this PR/)).toBeTruthy();
+    cleanup();
+    h.state = { data: { file: "src/a.ts", line: 11, commit: null, boundary: false, pr: null, missing: "line", note: "x" }, isLoading: false, isError: false, error: null };
+    renderPanel();
+    expect(screen.getByText(/merge base has no such line/)).toBeTruthy();
   });
 
   it("AC-13: shows the server's message when the request fails", () => {

@@ -16,7 +16,7 @@ export function WhyPanel({ prId, file, line }: { prId: string; file: string; lin
   let body: React.ReactNode;
   if (isLoading) body = <span style={s.muted}>{t("why.loading")}</span>;
   else if (isError || !data) body = <span style={s.error}>{t("why.loadError", { message: error instanceof ApiError ? error.message : String(error) })}</span>;
-  else if (!data.commit) body = <span style={s.muted}>{t("why.newFile")}</span>;
+  else if (!data.commit) body = <span style={s.muted}>{t(data.missing === "line" ? "why.lineNotAtBase" : "why.newFile")}</span>;
   else {
     const date = new Date(data.commit.date);
     body = (
