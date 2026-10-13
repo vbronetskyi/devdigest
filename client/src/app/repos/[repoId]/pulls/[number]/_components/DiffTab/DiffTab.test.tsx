@@ -225,6 +225,21 @@ describe("DiffTab — brief deep link and git-why", () => {
     expect(focused).not.toBeNull();
   });
 
+  it("SPEC-03 AC-22: a line the patch does not show scrolls to the file instead", () => {
+    h.smart = { data: SMART, isLoading: false, isError: false };
+    const scroll = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scroll;
+    try {
+      renderTab({ focus: { file: "server/src/share.ts", line: 40 } });
+      expect(document.querySelector("[data-focused]")).toBeNull();
+      expect(scroll).toHaveBeenCalledTimes(1);
+      expect((scroll.mock.contexts[0] as Element).getAttribute("data-focus")).toBe("true");
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
   it("SPEC-04 AC-11/AC-12: 'why' on context lines only, showing the answer under the line", () => {
     h.smart = { data: SMART, isLoading: false, isError: false };
     renderTab({ whyEnabled: true, focus: { file: "server/src/index.ts", line: null } });

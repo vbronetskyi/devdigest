@@ -61,11 +61,14 @@ export function FileCard({
     !!focus || (annotation?.defaultOpen ?? (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES)
   );
   const cardRef = React.useRef<HTMLDivElement>(null);
-  // A deep link without a line scrolls to the file; with a line, the line scrolls itself.
-  React.useEffect(() => {
-    if (focus && focus.line == null) cardRef.current?.scrollIntoView?.({ block: "start" });
-  }, [focus]);
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
+  const isFocusLine = (ln: (typeof lines)[number]) => focus?.line != null && ln.kind !== "del" && ln.newNo === focus.line;
+  // A shown focus line scrolls itself; otherwise (no line, or a line this patch does
+  // not show — the stored patch can differ from the diff the brief read) the file does.
+  const lineShown = lines.some(isFocusLine);
+  React.useEffect(() => {
+    if (focus && !lineShown) cardRef.current?.scrollIntoView?.({ block: "start" });
+  }, [focus, lineShown]);
   const findings = annotation?.findings ?? [];
   const anchors = React.useMemo(() => anchorFindings(lines, findings), [lines, findings]);
   const worst = findings.length > 0 ? [...findings].sort(bySeverity)[0]!.severity : null;
@@ -122,7 +125,7 @@ export function FileCard({
                 commenting={commenting}
                 mark={markFor(ln, findings, anchors)}
                 findings={findingApi}
-                focused={focus?.line != null && ln.kind !== "del" && ln.newNo === focus.line}
+                focused={isFocusLine(ln)}
                 why={why}
               />
             ))
