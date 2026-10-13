@@ -292,6 +292,14 @@ header counts and a deleted file keeps its old path. A deleted file in map-reduc
 now its own chunk.
 Evidence: `src/adapters/git/diff-parser.ts:51`, `src/adapters/git/diff-parser.ts:59`, `test/grounding.test.ts:1`
 
+### 2026-10-13 — `git diff` quoted non-ASCII paths, so reviews cited a name that was not the file
+`SimpleGitClient.diff` ran plain `git diff`; with the default `core.quotepath=true` a
+path like `src/привіт.ts` comes out as `+++ "b/src/\320\277…"`, and the parser kept
+that string. Grounding, signals and history lookups then used a path no other source
+has. `diff` and `diffNameOnly` now pass `-c core.quotepath=off`, like `history` did.
+Any new git call that prints paths needs it (or `-z`).
+Evidence: `src/adapters/git/simple-git.ts:99`, `test/git-history.test.ts:157`
+
 ## Session Notes
 
 ### 2026-10-07 — Lab 1: run cost

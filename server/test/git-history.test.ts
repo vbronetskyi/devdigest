@@ -34,7 +34,9 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
     await git.add('.');
     sha.feature = await commit('change two');
     await git.checkout(['-q', 'main']);
-    await git.raw(['-c', 'user.name=dev', '-c', 'user.email=dev@example.com', 'merge', '-q', '--no-ff', 'feature', '-m', 'Merge pull request #7 from acme/feature', '-m', 'Change the second line']);
+    // Merged in GitHub's way: the merger is the author, GitHub the committer.
+    const asGitHub = { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', GIT_AUTHOR_NAME: 'merger', GIT_AUTHOR_EMAIL: 'merger@example.com', GIT_COMMITTER_NAME: 'GitHub', GIT_COMMITTER_EMAIL: 'noreply@github.com' };
+    await simpleGit(dir).env(asGitHub).raw(['merge', '-q', '--no-ff', 'feature', '-m', 'Merge pull request #7 from acme/feature', '-m', 'Change the second line']);
     sha.merge = (await git.revparse(['HEAD'])).trim();
 
     // A file with a non-ASCII name, then a squash-merged PR, then a direct commit.
@@ -90,6 +92,7 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
       ['initial snapshot', ['src/a.ts', 'src/b.ts']],
     ]);
     expect(history[0]!.author).toBe('dev');
+    expect(history[2]!.author).toBe('merger'); // the merge commit's author, not its committer
     expect(history[0]!.date).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(await client.history(repo, ['src/a.ts'], 1)).toHaveLength(1);
   });
@@ -149,6 +152,12 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
     expect(await client.hasFile(repo, '--output=x', 'main')).toBe(false);
     expect(await client.hasFile(repo, 'src/a.ts', '--all')).toBeNull();
     expect(await client.hasFile({ owner: 'acme', name: 'broken' }, 'src/a.ts', 'main')).toBeNull();
+  });
+
+  it('SPEC-03 AC-6: the review diff names non-ASCII files as written', async () => {
+    const forward = await new SimpleGitClient(root).diff(repo, sha.merge!, sha.unicode!);
+    expect(forward.files.map((f) => f.path)).toEqual(['src/привіт.ts']);
+    expect(await new SimpleGitClient(root).diffNameOnly(repo, sha.merge!, sha.unicode!)).toEqual(['src/привіт.ts']);
   });
 
   it('SPEC-03 AC-6: sends at most 100 paths to git', async () => {

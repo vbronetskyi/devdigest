@@ -28,7 +28,7 @@ const DIFF: UnifiedDiff = {
       deletions: 1,
       hunks: [
         { file: 'server/src/routes.ts', oldStart: 10, oldLines: 3, newStart: 10, newLines: 5, newLineNumbers: [10, 11, 12, 13, 14] },
-        { file: 'server/src/routes.ts', oldStart: 38, oldLines: 2, newStart: 40, newLines: 3, newLineNumbers: [40, 41, 42] },
+        { file: 'server/src/routes.ts', oldStart: 15, oldLines: 2, newStart: 17, newLines: 3, newLineNumbers: [17, 18, 19] },
       ],
     },
     { path: 'server/package.json', additions: 1, deletions: 0, hunks: [{ file: 'server/package.json', oldStart: 20, oldLines: 2, newStart: 20, newLines: 3, newLineNumbers: [20, 21, 22] }] },
@@ -60,6 +60,11 @@ describe('buildBriefMessages', () => {
     }
     expect(body.slice(0, body.indexOf('<untrusted'))).not.toContain('Ignore previous');
     expect(body).not.toContain('x'.repeat(4001));
+  });
+
+  it('AC-9: a new file header ends an unfinished hunk', () => {
+    const raw = ['diff --git a/a.ts b/a.ts', '@@ -1,5 +1,5 @@', ' cut short', 'diff --git a/b.ts b/b.ts', '--- a/b.ts', '+++ b/b.ts', '@@ -1 +1 @@', '+x'].join('\n');
+    expect(numberedDiff(raw).split('\n').slice(2, 6)).toEqual(['    1  cut short', 'diff --git a/b.ts b/b.ts', '--- a/b.ts', '+++ b/b.ts']);
   });
 
   it('AC-9: every new-side line carries its number; removed lines and headers do not', () => {
@@ -133,8 +138,9 @@ describe('references', () => {
     expect(groundRef('server/src/routes.ts:13-11', index)).toBe('server/src/routes.ts');
     expect(groundRef('server/src/routes.ts:0', index)).toBe('server/src/routes.ts');
     // Both ends shown, the lines between not (two hunks): not a shown range.
-    expect(groundRef('server/src/routes.ts:12-41', index)).toBe('server/src/routes.ts');
-    expect(groundRef('server/src/routes.ts:40-42', index)).toBe('server/src/routes.ts:40-42');
+    // (12–18 is shorter than the 8 shown lines, so only the per-line check rejects it.)
+    expect(groundRef('server/src/routes.ts:12-18', index)).toBe('server/src/routes.ts');
+    expect(groundRef('server/src/routes.ts:17-19', index)).toBe('server/src/routes.ts:17-19');
     expect(groundRef('server/src/legacy.ts:1', index)).toBe('server/src/legacy.ts');
     expect(groundRef('server/src/invented.ts:3', index)).toBeNull();
   });
@@ -183,9 +189,11 @@ describe('groundBrief', () => {
       META,
     );
     expect(long.risks[0]!.title.length).toBeLessThanOrEqual(120);
+    expect(long.risks[0]!.title.length).toBeGreaterThan(100);
     expect(long.risks[0]!.explanation.length).toBeLessThanOrEqual(600);
     expect(long.risks[0]!.explanation.length).toBeGreaterThan(500);
     expect(long.review_focus[0]!.reason.length).toBeLessThanOrEqual(240);
+    expect(long.review_focus[0]!.reason.length).toBeGreaterThan(200);
     expect(long.history[0]!.notes!.length).toBeLessThanOrEqual(240);
     expect(long.history[0]!.notes!.length).toBeGreaterThan(200);
   });

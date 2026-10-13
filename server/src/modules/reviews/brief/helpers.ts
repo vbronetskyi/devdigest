@@ -52,7 +52,11 @@ export function numberedDiff(raw: string): string {
   let newLeft = 0;
   for (const line of raw.split('\n')) {
     const header = line.match(/^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
-    if (header) {
+    if (line.startsWith('diff --git')) {
+      oldLeft = 0; // a new file: whatever the last hunk still owed, it is over
+      newLeft = 0;
+      out.push(line);
+    } else if (header) {
       oldLeft = header[1] === undefined ? 1 : Number(header[1]);
       newNo = Number(header[2]);
       newLeft = header[3] === undefined ? 1 : Number(header[3]);

@@ -98,6 +98,7 @@ d('HW L05 risk brief — SPEC-03 (Testcontainers pg)', () => {
     expect(brief.review_focus).toEqual([{ file: 'server/src/routes.ts', line: 11, reason: 'The fetch.' }]);
     // The lockfile is noise for history; PR #4 keeps DevDigest's title; the direct commit is skipped.
     expect(history.mock.calls[0]![1]).toEqual(['server/src/routes.ts', 'server/package.json']);
+    expect(history.mock.calls[0]![2]).toBe(60); // the scan the spec states (AC-3)
     expect(brief.history).toEqual([
       { pr_number: 4, title: 'Rate limit public API routes', merged_at: '2026-10-01T10:00:00Z', author: 'merger', files_overlap: ['server/src/routes.ts'], notes: 'Added the limiter.' },
     ]);
@@ -118,6 +119,21 @@ d('HW L05 risk brief — SPEC-03 (Testcontainers pg)', () => {
     const brief = (await none.inject({ method: 'POST', url: `/pulls/${await pr()}/brief` })).json().brief;
     expect(brief.history_state).toBe('unavailable');
     expect(brief.history).toEqual([]);
+    // A clone git fails to read is "unavailable" too, not a 500.
+    const failing = new MockGitClient({ diff: DIFF, history: HISTORY });
+    vi.spyOn(failing, 'history').mockRejectedValue(new Error('fatal: bad object'));
+    const res = await (await appWith(llm, failing)).inject({ method: 'POST', url: `/pulls/${await pr()}/brief` });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().brief.history_state).toBe('unavailable');
+  });
+
+  it('AC-2: signals come from every file, past the 100 the prompt lists', async () => {
+    const llm = new MockLLMProvider('openai', { structuredBySchema: { RiskBrief: OUTPUT('x') } });
+    const filler = Array.from({ length: 100 }, (_, i) => [`diff --git a/src/f${i}.ts b/src/f${i}.ts`, `--- a/src/f${i}.ts`, `+++ b/src/f${i}.ts`, '@@ -1,1 +1,2 @@', ' a', '+b']).flat();
+    const migration = ['diff --git a/db/migrations/0001_x.sql b/db/migrations/0001_x.sql', '--- /dev/null', '+++ b/db/migrations/0001_x.sql', '@@ -0,0 +1,1 @@', '+create table x();'];
+    const app = await appWith(llm, new MockGitClient({ diff: [...filler, ...migration].join('\n'), history: [] }));
+    const { brief } = (await app.inject({ method: 'POST', url: `/pulls/${await pr()}/brief` })).json();
+    expect(brief.risks.map((r: { kind: string; severity: string }) => `${r.kind}:${r.severity}`)).toContain('db_migration:high');
   });
 
   it('AC-15/AC-17: signals-only on failure; a model brief of the same head is kept, one of an older head is replaced', async () => {

@@ -32,6 +32,8 @@ describe('riskSignals', () => {
   it('AC-2: a lockfile alone is a low deps signal; tests and docs raise nothing', () => {
     expect(riskSignals([f('client/pnpm-lock.yaml')]).map((s) => [s.kind, s.severity])).toEqual([['deps', 'low']]);
     expect(riskSignals([f('server/test/auth.test.ts'), f('docs/README.md'), f('src/tokenizer.ts')])).toEqual([]);
+    // Tests in other languages raise nothing either.
+    expect(riskSignals([f('internal/api/handlers_test.go'), f('internal/auth/auth_test.go'), f('app/test_auth.py'), f('app/auth_test.py'), f('spec/controllers/users_controller_spec.rb'), f('src/api/routes.spec.ts')])).toEqual([]);
     // Docs-only: a Markdown file named like a security topic is still docs.
     expect(riskSignals([f('.claude/skills/fastify/rules/cors-security.md'), f('docs/auth/setup.mdx')])).toEqual([]);
   });

@@ -10,7 +10,8 @@ file is how it works today. Code: `src/modules/reviews/brief/`, routes and servi
   every file with a text diff, deleted files included. `EmptyDiffError` (nothing
   anywhere) is a 409; any other loading failure is an error.
 - **Signals** (`signals.ts`, `riskSignals`) — a rule table over every changed path that
-  is not a test or Markdown: anything under `migration(s)/` (schema files changed with it
+  is not a test (test folders, `*.test.*` / `*.spec.*`, Go / Python / Ruby test names)
+  or Markdown: anything under `migration(s)/` (schema files changed with it
   join that signal), a DB schema alone, dependency manifests and lockfiles, CI workflows,
   auth-like path words and `.env*`, route / controller / handler files by name in common
   languages and public contracts (removed lines → medium, additions only → low). Each

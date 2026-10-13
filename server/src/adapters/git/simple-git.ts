@@ -95,7 +95,8 @@ export class SimpleGitClient implements GitClient {
   }
 
   async diff(repo: RepoRef, base: string, head: string): Promise<UnifiedDiff> {
-    const raw = await this.git(repo).diff([`${base}...${head}`]);
+    // quotepath=off: a non-ASCII path comes out as written, not as "b/\320\277…".
+    const raw = await this.git(repo).raw(['-c', 'core.quotepath=off', 'diff', `${base}...${head}`]);
     return parseUnifiedDiff(raw);
   }
 
@@ -107,7 +108,7 @@ export class SimpleGitClient implements GitClient {
    */
   async diffNameOnly(repo: RepoRef, base: string, head: string): Promise<string[]> {
     if (base === head) return [];
-    const raw = await this.git(repo).raw(['diff', '--name-only', `${base}..${head}`]);
+    const raw = await this.git(repo).raw(['-c', 'core.quotepath=off', 'diff', '--name-only', `${base}..${head}`]);
     return raw
       .split('\n')
       .map((s) => s.trim())

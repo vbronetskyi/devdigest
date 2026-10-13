@@ -103,13 +103,15 @@ export class BriefBuilder {
     let history: BriefContext['history'] = [];
     const shallow = await this.container.git.isShallow(ref);
     if (shallow !== null) {
-      try {
-        const commits = await this.container.git.history(ref, historyPaths(diff.files.map((f) => f.path)), HISTORY_SCAN);
+      // AC-7: git could not read the clone — say "unavailable", not "no prior PRs".
+      // Only git's failure is caught; a database error stays an error.
+      const commits = await this.container.git
+        .history(ref, historyPaths(diff.files.map((f) => f.path)), HISTORY_SCAN)
+        .catch(() => null);
+      if (commits) {
         const numbers = commits.map((c) => prNumberOf(c.subject)).filter((n): n is number => n !== null);
         history = historyItems(commits, await this.repo.mergedPullTitles(pull.repoId, numbers), pull.number);
         historyState = shallow ? 'limited' : 'ok';
-      } catch {
-        // AC-7: git could not read the clone — say "unavailable", not "no prior PRs".
       }
     }
     return { signals, history, historyState, index: diffIndex(diff) };
