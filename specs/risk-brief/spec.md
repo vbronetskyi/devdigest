@@ -79,7 +79,8 @@ Model (one call)
   back; the request is not cancelled (the platform's deadline cannot abort it).
 - **AC-9** The model input shall be the signals, the PR title, the description (first
   4,000 characters), the stored intent when there is one, the changed file list (at most
-  100), the diff (first 12,000 characters) and the history, each repository-made or
+  100), the diff with every new-side line prefixed by its line number (first 12,000
+  characters of that text) and the history, each repository-made or
   model-derived text inside an untrusted block, under fixed instructions saying the
   blocks are data.
 - **AC-10** Model risks shall have a kind from `security`, `db_migration`,
@@ -195,3 +196,8 @@ None open.
   says what retries and the deadline do; AC-11 checks every line of a range; AC-18 only
   for "no text diff"; deleted files now reach the diff (the parser dropped them), files
   without a text diff named in the edge cases.
+- 2026-10-13 — AC-9 after a live run: on demo PR #3 the model put the SSRF at
+  `routes.ts:175`, the `headers:` line; the `fetch` is on 173. It counted lines from the
+  hunk header and drifted by two (the reviewer agents made the same mistake). The diff
+  in the prompt now carries the new-side line numbers, so references are read, not
+  counted.
