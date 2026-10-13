@@ -155,7 +155,7 @@ export class SimpleGitClient implements GitClient {
       '--diff-merges=first-parent',
       '--name-only',
       `-n${Math.max(1, Math.floor(limit))}`,
-      `--format=${RECORD}%H${FIELD}%an${FIELD}%aI${FIELD}%s${FIELD}%b${END}`,
+      `--format=${RECORD}%H${FIELD}%an${FIELD}%aI${FIELD}%s${END}`,
       'HEAD',
       '--',
       ...asked,
@@ -223,7 +223,7 @@ const END = '\x1d';
 export const MAX_HISTORY_PATHS = 100;
 
 /**
- * `git log --name-only` records: `\x1e<sha>\x1f<author>\x1f<date>\x1f<subject>\x1f<body>\x1d`
+ * `git log --name-only` records: `\x1e<sha>\x1f<author>\x1f<date>\x1f<subject>\x1d`
  * followed by one changed file per line.
  */
 export function parseHistory(raw: string, asked: readonly string[]): HistoryCommit[] {
@@ -234,13 +234,12 @@ export function parseHistory(raw: string, asked: readonly string[]): HistoryComm
     .map((record) => {
       const cut = record.indexOf(END);
       const head = cut === -1 ? record : record.slice(0, cut);
-      const [sha = '', author = '', date = '', subject = '', body = ''] = head.split(FIELD);
+      const [sha = '', author = '', date = '', subject = ''] = head.split(FIELD);
       const files = (cut === -1 ? '' : record.slice(cut + 1))
         .split('\n')
         .map((l) => l.trim())
         .filter((l) => wanted.has(l));
-      const firstBodyLine = body.split('\n').map((l) => l.trim()).find(Boolean) ?? '';
-      return { sha, author, date, subject, body: firstBodyLine, files };
+      return { sha, author, date, subject, files };
     })
     .filter((c) => c.sha && c.files.length > 0);
 }

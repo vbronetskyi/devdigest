@@ -41,8 +41,10 @@ Answer
 - **AC-7** The system shall return the PR that brought that commit into the default
   branch: the oldest merge on the default branch's first-parent line containing the
   commit; IF there is none, the number from a `(#N)` at the end of the commit's own
-  subject (SPEC-03 AC-4); else null. With the number go DevDigest's title when known and
-  a GitHub link built from the repo owner, name and the number.
+  subject; else null. A number counts only if DevDigest knows PR N of this repository as
+  merged (SPEC-03 AC-4 — a fork inherits the upstream's numbers); otherwise the PR is
+  null. With the number go DevDigest's title and a GitHub link built from the repo owner,
+  name and the number.
 - **AC-8** IF the commit is the oldest the clone has (root or shallow boundary), THEN the
   answer shall carry `boundary: true` and say earlier history is not available.
 - **AC-9** IF the file does not exist at the merge base (new or renamed in the PR), THEN
@@ -83,3 +85,5 @@ path is checked against the PR's file list before git sees it (AC-4, AC-10).
   status per validation and their order, lines validated from the patch without git,
   renamed/new files, shallow boundary, number precedence, the UI hidden for non-default
   bases, errors shown.
+- 2026-10-13 — AC-7: PR numbers from commit subjects are verified against DevDigest's
+  merged PRs (same reason as SPEC-03 AC-4).

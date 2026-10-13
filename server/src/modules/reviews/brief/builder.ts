@@ -105,7 +105,7 @@ export class BriefBuilder {
       const paths = files.map((f) => f.path).filter((p) => !HISTORY_NOISE.test(p));
       const commits = await this.container.git.history(ref, paths, HISTORY_SCAN);
       const numbers = commits.map((c) => prNumberOf(c.subject)).filter((n): n is number => n !== null);
-      history = historyItems(commits, await this.repo.pullTitles(pull.repoId, numbers), pull.number);
+      history = historyItems(commits, await this.repo.mergedPullTitles(pull.repoId, numbers), pull.number);
     }
     return {
       signals,

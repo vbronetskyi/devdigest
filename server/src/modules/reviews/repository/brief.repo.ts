@@ -12,12 +12,15 @@ export async function upsertBrief(db: Db, prId: string, json: unknown): Promise<
   await db.insert(t.prBrief).values({ prId, json }).onConflictDoUpdate({ target: t.prBrief.prId, set: { json } });
 }
 
-/** Titles of the repo's PRs DevDigest knows, by number (history titles, git-why). */
-export async function pullTitles(db: Db, repoId: string, numbers: number[]): Promise<Map<number, string>> {
+/**
+ * Titles of the repo's PRs DevDigest knows as merged, by number. Only these count as
+ * history: a fork's commits carry the upstream's PR numbers (SPEC-03 AC-4).
+ */
+export async function mergedPullTitles(db: Db, repoId: string, numbers: number[]): Promise<Map<number, string>> {
   if (numbers.length === 0) return new Map();
   const rows = await db
     .select({ number: t.pullRequests.number, title: t.pullRequests.title })
     .from(t.pullRequests)
-    .where(and(eq(t.pullRequests.repoId, repoId), inArray(t.pullRequests.number, numbers)));
+    .where(and(eq(t.pullRequests.repoId, repoId), eq(t.pullRequests.status, 'merged'), inArray(t.pullRequests.number, numbers)));
   return new Map(rows.map((r) => [r.number, r.title]));
 }

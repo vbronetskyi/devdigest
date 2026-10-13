@@ -66,18 +66,21 @@ export function riskSignals(files: readonly ChangedFile[]): RiskSignal[] {
 }
 
 
-/** AC-2/AC-3: prior PRs that touched these files, newest first; commits without a PR number are left out. */
-export function historyItems(commits: readonly HistoryCommit[], titles: ReadonlyMap<number, string>, exclude: number): PrHistoryItem[] {
+/**
+ * AC-3–AC-5: other PRs that touched these files, newest first. `merged` holds the
+ * PRs DevDigest knows here as merged, with their titles — a number outside it (no
+ * PR, or the upstream's numbering in a fork) is skipped.
+ */
+export function historyItems(commits: readonly HistoryCommit[], merged: ReadonlyMap<number, string>, exclude: number): PrHistoryItem[] {
   const out: PrHistoryItem[] = [];
   const seen = new Set<number>();
   for (const c of commits) {
     const n = prNumberOf(c.subject);
-    if (n === null || n === exclude || seen.has(n)) continue;
+    if (n === null || n === exclude || seen.has(n) || !merged.has(n)) continue;
     seen.add(n);
     out.push({
       pr_number: n,
-      // AC-5: DevDigest's title, else the merge body's first line, else the cleaned subject.
-      title: titles.get(n) ?? (c.body || cleanSubject(c.subject) || c.subject),
+      title: merged.get(n)!,
       merged_at: c.date,
       author: c.author,
       files_overlap: c.files,
@@ -86,8 +89,4 @@ export function historyItems(commits: readonly HistoryCommit[], titles: Readonly
     if (out.length >= HISTORY_LIMIT) break;
   }
   return out;
-}
-
-function cleanSubject(subject: string): string {
-  return subject.replace(/^Merge pull request #\d+\s*(from \S+)?:?\s*/, '').replace(/\s*\(#\d+\)\s*$/, '').trim();
 }

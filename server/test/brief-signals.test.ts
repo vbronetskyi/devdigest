@@ -45,19 +45,26 @@ describe('prNumberOf', () => {
 });
 
 describe('historyItems', () => {
-  const c = (subject: string, body = '', files = ['src/a.ts']) => ({ sha: subject, subject, body, author: 'merger', date: '2026-10-01T10:00:00+02:00', files });
+  const c = (subject: string, files = ['src/a.ts']) => ({ sha: subject, subject, author: 'merger', date: '2026-10-01T10:00:00+02:00', files });
 
-  it('AC-3/AC-4/AC-5: PRs only, newest first, the PR itself left out, a number once, titles by preference', () => {
+  it('AC-3/AC-4/AC-5: merged PRs DevDigest knows only, newest first, the PR itself left out, a number once', () => {
+    const merged = new Map([
+      [12, 'Rate limit public routes'],
+      [9, 'This PR'],
+      [7, 'Add caching'],
+      [5, 'Known title from DevDigest'],
+    ]);
     const items = historyItems(
       [
-        c('Merge pull request #12 from acme/x', 'Rate limit public routes'),
+        c('Merge pull request #12 from acme/x'),
         c('direct fix'),
         c('Merge pull request #9 from acme/self'),
         c('Add caching (#7)'),
-        c('Merge pull request #7 from acme/again', 'dup'),
+        c('Merge pull request #7 from acme/again'),
+        c('chore: cleanup (#11)'), // the upstream's #11 in a fork: unknown here
         c('Merge pull request #5 from acme/y'),
       ],
-      new Map([[5, 'Known title from DevDigest']]),
+      merged,
       9,
     );
     expect(items.map((i) => [i.pr_number, i.title])).toEqual([
@@ -70,6 +77,7 @@ describe('historyItems', () => {
 
   it('AC-3: stops at eight', () => {
     const many = Array.from({ length: 12 }, (_, i) => c(`Merge pull request #${100 - i} from acme/b${i}`));
-    expect(historyItems(many, new Map(), 0)).toHaveLength(8);
+    const merged = new Map(Array.from({ length: 12 }, (_, i) => [100 - i, `PR ${100 - i}`] as const));
+    expect(historyItems(many, merged, 0)).toHaveLength(8);
   });
 });

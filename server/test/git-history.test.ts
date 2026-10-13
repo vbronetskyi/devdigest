@@ -63,7 +63,6 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
     ]);
     expect(history[0]!.author).toBe('dev');
     expect(history[0]!.date).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    expect(history[2]!.body).toBe('Change the second line');
     expect(await client.history(repo, ['src/a.ts'], 1)).toHaveLength(1);
   });
 

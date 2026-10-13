@@ -52,8 +52,8 @@ export class ReviewRepository {
   upsertBrief(prId: string, json: unknown) {
     return briefRepo.upsertBrief(this.db, prId, json);
   }
-  pullTitles(repoId: string, numbers: number[]) {
-    return briefRepo.pullTitles(this.db, repoId, numbers);
+  mergedPullTitles(repoId: string, numbers: number[]) {
+    return briefRepo.mergedPullTitles(this.db, repoId, numbers);
   }
 
   getPrFiles(prId: string): Promise<(typeof t.prFiles.$inferSelect)[]> {

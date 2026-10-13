@@ -29,7 +29,7 @@ A `why` module (`routes`, `service`, `repository`, `helpers`): reads `pull_reque
 | AC-1 – AC-5 | T3 | why.it "validation order" | |
 | AC-4 | T2, T3 | why-helpers "old side", why.it | |
 | AC-6 | T1, T3 | git-history "blame at a revision", why.it "merge base" | |
-| AC-7 | T1, T2, T3 | git-history "mergedVia", why.it "PR" | |
+| AC-7 | T1, T2, T3 | git-history "mergedVia", why.it "PR", why.it "squash subject" (an open PR's number → null) | |
 | AC-8 | T1, T3 | git-history "boundary", why.it | |
 | AC-9 | T3 | why.it "new file" | |
 | AC-10 | T1, T3 | git-history "option-looking path" | |

@@ -41,8 +41,8 @@ d('HW L05 git-why — SPEC-04 (Testcontainers pg)', () => {
     const db = pg.handle.db;
     const name = `why-${randomUUID().slice(0, 8)}`;
     const [repo] = await db.insert(t.repos).values({ workspaceId, owner: 'acme', name, fullName: `acme/${name}`, defaultBranch: 'main' }).returning();
-    const row = (number: number, title: string) => ({ workspaceId, repoId: repo!.id, number, title, author: 'a', branch: 'b', base, headSha: 'head1', status: 'needs_review' });
-    await db.insert(t.pullRequests).values(row(4, 'Add the routes module'));
+    const row = (number: number, title: string, status = 'open') => ({ workspaceId, repoId: repo!.id, number, title, author: 'a', branch: 'b', base, headSha: 'head1', status });
+    await db.insert(t.pullRequests).values([row(4, 'Add the routes module', 'merged'), row(7, 'Add rate limits', 'merged'), row(11, 'Our own open PR')]);
     const [pull] = await db.insert(t.pullRequests).values(row(9, 'Share reviews')).returning();
     await db.insert(t.prFiles).values({ prId: pull!.id, path: FILE, additions: 2, deletions: 1, patch: PATCH });
     const why = (file: string, line: string | number, id = pull!.id) =>
@@ -67,7 +67,10 @@ d('HW L05 git-why — SPEC-04 (Testcontainers pg)', () => {
 
   it('AC-7/AC-8/AC-9: squash subject when no merge; boundary note; no history for a new file', async () => {
     const squash = await setup({ mergedVia: {}, blame: { [`${FILE}:11`]: { ...BLAME, summary: 'Add rate limits (#7)' } } });
-    expect((await squash.why(FILE, 11)).json().pr).toMatchObject({ number: 7, title: null });
+    expect((await squash.why(FILE, 11)).json().pr).toMatchObject({ number: 7, title: 'Add rate limits' });
+    // A fork's upstream number that names an open PR here is not trusted.
+    const upstream = await setup({ mergedVia: {}, blame: { [`${FILE}:11`]: { ...BLAME, summary: 'chore: cleanup (#11)' } } });
+    expect((await upstream.why(FILE, 11)).json().pr).toBeNull();
     const root = await setup({ blame: { [`${FILE}:11`]: { ...BLAME, boundary: true } } });
     expect((await root.why(FILE, 11)).json()).toMatchObject({ boundary: true, note: expect.stringMatching(/earlier history is not available/) });
     const fresh = await setup({ blame: {} });

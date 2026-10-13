@@ -258,8 +258,6 @@ export interface GitClient {
 export interface HistoryCommit {
   sha: string;
   subject: string;
-  /** First non-empty body line — where GitHub puts a merged PR's title. */
-  body: string;
   author: string;
   /** ISO 8601. */
   date: string;

@@ -23,8 +23,8 @@ const DIFF = [
   '@@ -1,1 +1,2 @@', ' a', '+b',
 ].join('\n');
 const HISTORY: HistoryCommit[] = [
-  { sha: 'm1', subject: 'Merge pull request #4 from acme/rate-limit', body: 'Rate limit public routes', author: 'merger', date: '2026-10-01T10:00:00Z', files: ['server/src/routes.ts', 'server/pnpm-lock.yaml'] },
-  { sha: 'c1', subject: 'tweak', body: '', author: 'dev', date: '2026-09-30T10:00:00Z', files: ['server/src/routes.ts'] },
+  { sha: 'm1', subject: 'Merge pull request #4 from acme/rate-limit', author: 'merger', date: '2026-10-01T10:00:00Z', files: ['server/src/routes.ts', 'server/pnpm-lock.yaml'] },
+  { sha: 'c1', subject: 'tweak', author: 'dev', date: '2026-09-30T10:00:00Z', files: ['server/src/routes.ts'] },
 ];
 const OUTPUT = (title: string) => ({
   risks: [{ kind: 'security', severity: 'high', title, explanation: 'The URL from the body is fetched.', file_refs: ['server/src/routes.ts:11'] }],
@@ -71,8 +71,8 @@ d('HW L05 risk brief — SPEC-03 (Testcontainers pg)', () => {
     const db = pg.handle.db;
     const name = `brief-${randomUUID().slice(0, 8)}`;
     const [repo] = await db.insert(t.repos).values({ workspaceId, owner: 'acme', name, fullName: `acme/${name}` }).returning();
-    const row = (number: number, title: string) => ({ workspaceId, repoId: repo!.id, number, title, author: 'a', branch: 'b', base: 'main', headSha: 'head1', status: 'needs_review' });
-    await db.insert(t.pullRequests).values(row(4, 'Rate limit public API routes'));
+    const row = (number: number, title: string, status = 'open') => ({ workspaceId, repoId: repo!.id, number, title, author: 'a', branch: 'b', base: 'main', headSha: 'head1', status });
+    await db.insert(t.pullRequests).values(row(4, 'Rate limit public API routes', 'merged'));
     const [pull] = await db.insert(t.pullRequests).values(row(9, 'Share reviews')).returning();
     return pull!.id;
   }

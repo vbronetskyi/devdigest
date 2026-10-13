@@ -20,7 +20,7 @@ and the stored intent, and modules may not import each other. Pure parts in
 
 ## Tasks
 
-- [ ] T1 Git plumbing: history (literal pathspecs, non-ASCII, ≤ 100 paths, body line),
+- [ ] T1 Git plumbing: history (literal pathspecs, non-ASCII, ≤ 100 paths),
   blame at a revision, merge base, mergedVia, isShallow → AC-3, AC-5, AC-6, AC-7 →
   `test/git-history.test.ts`
 - [ ] T2 Signals and history rules (`brief/signals.ts`) → AC-2, AC-3, AC-4, AC-5 →
@@ -44,8 +44,8 @@ and the stored intent, and modules may not import each other. Pure parts in
 | AC-1 | T5 | brief.it "uses the review's diff" | |
 | AC-2 | T2 | brief-signals "rule table" | |
 | AC-3 | T1, T2 | git-history, brief-signals "history" | |
-| AC-4 | T2 | brief-signals "PR numbers" | |
-| AC-5 | T1, T2 | git-history "body", brief-signals "titles" | |
+| AC-4 | T2, T4 | brief-signals "PR numbers", brief-signals "merged PRs DevDigest knows" (the upstream's #11) | |
+| AC-5 | T2, T4 | brief-signals "merged PRs DevDigest knows", brief.it "history" | |
 | AC-6 | T1 | git-history "pathspec, non-ASCII" | |
 | AC-7 | T1, T5 | brief.it "shallow / no clone" | |
 | AC-8 | T5 | brief.it "one call, maxRetries 0" | |

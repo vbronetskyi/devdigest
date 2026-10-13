@@ -46,7 +46,10 @@ export class WhyService {
 
     const via = await git.mergedVia(ref, blame.sha);
     const number = (via ? prNumberOf(via.subject) : null) ?? prNumberOf(blame.summary);
-    const pr = number === null ? null : { number, title: await this.repo.title(pull.repoId, number), url: githubPrUrl(pull.owner, pull.name, number) };
+    // AC-7: a number counts only for a PR DevDigest knows here as merged — a fork's
+    // commits carry the upstream's numbers.
+    const title = number === null ? null : await this.repo.mergedTitle(pull.repoId, number);
+    const pr = number === null || title === null ? null : { number, title, url: githubPrUrl(pull.owner, pull.name, number) };
     return {
       file,
       line,

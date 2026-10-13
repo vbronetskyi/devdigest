@@ -58,11 +58,11 @@ History (no model)
   migration metadata: newest first, at most 8, without the PR itself, each with its
   number, title, merge date, who merged it and the overlapping files.
 - **AC-4** The system shall take a commit's PR number from `Merge pull request #N` or from
-  a `(#N)` at the end of the subject; a commit without one is skipped and not counted
-  toward the 8; a number seen twice is listed once.
-- **AC-5** A history entry's title shall be DevDigest's title for that PR when it knows
-  the PR, else the merge commit's first body line, else the subject without the merge
-  boilerplate.
+  a `(#N)` at the end of the subject, and count it only if DevDigest knows PR N of this
+  repository as merged — a fork's history carries the upstream's PR numbers, which name
+  other PRs here. Other commits are skipped and not counted toward the 8; a number seen
+  twice is listed once.
+- **AC-5** A history entry's title shall be DevDigest's title for that PR.
 - **AC-6** The system shall pass paths to git literally (no pathspec magic or globs),
   read non-ASCII paths correctly, and send at most 100 paths.
 - **AC-7** IF the clone is shallow or missing, THEN the brief shall say the history is
@@ -174,3 +174,7 @@ None open.
 - 2026-10-13 — AC-2 during implementation: "schema file" also matched `db/schema/*`, so a
   database schema raised `breaking_api` as well as `db_migration`. Public contracts are
   now named explicitly; a DB schema is only `db_migration`.
+- 2026-10-13 — AC-4/AC-5 after a live run: on this fork the history listed "#11 chore:
+  cleanup before home tasks" — a squash commit from the upstream course repo, whose #11
+  is not this repo's #11 (an open lab PR). A number now counts only when DevDigest knows
+  that PR here as merged, and the title is always DevDigest's.

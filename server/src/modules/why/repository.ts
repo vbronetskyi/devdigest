@@ -33,11 +33,12 @@ export class WhyRepository {
     return row;
   }
 
-  async title(repoId: string, number: number): Promise<string | null> {
+  /** The title of PR `number` if DevDigest knows it here as merged; null otherwise (SPEC-04 AC-7). */
+  async mergedTitle(repoId: string, number: number): Promise<string | null> {
     const [row] = await this.db
       .select({ title: t.pullRequests.title })
       .from(t.pullRequests)
-      .where(and(eq(t.pullRequests.repoId, repoId), eq(t.pullRequests.number, number)));
+      .where(and(eq(t.pullRequests.repoId, repoId), eq(t.pullRequests.number, number), eq(t.pullRequests.status, 'merged')));
     return row?.title ?? null;
   }
 }
