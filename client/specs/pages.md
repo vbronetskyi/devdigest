@@ -70,16 +70,18 @@ line with a focus ring; without `line` it scrolls to the file.
   first reference, the chevron expands the explanation (safe Markdown, no links) and
   every reference. "Review focus — read these first" lists `file:line` spots; the
   history accordion lists other merged PRs on the same files, each linked on GitHub,
-  with who merged it, the model's note and the overlapping files. It says when the
-  history is limited (shallow clone), unavailable (no clone) or from the default branch
-  while the PR targets another. Footer: model, cost and head — or "signals only" and
+  with the merge commit's author and date, the model's note and the overlapping files.
+  It says when the history is limited (shallow clone), unavailable (no clone, or git
+  could not read it) or from the default branch while the PR targets another
+  (`baseBranchView` in the page's `helpers.ts`, which also gates git-why). Footer: model, cost and head — or "signals only" and
   why; a warning when the head moved since. A failed regeneration shows its message
   above the kept brief.
 - **git-why** (Files changed) — removed and context lines get a "why" button on hover
   (not added lines; no button at all when the PR's base is not the default branch). It
   opens a panel under the line: short sha, subject, author, date, the PR linked on
-  GitHub when the server names one, the "earlier history" / "no history" note, or the
-  server's error message.
+  GitHub when the server names one, the "earlier history" note, "no history" for a file
+  the merge base lacks or a line it lacks (`missing`), or the server's error message.
+  The button shows on hover, like the comment "+"; the keyboard cannot reach either.
 
 ## Project Context and Onboarding (L05)
 

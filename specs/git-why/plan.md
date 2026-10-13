@@ -26,15 +26,16 @@ A `why` module (`routes`, `service`, `repository`, `helpers`): reads `pull_reque
 
 | AC | Tasks | Tests | Commit |
 |---|---|---|---|
-| AC-1 – AC-5 | T3 | why.it "404 PR, 409 non-default base, 422 bad line, 404 file or line, 409 no clone or unknown merge base — before any blame" | 9a21d5d |
-| AC-4 | T2, T3 | why-helpers "removed and context lines by their base numbers, never added ones", why.it (same) | 9a21d5d |
-| AC-6 | T1, T3 | git-history "blames at a given revision and finds a merge base", why.it "blames the line at the merge base…" | cf83609, 9a21d5d |
-| AC-7 | T1, T2, T3 | git-history "blames one line and finds the merge that brought its commit in" (mainline commits → null), why-helpers "built from repo coordinates…", why.it "…names the PR", "squash subject when no merge" (an open PR's number → null) | cf83609, 9a21d5d, f3e27ad |
-| AC-8 | T1, T3 | git-history "marks the root commit as the boundary…", why.it "boundary note" | cf83609, 9a21d5d |
-| AC-9 | T3 | why.it "no history for a new file", git-history "past the end… gives null" | 9a21d5d |
+| AC-1 – AC-5 | T3 | why.it "422 malformed first, then 404 PR, 409 non-default base, 404 file or line, 409 no clone or unknown merge base — no git before AC-4" (pairs of failing conditions, git spies) | 9a21d5d, 045373c |
+| AC-4 | T2, T3 | why-helpers "removed and context lines by their base numbers…", "stops where the hunk header says…"; why.it (same) | 9a21d5d, 045373c |
+| AC-5 | T3 | why.it "…409 no clone or unknown merge base…" (messages), "a PR head missing from the clone is fetched, then answered" | 9a21d5d, 045373c |
+| AC-6 | T1, T3 | git-history "blames at a given revision and finds a merge base"; why.it "blames the line at the merge base…", "the merge base of HEAD and the PR head…" | cf83609, 9a21d5d, 045373c |
+| AC-7 | T1, T2, T3 | git-history "blames one line and finds the merge that brought its commit in" (mainline commits → null, oldest of two merges); why-helpers "built from repo coordinates…"; why.it "…names the PR", "squash subject when no merge" (an open PR's number → null), "the merge outranks the commit's own (#N)…" | cf83609, 9a21d5d, f3e27ad, 045373c |
+| AC-8 | T1, T3 | git-history "marks the root commit as the boundary…", "a shallow clone says so…"; why.it "boundary note" | cf83609, 9a21d5d, 045373c |
+| AC-9 | T3 | why.it "no history for a new file" (+ a line the merge base lacks); git-history "past the end… gives null"; WhyPanel "…or for a line the merge base lacks" | 9a21d5d, 045373c |
 | AC-10 | T1, T3 | git-history "an option-looking path gives null — never a git option"; why.it (unknown file → 404 before git) | cf83609, 9a21d5d |
-| AC-11 | T4 | DiffTab "'why' on context lines only…", "no 'why' when the PR is not into the default branch" | c976721 |
-| AC-12 | T4 | DiffTab "…showing the answer under the line", WhyPanel "shows the commit and the PR linked on GitHub…", "says there is no history…" | c976721 |
+| AC-11 | T4 | DiffTab "'why' on context lines only…" (removed lines too), "no 'why' when the PR is not into the default branch"; page helpers "why only into the default branch…"; diff-viewer "the no-newline marker and a trailing newline are not lines" | c976721, c5fce8b, 045373c |
+| AC-12 | T4 | DiffTab "…showing the answer under the line", WhyPanel "shows the commit and the PR linked on GitHub…" (author, date), "says there is no history…" | c976721, 045373c |
 | AC-13 | T4 | WhyPanel "shows the server's message when the request fails" | c976721 |
 
 ## Verification

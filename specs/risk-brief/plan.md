@@ -41,37 +41,44 @@ and the stored intent, and modules may not import each other. Pure parts in
 
 | AC | Tasks | Tests | Commit |
 |---|---|---|---|
-| AC-1 | T5 | brief.it "one call over the review diff…" | 566e72e |
-| AC-2 | T2 | brief-signals "raises each rule of the table…", "a lockfile alone…" | f8c9a6c, 16eb122 (schema ≠ contract) |
-| AC-3 | T1, T2 | git-history "lists first-parent commits…", brief-signals "merged PRs DevDigest knows only…", "stops at eight"; brief.it (noise paths left out) | cf83609, f8c9a6c, 566e72e |
+| AC-1 | T5 | brief.it "one call over the review diff…"; grounding "keeps a deleted file under its old path…" | 566e72e, c5fce8b |
+| AC-2 | T2 | brief-signals "raises each rule of the table…", "a lockfile alone…" (docs-only → none), "migrations at any depth, schema alone, manifests and contracts across ecosystems" (deleted route) | f8c9a6c, 16eb122, c5fce8b |
+| AC-3 | T1, T2, T6 | git-history "lists first-parent commits…"; brief-signals "merged PRs DevDigest knows only…", "stops at eight", "lockfiles, Markdown and migration metadata never look for history"; BriefCard "each history entry names its PR, the merge commit's author and date…" | cf83609, f8c9a6c, c5fce8b |
 | AC-4 | T2, T5 | brief-signals "reads merge and squash subjects…", "merged PRs DevDigest knows only…" (the upstream's #11) | f8c9a6c, f3e27ad |
 | AC-5 | T2, T5 | brief-signals "merged PRs DevDigest knows only…", brief.it "history with known titles" | f8c9a6c, f3e27ad |
-| AC-6 | T1 | git-history "reads non-ASCII paths and treats pathspec magic…", "option-looking path gives null" | cf83609 |
-| AC-7 | T1, T5 | brief.it "says the history is limited on a shallow clone…" | 566e72e |
+| AC-6 | T1 | git-history "reads non-ASCII paths and treats pathspec magic…", "sends at most 100 paths to git", "option-looking path gives null" | cf83609, 045373c |
+| AC-7 | T1, T5, T6 | brief.it "says the history is limited on a shallow clone…"; git-history "a shallow clone says so…"; BriefCard "says when the history is limited or unavailable…" | 566e72e, c5fce8b, 045373c |
 | AC-8 | T5 | brief.it "one call over the review diff…" (one call, `maxRetries: 0`) | 566e72e |
-| AC-9 | T3 | brief-helpers "every repository-made or derived text sits in its own untrusted block" | 16eb122 |
+| AC-9 | T3 | brief-helpers "every repository-made or derived text sits in its own untrusted block", "the diff is cut at 12,000 characters and the file list at 100 files" | 16eb122, c5fce8b |
 | AC-10 | T3 | brief-helpers "an unknown kind or severity does not match the schema" | 16eb122 |
-| AC-11 | T3 | brief-helpers "keeps a valid line or range…", "grounded model risks plus signals…" | 16eb122 |
+| AC-11 | T3 | brief-helpers "keeps a valid line or range…" (a range across two hunks → path), "grounded model risks plus signals…" | 16eb122, c5fce8b |
 | AC-12 | T3 | brief-helpers "grounded model risks plus signals…", "never more than six risks…" | 16eb122 |
 | AC-13 | T3 | brief-helpers "focus keeps only shown new-side lines…" | 16eb122 |
-| AC-14 | T3 | brief-helpers "strips links from model text and caps its length" | 16eb122 |
+| AC-14 | T3 | brief-helpers "strips links from model text and caps its length" (120 / 600 / 240) | 16eb122, c5fce8b |
 | AC-15 | T4, T5 | brief-helpers "the signals and history alone…", brief.it "signals-only on failure…", "with no provider key…" | 16eb122, 566e72e |
 | AC-16 | T5 | brief.it "GET is free and reports staleness" | 566e72e |
 | AC-17 | T5 | brief.it "a model brief of the same head is kept, one of an older head is replaced" | 566e72e |
-| AC-18 | T5 | brief.it "refuses a second generation while one runs, and a PR with no diff anywhere" | 566e72e |
+| AC-18 | T5 | brief.it "refuses a second generation while one runs, and a PR with no diff anywhere"; brief-helpers "no text diff anywhere is a 409; any other failure stays an error" | 566e72e, c5fce8b |
 | AC-19 | T6 | BriefCard "without a brief, offers Generate…" | c976721 |
 | AC-20 | T6 | BriefCard "pills in order with kind, severity and first reference…" | c976721 |
-| AC-21 | T6 | BriefCard "focus spots and references open Files changed…; history links each PR" | c976721 |
-| AC-22 | T6 | BriefCard (same), DiffTab "a deep link opens a folded file…", "a line the patch does not show scrolls to the file" | c976721, 58c2232 |
+| AC-21 | T6 | BriefCard "focus spots and references open Files changed…; history links each PR", "…and when there are no risks" | c976721, c5fce8b |
+| AC-22 | T6 | BriefCard (same); page helpers "a reference opens Files changed at the file and line…", "reads the focus back…"; DiffTab "a deep link opens a folded file…", "a line the patch does not show scrolls to the file" | c976721, 58c2232, c5fce8b |
 | AC-23 | T6 | BriefCard "names model, cost and head…; warns when stale" | c976721 |
 | AC-24 | T6 | BriefCard "…expands to its explanation without links" | c976721 |
-| edge: other base | T6 | BriefCard "a PR into another branch says the history is the default branch's" | 1cebb85 |
+| edge: other base | T6 | BriefCard "a PR into another branch says…"; page helpers "why only into the default branch; otherwise the history note" | 1cebb85, c5fce8b |
+| edge: deleted / no text diff | T1 | grounding "keeps a deleted file under its old path…", "ends a hunk at its header counts…" | c5fce8b |
 
 ## Risks
 
 - The diff loader may fetch from GitHub on first use — same as a review, rate-limited.
 - History scans 60 first-parent commits; a repo with many direct commits may show fewer
-  than 8 PRs (by design: AC-4).
+  than 8 PRs (by design: AC-3/AC-4).
+- The 90 s deadline does not cancel the request (platform `withDeadline`); a late answer
+  may still be billed. Fixing it needs an AbortSignal through the LLM port — every model
+  feature shares this, so it is a follow-up, not part of this feature.
+- Accepted from verification: the security word rule matches design `tokens.ts`; the
+  "why" button is hover-only, like the comment "+"; signal file lists in the prompt are
+  capped at 100 each.
 
 ## Verification
 

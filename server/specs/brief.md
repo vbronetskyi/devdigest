@@ -6,19 +6,22 @@ file is how it works today. Code: `src/modules/reviews/brief/`, routes and servi
 
 ## Inputs ($0)
 
-- **Diff** — the review's own loader (`loadDiff`: clone → stored `pr_files` → GitHub),
-  first 100 files. A PR with no diff anywhere is a 409.
-- **Signals** (`signals.ts`, `riskSignals`) — a rule table over changed non-test paths:
-  migrations, DB schema, dependency manifests and lockfiles, CI workflows, auth-like path
-  segments and `.env*`, routes and public contracts (removed lines → medium, additions
-  only → low). Each signal has a fixed title and explanation and lists its files.
+- **Diff** — the review's own loader (`loadDiff`: clone → stored `pr_files` → GitHub):
+  every file with a text diff, deleted files included. `EmptyDiffError` (nothing
+  anywhere) is a 409; any other loading failure is an error.
+- **Signals** (`signals.ts`, `riskSignals`) — a rule table over every changed path that
+  is not a test or Markdown: anything under `migration(s)/` (schema files changed with it
+  join that signal), a DB schema alone, dependency manifests and lockfiles, CI workflows,
+  auth-like path words and `.env*`, route / controller / handler files by name in common
+  languages and public contracts (removed lines → medium, additions only → low). Each
+  signal has a fixed title and explanation and lists its files.
 - **History** — `git.history` on the clone's default branch (`--first-parent
   --diff-merges=first-parent`, literal pathspecs, ≤ 100 paths, 60 commits scanned) over
-  the changed files minus lockfiles, Markdown and `migrations/meta/`. `historyItems`
+  `historyPaths` (the changed files minus lockfiles, Markdown and `migrations/meta/`). `historyItems`
   keeps commits whose subject names a PR (`Merge pull request #N`, trailing `(#N)`)
   **and** that PR is in `pull_requests` for this repo with status `merged`; title from
   DevDigest; at most 8, without the PR itself. `history_state` is `limited` on a shallow
-  clone and `unavailable` without one.
+  clone and `unavailable` without one or when git fails reading it.
 
 The merged check matters on forks: a fork's mainline carries the upstream's squash
 subjects, and their `(#N)` names an unrelated PR here.
@@ -28,13 +31,15 @@ subjects, and their `(#N)` names an unrelated PR here.
 Feature model `risk_brief` (Settings → registry default → OpenRouter
 `deepseek/deepseek-v4-flash`), template `src/prompts/risk-brief.system.md`, schema
 `BriefOutput`, `maxRetries: 0`, 90 s deadline. Title, description (4,000 chars), stored
-intent, file list, diff (12,000 chars), signals and history each go in an `<untrusted>`
-block (`buildBriefMessages`).
+intent, file list (100), diff (12,000 chars), signals (100 files each) and history each go
+in an `<untrusted>` block (`buildBriefMessages`). The adapter still retries a failed
+request (network, 429, 5xx), and the deadline does not cancel the request — it may finish
+and bill after the brief fell back (`_shared/deadline.ts`).
 
 `groundBrief`:
-- a file reference survives only for a changed file; a line or range outside the
-  diff's new-side lines (`diffIndex`, from `hunk.newLineNumbers`) loses its suffix; a
-  model risk with no reference left is dropped;
+- a file reference survives only for a changed file; a line, or a range with any line
+  outside the diff's new-side lines (`diffIndex`, from `hunk.newLineNumbers`), loses its
+  suffix; a model risk with no reference left is dropped;
 - `mergeRisks`: every signal plus the model risks, a model risk replacing the signal of
   its kind, by severity (signals first on a tie), at most 6;
 - review focus: at most 5 spots on a changed file's new-side line; history notes only

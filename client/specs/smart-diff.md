@@ -44,7 +44,8 @@ finding accepted or rejected) refreshes the markers too.
   view. A line the diff does not show leaves the file scrolled to its header.
 - **git-why** (HW L05): `DiffViewer` takes an optional `why` (`WhyApi`): removed and
   context lines show a button that toggles `WhyPanel` under the line, keyed by the
-  base line number. `DiffTab` passes it only when the PR's base is the default branch.
+  base line number. `parsePatch` gives no numbers to the `\ No newline at end of file`
+  marker or to the empty string after a final newline, so neither offers "why". `DiffTab` passes it only when the PR's base is the default branch.
 
 Tests: `DiffTab/DiffTab.test.tsx`, `DiffTab/_components/WhyPanel/WhyPanel.test.tsx`,
 `src/components/diff-viewer/helpers.test.ts`.

@@ -179,6 +179,12 @@ New port methods (`listFiles`, `readCommitted`) went to the server copy only. Th
 "mirror every contract" rule is about `contracts/`, which the client does import.
 Evidence: `src/vendor/shared/adapters.ts:232`
 
+### 2026-10-13 — simple-git refuses an env that carries GIT_EDITOR
+`simpleGit(dir).env({ ...process.env, GIT_COMMITTER_DATE })` throws "Use of GIT_EDITOR
+is not permitted without enabling allowUnsafeEditor": Claude Code's shell exports
+GIT_EDITOR. Pass only what git needs (PATH, HOME, the dates) when a test sets env.
+Evidence: `test/git-history.test.ts:59`
+
 ## Recurring Errors & Fixes
 
 ### 2026-10-08 — A stalled model call hangs a run indefinitely (supersedes "~13 minutes")
@@ -274,6 +280,17 @@ every later merge descends from it, so the live run credited the repo's root com
 PR #4. A commit on the mainline is answered with null before the rev-list; the
 regression test builds that shape in a real repo.
 Evidence: `src/adapters/git/simple-git.ts:199`, `test/git-history.test.ts:92`
+
+### 2026-10-13 — Deleted files never reached a review; hunks ran past their counts
+`parseUnifiedDiff` took a file's path only from `+++ b/…`, so a deleted file
+(`+++ /dev/null`) got an empty path and was filtered out: reviews and the brief never
+saw it (a deleted route raised no signal). It also treated every non-`+`/`-` line as
+context, so the empty string after a final newline and `\ No newline at end of file`
+became new-side lines — a grounding target that does not exist — and `--- x` inside a
+hunk (a removed SQL comment) was taken for a file header. Hunks now end at their
+header counts and a deleted file keeps its old path. A deleted file in map-reduce is
+now its own chunk.
+Evidence: `src/adapters/git/diff-parser.ts:51`, `src/adapters/git/diff-parser.ts:59`, `test/grounding.test.ts:1`
 
 ## Session Notes
 

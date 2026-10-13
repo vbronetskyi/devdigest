@@ -152,6 +152,13 @@ the browser check caught it — component tests render the tab directly. The pag
 reads the editor's `TABS` through `editorTab()`.
 Evidence: `src/app/agents/[id]/page.tsx:24`, `src/app/agents/[id]/_components/AgentEditor/helpers.ts:5`
 
+### 2026-10-13 — `parsePatch` numbered the no-newline marker and the trailing empty line
+Both became context lines with old and new numbers, so git-why offered "why" on
+`\ No newline at end of file` (the server rightly answered 404) and a phantom last line
+could be focused. The parser drops the marker and the empty string after a final
+newline.
+Evidence: `src/components/diff-viewer/helpers.ts:22`
+
 ## Session Notes
 
 ### 2026-10-07 — Lab 1: run cost

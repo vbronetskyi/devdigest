@@ -45,6 +45,13 @@ URL" into out-of-scope — exactly the SSRF hole — which is why intent may inf
 a rationale but never reduce findings.
 Evidence: `src/prompt.ts:16`, `src/prompt.ts:153`
 
+### 2026-10-13 — Escape delimiter-closing tags case- and space-insensitively
+`wrapUntrusted` replaced only an exact `</untrusted>` and skills only `</skill`; a
+document or intent with `</UNTRUSTED>` or `< / untrusted >` passed through, and models
+treat those as the same tag. Both now use a regex with `\s*` and the `i` flag; any new
+delimiter should do the same.
+Evidence: `src/prompt.ts:58`, `src/prompt.ts:79`
+
 ## Tool & Library Notes
 
 ## Recurring Errors & Fixes
