@@ -88,6 +88,62 @@ export const PrHistory = z.object({
 });
 export type PrHistory = z.infer<typeof PrHistory>;
 
+// ---- Risk brief (HW L05, SPEC-03) ----
+/** A "read these first" spot: a changed file and a new-side line the diff shows. */
+export const ReviewFocusItem = z.object({
+  file: z.string(),
+  line: z.number().int(),
+  reason: z.string(),
+});
+export type ReviewFocusItem = z.infer<typeof ReviewFocusItem>;
+
+export const BriefMeta = z.object({
+  /** model: one call explained and ranked; signals: rules and history only. */
+  source: z.enum(['model', 'signals']),
+  /** Why it is signals-only; null for a model-written brief. */
+  reason: z.string().nullish(),
+  model: z.string().nullish(),
+  /** USD the call cost; null when no call was made or none was reported. */
+  cost_usd: z.number().nullish(),
+  /** PR head the brief describes. */
+  head_sha: z.string(),
+  generated_at: z.string(),
+});
+export type BriefMeta = z.infer<typeof BriefMeta>;
+
+export const RiskBrief = z.object({
+  risks: z.array(Risk),
+  review_focus: z.array(ReviewFocusItem),
+  history: z.array(PrHistoryItem),
+  /** ok, limited (shallow clone) or unavailable (no clone). */
+  history_state: z.enum(['ok', 'limited', 'unavailable']),
+  meta: BriefMeta,
+});
+export type RiskBrief = z.infer<typeof RiskBrief>;
+
+export const RiskBriefResponse = z.object({
+  brief: RiskBrief.nullable(),
+  /** The PR head moved since the brief was generated. */
+  stale: z.boolean(),
+});
+export type RiskBriefResponse = z.infer<typeof RiskBriefResponse>;
+
+// ---- git-why (HW L05, SPEC-04) ----
+export const WhyAnswer = z.object({
+  file: z.string(),
+  /** Old-side (base) line number. */
+  line: z.number().int(),
+  commit: z
+    .object({ sha: z.string(), author: z.string(), date: z.string(), subject: z.string() })
+    .nullable(),
+  /** The commit is the oldest the clone has: earlier history is not available. */
+  boundary: z.boolean(),
+  pr: z.object({ number: z.number().int(), title: z.string().nullable(), url: z.string() }).nullable(),
+  /** Said when there is no commit (new or renamed file). */
+  note: z.string().nullable(),
+});
+export type WhyAnswer = z.infer<typeof WhyAnswer>;
+
 // ---- Smart Diff ----
 /** Review order: the substance, what connects it, its tests, its docs, the mechanical rest. */
 export const SmartDiffRole = z.enum(['core', 'wiring', 'tests', 'docs', 'boilerplate']);

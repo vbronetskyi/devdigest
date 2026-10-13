@@ -47,7 +47,7 @@ Signals (no model) — always part of the brief
   | `deps` | low | only lockfiles changed |
   | `security` | high | a CI workflow (`.github/workflows/*.yml`) |
   | `security` | high | a path with a segment `auth`, `session`, `secret`, `token`, `password`, `permission`, `crypto`, `oauth`, `jwt`, `csrf`, `cors` (and plurals), or an `.env*` file |
-  | `breaking_api` | medium | a route / controller / handler / `api/` file or a contract / schema / OpenAPI file with removed lines |
+  | `breaking_api` | medium | a route / controller / handler / `api/` file, or a public contract (`contracts/`, OpenAPI / Swagger, `.proto`, GraphQL schema), with removed lines |
   | `breaking_api` | low | the same files with additions only |
 
   Each signal has a fixed title and explanation and lists its files.
@@ -171,3 +171,6 @@ None open.
   the full untrusted list, how signals and model risks combine, reference and focus
   validation against the diff's new-side lines, text caps, the response shape, a stale
   model brief vs a fresh fallback, split UI criteria, corrected cost.
+- 2026-10-13 — AC-2 during implementation: "schema file" also matched `db/schema/*`, so a
+  database schema raised `breaking_api` as well as `db_migration`. Public contracts are
+  now named explicitly; a DB schema is only `db_migration`.
