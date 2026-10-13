@@ -34,6 +34,10 @@ describe('riskSignals', () => {
     expect(riskSignals([f('server/test/auth.test.ts'), f('docs/README.md'), f('src/tokenizer.ts')])).toEqual([]);
     // Tests in other languages raise nothing either.
     expect(riskSignals([f('internal/api/handlers_test.go'), f('internal/auth/auth_test.go'), f('app/test_auth.py'), f('app/auth_test.py'), f('spec/controllers/users_controller_spec.rb'), f('src/api/routes.spec.ts')])).toEqual([]);
+    // …but an API spec is not a test, wherever it lives.
+    expect(riskSignals([f('spec/openapi.yaml'), f('api/spec/swagger.json'), f('src/contracts/user.spec.json')]).map((s) => [s.kind, s.files])).toEqual([
+      ['breaking_api', ['spec/openapi.yaml', 'api/spec/swagger.json', 'src/contracts/user.spec.json']],
+    ]);
     // Docs-only: a Markdown file named like a security topic is still docs.
     expect(riskSignals([f('.claude/skills/fastify/rules/cors-security.md'), f('docs/auth/setup.mdx')])).toEqual([]);
   });

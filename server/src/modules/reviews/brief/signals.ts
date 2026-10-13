@@ -42,10 +42,11 @@ const ROUTES = new RegExp(String.raw`(^|[/._-])(routes?|controllers?|handlers?)(
 // Public contracts only — a database schema is a db_migration signal, not an API one.
 const CONTRACT = /(^|\/)contracts?\/.+\.(ts|json|ya?ml)$|(^|\/)(openapi|swagger)[^/]*\.(json|ya?ml)$|\.(proto|graphql|gql)$/i;
 
-// Test files in the languages the route rule knows: test folders, `*.test.*` / `*.spec.*`,
-// Go `_test.go`, Python `test_*.py` / `*_test.py`, Ruby `*_spec.rb` / `*_test.rb`.
+// Test files in the languages the route rule knows: test folders, `*.test.*` / `*.spec.*`
+// source files, Go `_test.go`, Python `test_*.py` / `*_test.py`, Ruby `*_spec.rb` /
+// `*_test.rb`. Not a bare `spec/` folder or a `.spec.json`: an API spec lives there.
 const isTest = (path: string) =>
-  /(^|\/)(test|tests|__tests__|spec|e2e)\/|\.(test|spec)\.[^/]+$|_test\.(go|py|rb)$|(^|\/)test_[^/]*\.py$|_spec\.rb$/.test(path);
+  /(^|\/)(test|tests|__tests__|e2e)\/|\.(test|spec)\.(?:[cm]?[jt]sx?|py|rb|go)$|_test\.(go|py|rb)$|(^|\/)test_[^/]*\.py$|_spec\.rb$/.test(path);
 const isMarkdown = (path: string) => /\.mdx?$/i.test(path);
 
 /** Paths that make every PR "overlap" without telling anything (AC-3). */
