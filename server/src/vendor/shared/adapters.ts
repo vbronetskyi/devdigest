@@ -238,7 +238,43 @@ export interface GitClient {
    * commit or there is no clone.
    */
   readCommitted(repo: RepoRef, path: string, commit?: string): Promise<string | null>;
+  /**
+   * Commits on HEAD's first-parent line that touched any of `paths` (a merge counts
+   * with the files it brought in), newest first, scanning at most `limit` commits.
+   * Paths are literal (no pathspec magic or globs). `[]` without a clone.
+   */
+  history(repo: RepoRef, paths: string[], limit: number): Promise<HistoryCommit[]>;
+  /** The commit that last changed line `line` of `path` at `rev` (default HEAD); null without a clone, past the end or when the file is not there. */
+  blameLine(repo: RepoRef, path: string, line: number, rev?: string): Promise<BlameLineInfo | null>;
+  /** `git merge-base a b`; null when either is unknown to the clone. */
+  mergeBase(repo: RepoRef, a: string, b: string): Promise<string | null>;
+  /** Whether the clone has cut-off history; null without a clone. */
+  isShallow(repo: RepoRef): Promise<boolean | null>;
+  /** The oldest merge on HEAD's first-parent line that contains `sha` — how it arrived; null if none. */
+  mergedVia(repo: RepoRef, sha: string): Promise<{ sha: string; subject: string } | null>;
   clonePathFor(repo: RepoRef): string;
+}
+
+export interface HistoryCommit {
+  sha: string;
+  subject: string;
+  /** First non-empty body line — where GitHub puts a merged PR's title. */
+  body: string;
+  author: string;
+  /** ISO 8601. */
+  date: string;
+  /** Which of the asked-for paths this commit touched. */
+  files: string[];
+}
+
+export interface BlameLineInfo {
+  sha: string;
+  author: string;
+  /** ISO 8601. */
+  date: string;
+  summary: string;
+  /** The commit is the oldest the clone has (root or shallow boundary): history before it is unknown. */
+  boundary: boolean;
 }
 
 /** A file in the committed tree. */

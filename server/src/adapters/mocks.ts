@@ -25,6 +25,8 @@ import type {
   BlameLine,
   GitCommit,
   TrackedFile,
+  HistoryCommit,
+  BlameLineInfo,
   CodeIndex,
   CodeMatch,
   CodeSymbol,
@@ -249,6 +251,16 @@ export interface MockGitOptions {
   files?: Record<string, string>;
   /** `listFiles` returns null — the repo has no local clone. */
   noClone?: boolean;
+  /** What `history` returns (filtered to the asked-for paths). */
+  history?: HistoryCommit[];
+  /** `blameLine` answers, keyed by `path:line`. */
+  blame?: Record<string, BlameLineInfo>;
+  /** `mergedVia` answers, keyed by commit sha. */
+  mergedVia?: Record<string, { sha: string; subject: string }>;
+  /** `mergeBase` answer for any pair; default 'base000'. */
+  mergeBase?: string | null;
+  /** `isShallow` answer; default false. */
+  shallow?: boolean;
   /** Name-only diff result (drives the incremental indexer's "changed files since X" path). */
   diffNameOnly?: string[];
   /** Override `currentHead()` so tests can simulate "sha unchanged since last index". */
@@ -308,6 +320,30 @@ export class MockGitClient implements GitClient {
     this.reads.push(path);
     if (this.opts.noClone) return null;
     return this.opts.files?.[path] ?? null;
+  }
+  async history(_repo: RepoRef, paths: string[], limit: number): Promise<HistoryCommit[]> {
+    const asked = new Set(paths);
+    return (this.opts.history ?? [])
+      .map((c) => ({ ...c, files: c.files.filter((f) => asked.has(f)) }))
+      .filter((c) => c.files.length > 0)
+      .slice(0, limit);
+  }
+  /** Revisions `blameLine` was asked for, in order. */
+  public blameRevs: string[] = [];
+  async blameLine(_repo: RepoRef, path: string, line: number, rev = 'HEAD'): Promise<BlameLineInfo | null> {
+    this.blameRevs.push(rev);
+    return this.opts.blame?.[`${path}:${line}`] ?? null;
+  }
+  async mergeBase(): Promise<string | null> {
+    if (this.opts.noClone) return null;
+    return this.opts.mergeBase === undefined ? 'base000' : this.opts.mergeBase;
+  }
+  async isShallow(): Promise<boolean | null> {
+    if (this.opts.noClone) return null;
+    return this.opts.shallow ?? false;
+  }
+  async mergedVia(_repo: RepoRef, sha: string): Promise<{ sha: string; subject: string } | null> {
+    return this.opts.mergedVia?.[sha] ?? null;
   }
   async listFiles(): Promise<TrackedFile[] | null> {
     if (this.opts.noClone) return null;
