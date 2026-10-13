@@ -13,6 +13,7 @@ import blast from './blast/routes.js';
 import smartDiff from './smart-diff/routes.js';
 import context from './context/routes.js';
 import onboarding from './onboarding/routes.js';
+import why from './why/routes.js';
 
 /**
  * Module registry. Each feature module is a Fastify plugin in
@@ -42,4 +43,5 @@ export const modules: Record<string, FastifyPluginAsync> = {
   smartDiff,
   context,
   onboarding,
+  why,
 };

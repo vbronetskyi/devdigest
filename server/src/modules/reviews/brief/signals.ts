@@ -1,5 +1,8 @@
 import type { HistoryCommit, PrHistoryItem, RiskSeverity } from '@devdigest/shared';
 import { HISTORY_LIMIT } from './constants.js';
+import { prNumberOf } from '../../_shared/pr-number.js';
+
+export { prNumberOf };
 
 /**
  * SPEC-03 — what code can tell about a PR's risk for free. A signal is a
@@ -62,13 +65,6 @@ export function riskSignals(files: readonly ChangedFile[]): RiskSignal[] {
   return out;
 }
 
-/** AC-3: the PR number of a merge (`Merge pull request #N …`) or squash (`… (#N)`) subject. */
-export function prNumberOf(subject: string): number | null {
-  const merge = subject.match(/^Merge pull request #(\d+)\b/);
-  if (merge) return Number(merge[1]);
-  const squash = subject.match(/\(#(\d+)\)\s*$/);
-  return squash ? Number(squash[1]) : null;
-}
 
 /** AC-2/AC-3: prior PRs that touched these files, newest first; commits without a PR number are left out. */
 export function historyItems(commits: readonly HistoryCommit[], titles: ReadonlyMap<number, string>, exclude: number): PrHistoryItem[] {

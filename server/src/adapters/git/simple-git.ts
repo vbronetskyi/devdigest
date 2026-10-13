@@ -194,6 +194,9 @@ export class SimpleGitClient implements GitClient {
     if (!(await this.exists(join(this.clonePathFor(repo), '.git')))) return null;
     const git = this.git(repo);
     const mainline = new Set((await git.raw(['rev-list', '--first-parent', 'HEAD'])).split('\n').filter(Boolean));
+    // A commit on the mainline itself was committed there (or squash-merged): no merge brought it in.
+    const full = (await git.raw(['rev-parse', '--verify', `${sha}^{commit}`])).trim();
+    if (mainline.has(full)) return null;
     // Merges that descend from the commit, oldest first; the first one on the mainline brought it in.
     const merges = (await git.raw(['rev-list', '--ancestry-path', '--merges', '--reverse', `${sha}..HEAD`])).split('\n').filter(Boolean);
     const via = merges.find((m) => mainline.has(m));

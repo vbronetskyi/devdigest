@@ -90,8 +90,9 @@ describe('SimpleGitClient history / blameLine / mergedVia', () => {
     const line = await client.blameLine(repo, 'src/a.ts', 2);
     expect(line).toMatchObject({ sha: sha.feature, author: 'dev', summary: 'change two', boundary: false });
     expect(await client.mergedVia(repo, sha.feature!)).toEqual({ sha: sha.merge, subject: 'Merge pull request #7 from acme/feature' });
-    // A commit made on the mainline itself arrived without a merge.
+    // A commit made on the mainline itself arrived without a merge — even with merges after it.
     expect(await client.mergedVia(repo, sha.squash!)).toBeNull();
+    expect(await client.mergedVia(repo, sha.root!)).toBeNull();
   });
 
   it('SPEC-04 AC-5: marks the root commit as the boundary of known history', async () => {
