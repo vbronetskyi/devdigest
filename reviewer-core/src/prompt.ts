@@ -45,14 +45,15 @@ export interface SkillPart {
 
 export function wrapSkill(skill: SkillPart): string {
   // A body must not be able to close its own block and continue as free text.
-  const safeBody = skill.body.replaceAll('</skill', '<\\/skill');
+  const safeBody = skill.body.replace(/<\s*\/\s*skill/gi, '<\\/skill');
   const safeName = skill.name.replace(/[^a-z0-9._-]/gi, '-');
   return `<skill name="${safeName}">\n${safeBody}\n</skill>`;
 }
 
 export function wrapUntrusted(label: string, content: string): string {
-  // strip any attempt to close our own delimiter
-  const safe = content.replaceAll('</untrusted>', '<\\/untrusted>');
+  // Defuse any attempt to close our own delimiter, in any case or spacing
+  // (`</UNTRUSTED>`, `</ untrusted >`) — a model reads those as the same tag.
+  const safe = content.replace(/<\s*\/\s*untrusted\s*>/gi, '<\\/untrusted>');
   return `<untrusted source="${label}">\n${safe}\n</untrusted>`;
 }
 
