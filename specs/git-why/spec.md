@@ -24,31 +24,38 @@ Non-goals
 
 ## Acceptance criteria (EARS)
 
-Validation, in this order, before any git call on the line
+Validation. A malformed request is refused first, as on every route (AC-3); then
+AC-1, AC-2, AC-4 and AC-5 in this order, and no git call happens before AC-4 passes.
 - **AC-1** IF the PR is not in the workspace, THEN the system shall answer 404.
 - **AC-2** IF the PR's base branch is not the repository's default branch, THEN the
   system shall answer 409 saying git-why covers PRs into the default branch.
-- **AC-3** IF `line` is not a positive integer, THEN the system shall answer 422.
+- **AC-3** IF the PR id is not a UUID, `line` is not a positive integer, or `file` is
+  empty or longer than 4,096 characters, THEN the system shall answer 422 before any
+  other check.
 - **AC-4** IF `file` is not a changed file of the PR, or `line` is not an old-side line
-  (removed or context) in that file's patch, THEN the system shall answer 404.
+  (removed or context) inside a hunk of that file's patch, THEN the system shall answer
+  404.
 - **AC-5** IF the repository has no clone, or the PR head cannot be fetched into it,
-  THEN the system shall answer 409 saying so.
+  THEN the system shall answer 409 saying which.
 
 Answer
 - **AC-6** The system shall blame the line at the merge base of the default branch and
   the PR head — the revision the diff's old side shows — and return the commit's sha,
   author, date and subject.
 - **AC-7** The system shall return the PR that brought that commit into the default
-  branch: the oldest merge on the default branch's first-parent line containing the
-  commit; IF there is none, the number from a `(#N)` at the end of the commit's own
-  subject; else null. A number counts only if DevDigest knows PR N of this repository as
+  branch: the oldest merge (in ancestry order, not by date) on the default branch's
+  first-parent line containing the commit; IF there is none, or its subject names no
+  PR, the number from a `(#N)` at the end of the commit's own subject; else null. A number counts only if DevDigest knows PR N of this repository as
   merged (SPEC-03 AC-4 — a fork inherits the upstream's numbers); otherwise the PR is
   null. With the number go DevDigest's title and a GitHub link built from the repo owner,
   name and the number.
 - **AC-8** IF the commit is the oldest the clone has (root or shallow boundary), THEN the
   answer shall carry `boundary: true` and say earlier history is not available.
 - **AC-9** IF the file does not exist at the merge base (new or renamed in the PR), THEN
-  the answer shall say no history is available for it, with a null commit.
+  the answer shall say no history is available for it, with a null commit. IF the file
+  exists there but the line cannot be blamed (the stored patch and the merge base
+  disagree), THEN the answer shall say the line is not at that position at the merge
+  base, with a null commit.
 - **AC-10** The system shall pass the file to git only as a path after `--`, and only after
   AC-4 confirmed it is one of the PR's files.
 
@@ -63,7 +70,9 @@ UI
 
 ## Edge cases
 
-- The same commit blamed for many lines: each request is independent; nothing cached.
+- The same commit blamed for many lines: each request is independent; the server
+  caches nothing (the client keeps an answer for five minutes).
+- A `\ No newline at end of file` marker is not a line: no "why" on it (AC-4, AC-11).
 - A shallow clone: most old lines blame to the boundary commit (AC-8 says so).
 
 ## Inputs (provenance)
@@ -87,3 +96,9 @@ path is checked against the PR's file list before git sees it (AC-4, AC-10).
   bases, errors shown.
 - 2026-10-13 — AC-7: PR numbers from commit subjects are verified against DevDigest's
   merged PRs (same reason as SPEC-03 AC-4).
+- 2026-10-13 — after verification: a malformed request is a 422 before the other checks
+  (routes validate their schema before the handler — the spec had AC-3 third); the
+  file length limit stated; old-side lines bounded by the hunk; "oldest merge" is
+  ancestry order; the `(#N)` fallback also applies when the merge names no PR; AC-9
+  tells a missing file from a line the merge base does not have; the marker line and
+  the client cache named in the edge cases.

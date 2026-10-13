@@ -37,26 +37,30 @@ Diff
   that diff belongs to.
 
 Signals (no model) — always part of the brief
-- **AC-2** The system shall raise these signals from changed, non-test files:
+- **AC-2** The system shall raise these signals from every changed file that is not a
+  test or Markdown:
 
   | Kind | Severity | When |
   |---|---|---|
-  | `db_migration` | high | a file under a `migration(s)/` folder |
-  | `db_migration` | medium | a schema definition (`schema.prisma`, `db/schema*`) without a migration |
+  | `db_migration` | high | a file anywhere under a `migration(s)/` folder; schema files changed with it are listed in the same signal |
+  | `db_migration` | medium | a schema definition (`schema.prisma`, `db/schema*`) when the PR has no migration |
   | `deps` | medium | a dependency manifest (`package.json`, `requirements*.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `Gemfile`, `composer.json`) |
   | `deps` | low | only lockfiles changed |
   | `security` | high | a CI workflow (`.github/workflows/*.yml`) |
-  | `security` | high | a path with a segment `auth`, `session`, `secret`, `token`, `password`, `permission`, `crypto`, `oauth`, `jwt`, `csrf`, `cors` (and plurals), or an `.env*` file |
-  | `breaking_api` | medium | a route / controller / handler / `api/` file, or a public contract (`contracts/`, OpenAPI / Swagger, `.proto`, GraphQL schema), with removed lines |
+  | `security` | high | a path with a word (between `/ . _ -`) `auth`, `session`, `secret`, `token`, `password`, `permission`, `crypto`, `oauth`, `jwt`, `csrf`, `cors` (and plurals), or an `.env*` file |
+  | `breaking_api` | medium | a route / controller / handler source file (by name, common languages) or one under `api/` or `routes/`, or a public contract (`contracts/`, OpenAPI / Swagger, `.proto`, GraphQL schema), with removed lines |
   | `breaking_api` | low | the same files with additions only |
 
-  Each signal has a fixed title and explanation and lists its files.
+  Each signal has a fixed title and explanation and lists its files. A word rule is a
+  rule, not a judgement: `tokens.ts` of a design system matches too.
 
 History (no model)
 - **AC-3** The system shall list other PRs merged into the clone's default branch that
   touched any of the PR's changed files, leaving out lockfiles, Markdown and generated
-  migration metadata: newest first, at most 8, without the PR itself, each with its
-  number, title, merge date, who merged it and the overlapping files.
+  migration metadata: newest first, at most 8, without the PR itself, found among the
+  60 most recent default-branch commits that touched those files, each with its number,
+  title, merge date, the merge commit's author (the merger for a merge commit, usually
+  the PR author for a squash) and the overlapping files.
 - **AC-4** The system shall take a commit's PR number from `Merge pull request #N` or from
   a `(#N)` at the end of the subject, and count it only if DevDigest knows PR N of this
   repository as merged — a fork's history carries the upstream's PR numbers, which name
@@ -65,13 +69,14 @@ History (no model)
 - **AC-5** A history entry's title shall be DevDigest's title for that PR.
 - **AC-6** The system shall pass paths to git literally (no pathspec magic or globs),
   read non-ASCII paths correctly, and send at most 100 paths.
-- **AC-7** IF the clone is shallow or missing, THEN the brief shall say the history is
-  limited or unavailable instead of "no prior PRs".
+- **AC-7** IF the clone is shallow, missing or git fails to read it, THEN the brief shall
+  say the history is limited or unavailable instead of "no prior PRs".
 
 Model (one call)
 - **AC-8** The system shall make at most one model call per generation — no re-prompt on
-  a schema mismatch; a transport retry of a request that got no answer is not a second
-  call.
+  a schema mismatch. The provider adapter's retries of a request that failed (network
+  error, 429, 5xx) are transport, not a second call. At the 90 s deadline the brief falls
+  back; the request is not cancelled (the platform's deadline cannot abort it).
 - **AC-9** The model input shall be the signals, the PR title, the description (first
   4,000 characters), the stored intent when there is one, the changed file list (at most
   100), the diff (first 12,000 characters) and the history, each repository-made or
@@ -81,9 +86,9 @@ Model (one call)
   `breaking_api`, `perf`, `deps`, `correctness` and a severity `high` / `medium` / `low`;
   an answer with another kind or severity does not match the schema (AC-14).
 - **AC-11** A file reference is `path`, `path:line` or `path:start-end`. IF its path is
-  not a changed file of the PR, THEN the reference is dropped; IF its line or range is
-  not within the new-side lines the diff shows for that file, THEN the suffix is dropped
-  and the path kept. IF a model risk has no reference left, THEN it is dropped.
+  not a changed file of the PR, THEN the reference is dropped; IF its line or any line of
+  its range is not among the new-side lines the diff shows for that file, THEN the suffix
+  is dropped and the path kept. IF a model risk has no reference left, THEN it is dropped.
 - **AC-12** The brief's risks shall be every signal (AC-2) plus the grounded model risks,
   a model risk replacing the signal of the same kind it covers, ordered by severity
   (high → low; signals before model risks on a tie), at most 6.
@@ -106,7 +111,8 @@ Fallback, state, API
   one is kept and the request fails with 502 saying so. A model-written brief for an
   older head is replaced: a brief describes one head.
 - **AC-18** IF a generation for the PR is already running, THEN the system shall refuse a
-  second one with 409; IF the PR has no diff anywhere, THEN with 409 saying why.
+  second one with 409; IF the PR has no text diff anywhere, THEN with 409 saying why.
+  Other failures while loading the diff are errors, not a 409.
 
 UI
 - **AC-19** WHILE no brief is stored, the PR Overview shall show a Brief card with a
@@ -124,8 +130,12 @@ UI
 ## Edge cases
 
 - Docs-only PR: no signals; the model may find none — "No notable risks".
-- A file reference to a binary or very large file without hunks: the path is kept, no
-  line (AC-11), and it opens the file in Files changed without scrolling.
+- Files without a text diff (binary, too large for GitHub's patch, a pure rename) are
+  not in the diff the review and the brief read: they raise no signal and a reference
+  to them is dropped. A deleted file is in it, with its removed lines (and no new-side
+  lines, so a reference to it keeps only the path).
+- Without a clone diff the brief reads the stored `pr_files`, refreshed when the PR page
+  is opened; it is stamped with the PR head at generation, as a review is.
 - PR into a non-default branch: history is still the default branch's (non-goal), and
   the card says so.
 
@@ -178,3 +188,10 @@ None open.
   cleanup before home tasks" — a squash commit from the upstream course repo, whose #11
   is not this repo's #11 (an open lab PR). A number now counts only when DevDigest knows
   that PR here as merged, and the title is always DevDigest's.
+- 2026-10-13 — after verification: migrations at any depth (Prisma), schema files folded
+  into the migration signal when there is one, route files by name in any common
+  language, Markdown raises nothing (a docs-only PR has no signals), word boundaries
+  stated; history scan and "merge commit's author" stated; AC-7 covers git errors; AC-8
+  says what retries and the deadline do; AC-11 checks every line of a range; AC-18 only
+  for "no text diff"; deleted files now reach the diff (the parser dropped them), files
+  without a text diff named in the edge cases.
