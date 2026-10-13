@@ -12,13 +12,27 @@ import {
   type BriefContext,
 } from '../src/modules/reviews/brief/helpers.js';
 import type { RiskSignal } from '../src/modules/reviews/brief/signals.js';
+import { BriefBuilder } from '../src/modules/reviews/brief/builder.js';
+import { EmptyDiffError } from '../src/modules/reviews/diff-loader.js';
+import { ConflictError } from '../src/platform/errors.js';
+import type { Container } from '../src/platform/container.js';
+import type { PullRow, ReviewRepository } from '../src/modules/reviews/repository.js';
 
 const DIFF: UnifiedDiff = {
   raw: 'diff --git a/server/src/routes.ts b/server/src/routes.ts\n+ fetch(req.body.url)',
   files: [
-    { path: 'server/src/routes.ts', additions: 3, deletions: 1, hunks: [{ file: 'server/src/routes.ts', oldStart: 10, oldLines: 3, newStart: 10, newLines: 5, newLineNumbers: [10, 11, 12, 13, 14] }] },
+    {
+      path: 'server/src/routes.ts',
+      additions: 4,
+      deletions: 1,
+      hunks: [
+        { file: 'server/src/routes.ts', oldStart: 10, oldLines: 3, newStart: 10, newLines: 5, newLineNumbers: [10, 11, 12, 13, 14] },
+        { file: 'server/src/routes.ts', oldStart: 38, oldLines: 2, newStart: 40, newLines: 3, newLineNumbers: [40, 41, 42] },
+      ],
+    },
     { path: 'server/package.json', additions: 1, deletions: 0, hunks: [{ file: 'server/package.json', oldStart: 20, oldLines: 2, newStart: 20, newLines: 3, newLineNumbers: [20, 21, 22] }] },
-    { path: 'assets/logo.png', additions: 0, deletions: 0, hunks: [] },
+    // A deleted file: in the diff, no new-side lines.
+    { path: 'server/src/legacy.ts', additions: 0, deletions: 2, hunks: [{ file: 'server/src/legacy.ts', oldStart: 1, oldLines: 2, newStart: 0, newLines: 0, newLineNumbers: [] }] },
   ],
 };
 const SIGNALS: RiskSignal[] = [
@@ -46,6 +60,26 @@ describe('buildBriefMessages', () => {
     expect(body.slice(0, body.indexOf('<untrusted'))).not.toContain('Ignore previous');
     expect(body).not.toContain('x'.repeat(4001));
   });
+
+  it('AC-9: the diff is cut at 12,000 characters and the file list at 100 files', () => {
+    const files = Array.from({ length: 150 }, (_, i) => ({ path: `src/f${i}.ts`, additions: 1, deletions: 0, hunks: [] }));
+    const [, user] = buildBriefMessages('SYS', {
+      title: 't',
+      description: null,
+      intent: null,
+      diff: { raw: 'd'.repeat(20_000), files },
+      signals: [{ kind: 'deps', severity: 'low', title: 'Lockfile changed', reason: 'r', files: files.map((f) => f.path) }],
+      history: [],
+    });
+    const body = user!.content;
+    expect(body).toContain('d'.repeat(12_000));
+    expect(body).not.toContain('d'.repeat(12_001));
+    expect(body).toContain('[… diff cut at 12000 characters]');
+    const list = body.slice(body.indexOf('<untrusted source="files">'), body.indexOf('</untrusted>', body.indexOf('<untrusted source="files">')));
+    expect(list).toContain('src/f99.ts');
+    expect(list).not.toContain('src/f100.ts');
+    expect(body).not.toContain('"src/f100.ts"'); // signal file lists are capped too
+  });
 });
 
 describe('BriefOutput', () => {
@@ -66,7 +100,10 @@ describe('references', () => {
     expect(groundRef('server/src/routes.ts:99', index)).toBe('server/src/routes.ts');
     expect(groundRef('server/src/routes.ts:13-11', index)).toBe('server/src/routes.ts');
     expect(groundRef('server/src/routes.ts:0', index)).toBe('server/src/routes.ts');
-    expect(groundRef('assets/logo.png:3', index)).toBe('assets/logo.png');
+    // Both ends shown, the lines between not (two hunks): not a shown range.
+    expect(groundRef('server/src/routes.ts:12-41', index)).toBe('server/src/routes.ts');
+    expect(groundRef('server/src/routes.ts:40-42', index)).toBe('server/src/routes.ts:40-42');
+    expect(groundRef('server/src/legacy.ts:1', index)).toBe('server/src/legacy.ts');
     expect(groundRef('server/src/invented.ts:3', index)).toBeNull();
   });
 });
@@ -104,8 +141,21 @@ describe('groundBrief', () => {
 
   it('AC-14: strips links from model text and caps its length', () => {
     expect(brief.risks[0]!.explanation).toBe('The URL from the body is fetched. See `https://evil.example/x`');
-    const long = groundBrief({ ...output, risks: [{ ...output.risks[0]!, title: 'T'.repeat(500) }] }, CTX, META);
+    const long = groundBrief(
+      {
+        risks: [{ ...output.risks[0]!, title: 'T'.repeat(500), explanation: 'E'.repeat(2000) }],
+        review_focus: [{ file: 'server/src/routes.ts', line: 12, reason: 'R'.repeat(1000) }],
+        history_notes: [{ pr_number: 12, note: 'N'.repeat(1000) }],
+      },
+      CTX,
+      META,
+    );
     expect(long.risks[0]!.title.length).toBeLessThanOrEqual(120);
+    expect(long.risks[0]!.explanation.length).toBeLessThanOrEqual(600);
+    expect(long.risks[0]!.explanation.length).toBeGreaterThan(500);
+    expect(long.review_focus[0]!.reason.length).toBeLessThanOrEqual(240);
+    expect(long.history[0]!.notes!.length).toBeLessThanOrEqual(240);
+    expect(long.history[0]!.notes!.length).toBeGreaterThan(200);
   });
 
   it('AC-12: never more than six risks; signals win ties with model risks', () => {
@@ -122,5 +172,17 @@ describe('signalsOnlyBrief', () => {
     expect(brief.risks.map((r) => r.title)).toEqual(['Dependencies changed', 'Public contract lines removed']);
     expect(brief.review_focus).toEqual([]);
     expect(brief.meta).toEqual({ source: 'signals', reason: 'No API key for openai', model: null, cost_usd: null, head_sha: 'head1', generated_at: 'now' });
+  });
+});
+
+describe('BriefBuilder.generate — loading the diff', () => {
+  const builder = new BriefBuilder({} as Container, {} as ReviewRepository);
+  const pull = { id: 'p1' } as PullRow;
+  const ref = { owner: 'acme', name: 'api' };
+
+  it('AC-18: no text diff anywhere is a 409; any other failure stays an error', async () => {
+    await expect(builder.generate('ws', pull, ref, () => Promise.reject(new EmptyDiffError()))).rejects.toBeInstanceOf(ConflictError);
+    const fault = new Error('connection terminated');
+    await expect(builder.generate('ws', pull, ref, () => Promise.reject(fault))).rejects.toBe(fault);
   });
 });

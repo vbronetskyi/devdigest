@@ -22,6 +22,7 @@ import { useActiveRepo, useRepoNotFound } from "../../../../../lib/repo-context"
 import { ApiError } from "../../../../../lib/api";
 import { githubPrUrl } from "../../../../../lib/github-urls";
 import type { FindingRecord } from "@devdigest/shared";
+import { baseBranchView, fileLinkQuery, focusFromQuery } from "./helpers";
 
 export default function PRDetailPage() {
   const params = useParams<{ repoId: string; number: string }>();
@@ -67,20 +68,11 @@ export default function PRDetailPage() {
   };
   const setTab = (t: string) => setParam("tab", t);
   // Risk brief → Files changed at a file (and line): one URL change, so Back returns to Overview.
-  const openFile = (file: string, line: number | null) => {
-    const sp = new URLSearchParams(search.toString());
-    sp.set("tab", "diff");
-    sp.set("file", file);
-    if (line == null) sp.delete("line");
-    else sp.set("line", String(line));
-    router.push(`/repos/${repoId}/pulls/${number}?${sp.toString()}`);
-  };
+  const openFile = (file: string, line: number | null) =>
+    router.push(`/repos/${repoId}/pulls/${number}?${fileLinkQuery(search.toString(), file, line)}`);
   const focusFile = search.get("file");
-  const focusLine = Number(search.get("line"));
-  const diffFocus = React.useMemo(
-    () => (focusFile ? { file: focusFile, line: Number.isInteger(focusLine) && focusLine > 0 ? focusLine : null } : null),
-    [focusFile, focusLine],
-  );
+  const focusLine = search.get("line");
+  const diffFocus = React.useMemo(() => focusFromQuery(focusFile, focusLine), [focusFile, focusLine]);
 
   // Reviews come newest-first; each is its own run (grouped into accordions).
   const runs = reviews ?? [];
@@ -135,6 +127,8 @@ export default function PRDetailPage() {
     );
   }
 
+  const branch = baseBranchView(pr.base, activeRepo?.default_branch ?? null);
+
   return (
     <AppShell crumb={crumb}>
       <PrDetailHeader
@@ -155,7 +149,7 @@ export default function PRDetailPage() {
             prId={prId}
             repo={repoFullName}
             defaultBranch={activeRepo?.default_branch ?? "main"}
-            historyBranch={activeRepo && pr.base !== activeRepo.default_branch ? activeRepo.default_branch : null}
+            historyBranch={branch.historyBranch}
             headSha={pr.head_sha}
             onOpenFile={openFile}
           />
@@ -195,7 +189,7 @@ export default function PRDetailPage() {
             repoFullName={repoFullName}
             headSha={pr.head_sha}
             focus={diffFocus}
-            whyEnabled={!!activeRepo && pr.base === activeRepo.default_branch}
+            whyEnabled={branch.whyEnabled}
           />
         )}
       </div>

@@ -44,7 +44,8 @@ export interface BriefInput {
 export function buildBriefMessages(system: string, input: BriefInput): ChatMessage[] {
   const files = input.diff.files.slice(0, MAX_FILES).map((f) => `${f.path} (+${f.additions} −${f.deletions})`).join('\n');
   const diff = input.diff.raw.length > PATCH_MAX_CHARS ? `${input.diff.raw.slice(0, PATCH_MAX_CHARS)}\n[… diff cut at ${PATCH_MAX_CHARS} characters]` : input.diff.raw;
-  const signals = input.signals.map((s) => ({ kind: s.kind, severity: s.severity, title: s.title, files: s.files }));
+  // Signals cover every file (AC-2); the prompt names at most MAX_FILES of each.
+  const signals = input.signals.map((s) => ({ kind: s.kind, severity: s.severity, title: s.title, files: s.files.slice(0, MAX_FILES) }));
   const history = input.history.map((h) => ({ pr_number: h.pr_number, title: h.title, merged_at: h.merged_at, files: h.files_overlap }));
   const sections = [
     'Write the risk brief for this pull request.',
@@ -82,8 +83,14 @@ export function groundRef(ref: string, index: ReadonlyMap<string, ReadonlySet<nu
   const lines = index.get(path);
   if (!lines) return null;
   if (start === null || end === null) return path;
-  const valid = start >= 1 && end >= start && lines.has(start) && lines.has(end);
+  // Every line of the range must be shown: two hunks' ends do not make one range.
+  const valid = start >= 1 && end >= start && end - start <= lines.size && everyLine(start, end, lines);
   return valid ? (start === end ? `${path}:${start}` : `${path}:${start}-${end}`) : path;
+}
+
+function everyLine(start: number, end: number, lines: ReadonlySet<number>): boolean {
+  for (let n = start; n <= end; n++) if (!lines.has(n)) return false;
+  return true;
 }
 
 const SEVERITY_RANK: Record<RiskSeverity, number> = { high: 0, medium: 1, low: 2 };

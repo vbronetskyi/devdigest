@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { historyItems, prNumberOf, riskSignals } from '../src/modules/reviews/brief/signals.js';
+import { historyItems, historyPaths, prNumberOf, riskSignals } from '../src/modules/reviews/brief/signals.js';
 
 const f = (path: string, deletions = 0) => ({ path, additions: 3, deletions, patch: null });
 
@@ -18,8 +18,8 @@ describe('riskSignals', () => {
       f('server/src/vendor/shared/contracts/brief.ts'),
     ]);
     expect(signals.map((s) => [s.kind, s.severity, s.files])).toEqual([
-      ['db_migration', 'high', ['server/src/db/migrations/0013_x.sql']],
-      ['db_migration', 'medium', ['server/src/db/schema/agents.ts']],
+      // The schema changed with its migration: one signal for both.
+      ['db_migration', 'high', ['server/src/db/migrations/0013_x.sql', 'server/src/db/schema/agents.ts']],
       ['deps', 'medium', ['server/package.json']],
       ['security', 'high', ['.github/workflows/ci.yml']],
       ['security', 'high', ['server/src/modules/auth/session.ts', 'server/.env.example']],
@@ -32,6 +32,34 @@ describe('riskSignals', () => {
   it('AC-2: a lockfile alone is a low deps signal; tests and docs raise nothing', () => {
     expect(riskSignals([f('client/pnpm-lock.yaml')]).map((s) => [s.kind, s.severity])).toEqual([['deps', 'low']]);
     expect(riskSignals([f('server/test/auth.test.ts'), f('docs/README.md'), f('src/tokenizer.ts')])).toEqual([]);
+    // Docs-only: a Markdown file named like a security topic is still docs.
+    expect(riskSignals([f('.claude/skills/fastify/rules/cors-security.md'), f('docs/auth/setup.mdx')])).toEqual([]);
+  });
+
+  it('AC-2: migrations at any depth, schema alone, manifests and contracts across ecosystems', () => {
+    const kinds = (paths: string[], deletions = 0) => riskSignals(paths.map((p) => f(p, deletions))).map((s) => [s.kind, s.severity, s.files]);
+    expect(kinds(['prisma/migrations/20261001_init/migration.sql'])).toEqual([['db_migration', 'high', ['prisma/migrations/20261001_init/migration.sql']]]);
+    expect(kinds(['prisma/schema.prisma', 'db/schema.rb'])).toEqual([['db_migration', 'medium', ['prisma/schema.prisma', 'db/schema.rb']]]);
+    expect(kinds(['requirements-dev.txt', 'go.mod', 'Cargo.toml', 'pyproject.toml'])).toEqual([
+      ['deps', 'medium', ['requirements-dev.txt', 'go.mod', 'Cargo.toml', 'pyproject.toml']],
+    ]);
+    expect(kinds(['api/user.proto', 'openapi.yaml', 'schema.graphql', 'src/users/user.controller.ts', 'app/controllers/users_controller.rb', 'src/api/v1.py'], 2)).toEqual([
+      ['breaking_api', 'medium', ['api/user.proto', 'openapi.yaml', 'schema.graphql', 'src/users/user.controller.ts', 'app/controllers/users_controller.rb', 'src/api/v1.py']],
+    ]);
+    expect(kinds(['src/sessions/store.ts', 'lib/jwt-verify.ts', 'src/permissions.py'])).toEqual([
+      ['security', 'high', ['src/sessions/store.ts', 'lib/jwt-verify.ts', 'src/permissions.py']],
+    ]);
+    // A deleted route file: removed lines only.
+    expect(riskSignals([{ path: 'server/src/modules/old/routes.ts', additions: 0, deletions: 40, patch: null }]).map((s) => [s.kind, s.severity])).toEqual([['breaking_api', 'medium']]);
+  });
+});
+
+describe('historyPaths', () => {
+  it('AC-3: lockfiles, Markdown and migration metadata never look for history', () => {
+    expect(historyPaths(['server/src/a.ts', 'server/pnpm-lock.yaml', 'docs/x.md', 'server/src/db/migrations/meta/_journal.json', 'server/src/db/migrations/0001_x.sql'])).toEqual([
+      'server/src/a.ts',
+      'server/src/db/migrations/0001_x.sql',
+    ]);
   });
 });
 

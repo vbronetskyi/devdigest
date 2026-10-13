@@ -18,9 +18,7 @@
     "boundary": "Oldest commit in the clone — earlier history is not available.",
     "newFile": "No history: the file is new or renamed in this PR.",
     "loadError": "Couldn’t ask git: {message}",
-    "blame": "blame",
-    "noHistory": "No history available for this line.",
-    "noCommits": "No commits found for this line."
+    "lineNotAtBase": "No history: the merge base has no such line (the stored diff and the merge base disagree)."
   },
   "intent": {
     "inScope": "IN SCOPE",
@@ -53,9 +51,9 @@
     "history": "Other PRs touching these files",
     "noHistory": "No other PR touched these files.",
     "historyLimited": "The clone is shallow, so older PRs may be missing.",
-    "historyUnavailable": "No local clone, so no PR history.",
+    "historyUnavailable": "No PR history: there is no local clone, or git could not read it.",
     "historyOtherBase": "This PR targets another branch; the history is from {branch}.",
-    "mergedBy": "merged by {author} · {date}",
+    "mergeMeta": "{author} · merged {date}",
     "metaModel": "Written by {model} · {cost} · for {sha}",
     "metaSignals": "Signals only, no model ({reason}) · for {sha}",
     "stale": "The PR has new commits since this brief. Regenerate to update it.",

@@ -170,7 +170,7 @@ function BriefBody({
                   )}
                   <span>{h.title}</span>
                 </div>
-                <div style={s.historyMeta}>{t("risk.mergedBy", { author: h.author, date: new Date(h.merged_at).toLocaleDateString() })}</div>
+                <div style={s.historyMeta}>{t("risk.mergeMeta", { author: h.author, date: new Date(h.merged_at).toLocaleDateString() })}</div>
                 {h.notes && <div style={s.historyNote}>{h.notes}</div>}
                 <div className="mono" style={s.overlap}>
                   {h.files_overlap.join(", ")}

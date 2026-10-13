@@ -78,6 +78,29 @@ describe("BriefCard", () => {
     expect(screen.queryByText(/targets another branch/)).toBeNull();
   });
 
+  it("AC-7/AC-21: says when the history is limited or unavailable, and when there are no risks", () => {
+    h.data = { brief: { ...BRIEF, risks: [], history: [], history_state: "limited" }, stale: false };
+    renderCard();
+    expect(screen.getByText("No notable risks found.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Other PRs touching these files/ }));
+    expect(screen.getByText(/clone is shallow/)).toBeTruthy();
+    expect(screen.queryByText("No other PR touched these files.")).toBeNull();
+    cleanup();
+    h.data = { brief: { ...BRIEF, history: [], history_state: "unavailable" }, stale: false };
+    renderCard();
+    fireEvent.click(screen.getByRole("button", { name: /Other PRs touching these files/ }));
+    expect(screen.getByText(/no local clone, or git could not read it/)).toBeTruthy();
+  });
+
+  it("AC-3: each history entry names its PR, the merge commit's author and date, and the overlapping files", () => {
+    h.data = { brief: BRIEF, stale: false };
+    renderCard();
+    fireEvent.click(screen.getByRole("button", { name: /Other PRs touching these files/ }));
+    expect(screen.getByText("Rate limit public routes")).toBeTruthy();
+    expect(screen.getByText(`merger · merged ${new Date("2026-10-01T10:00:00Z").toLocaleDateString()}`)).toBeTruthy();
+    expect(screen.getByText("server/src/routes.ts", { selector: "div" })).toBeTruthy();
+  });
+
   it("edge case: a PR into another branch says the history is the default branch's", () => {
     h.data = { brief: BRIEF, stale: false };
     renderCard(vi.fn(), "main");

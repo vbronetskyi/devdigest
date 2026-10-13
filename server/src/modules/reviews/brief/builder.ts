@@ -6,12 +6,10 @@ import { loadPromptTemplate } from '../../../platform/prompts.js';
 import { resolveFeatureLlm } from '../../_shared/feature-models.js';
 import { withDeadline } from '../../_shared/deadline.js';
 import type { PullRow, ReviewRepository } from '../repository.js';
-import { BRIEF_DEADLINE_MS, BRIEF_OPENROUTER_MODEL, BRIEF_SCHEMA_NAME, HISTORY_SCAN, MAX_FILES } from './constants.js';
+import { EmptyDiffError } from '../diff-loader.js';
+import { BRIEF_DEADLINE_MS, BRIEF_OPENROUTER_MODEL, BRIEF_SCHEMA_NAME, HISTORY_SCAN } from './constants.js';
 import { BriefOutput, buildBriefMessages, diffIndex, groundBrief, signalsOnlyBrief, type BriefContext } from './helpers.js';
-import { historyItems, prNumberOf, riskSignals } from './signals.js';
-
-/** Paths that make every PR "overlap" without telling anything (AC-3). */
-const HISTORY_NOISE = /(^|\/)(pnpm-lock\.yaml|package-lock\.json|yarn\.lock|bun\.lockb?|Cargo\.lock|Gemfile\.lock|poetry\.lock|go\.sum|composer\.lock)$|\.mdx?$|(^|\/)migrations\/meta\//i;
+import { historyItems, historyPaths, prNumberOf, riskSignals } from './signals.js';
 
 /**
  * SPEC-03 — the risk brief of a PR head: rule signals and git history for
@@ -45,7 +43,9 @@ export class BriefBuilder {
       try {
         diff = await loadDiff();
       } catch (err) {
-        throw new ConflictError(`No diff to brief: ${(err as Error).message}`);
+        // AC-18: only "no text diff anywhere" is the caller's 409; anything else is a fault.
+        if (err instanceof EmptyDiffError) throw new ConflictError(`No diff to brief: ${err.message}`);
+        throw err;
       }
       const ctx = await this.context(pull, ref, diff);
       const base = { head_sha: pull.headSha, generated_at: new Date().toISOString() };
@@ -95,24 +95,24 @@ export class BriefBuilder {
 
   /** AC-2–AC-7: signals from the diff, history from the clone, the diff's new-side lines. */
   private async context(pull: PullRow, ref: RepoRef, diff: UnifiedDiff): Promise<BriefContext> {
-    const files = diff.files.slice(0, MAX_FILES);
+    // AC-2: signals from every file; the 100-file cap is the prompt's and git's (AC-6, AC-9).
     const signals = riskSignals(
-      files.map((f) => ({ path: f.path, additions: f.additions, deletions: f.deletions, patch: null })),
+      diff.files.map((f) => ({ path: f.path, additions: f.additions, deletions: f.deletions, patch: null })),
     );
-    const shallow = await this.container.git.isShallow(ref);
+    let historyState: BriefContext['historyState'] = 'unavailable';
     let history: BriefContext['history'] = [];
+    const shallow = await this.container.git.isShallow(ref);
     if (shallow !== null) {
-      const paths = files.map((f) => f.path).filter((p) => !HISTORY_NOISE.test(p));
-      const commits = await this.container.git.history(ref, paths, HISTORY_SCAN);
-      const numbers = commits.map((c) => prNumberOf(c.subject)).filter((n): n is number => n !== null);
-      history = historyItems(commits, await this.repo.mergedPullTitles(pull.repoId, numbers), pull.number);
+      try {
+        const commits = await this.container.git.history(ref, historyPaths(diff.files.map((f) => f.path)), HISTORY_SCAN);
+        const numbers = commits.map((c) => prNumberOf(c.subject)).filter((n): n is number => n !== null);
+        history = historyItems(commits, await this.repo.mergedPullTitles(pull.repoId, numbers), pull.number);
+        historyState = shallow ? 'limited' : 'ok';
+      } catch {
+        // AC-7: git could not read the clone — say "unavailable", not "no prior PRs".
+      }
     }
-    return {
-      signals,
-      history,
-      historyState: shallow === null ? 'unavailable' : shallow ? 'limited' : 'ok',
-      index: diffIndex(diff),
-    };
+    return { signals, history, historyState, index: diffIndex(diff) };
   }
 
   private async stored(prId: string): Promise<RiskBrief | null> {

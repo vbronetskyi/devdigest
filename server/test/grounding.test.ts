@@ -95,4 +95,28 @@ describe('unified diff parser', () => {
     expect(config.additions).toBe(1);
     expect(config.hunks[0]!.newLineNumbers).toContain(11); // the added stripeKey line
   });
+
+  it('keeps a deleted file under its old path, with removed lines and no new-side lines', () => {
+    const diff = parseUnifiedDiff(
+      [
+        'diff --git a/src/old.ts b/src/old.ts',
+        'deleted file mode 100644',
+        '--- a/src/old.ts',
+        '+++ /dev/null',
+        '@@ -1,2 +0,0 @@',
+        '-export const a = 1;',
+        '--- a SQL-style comment, removed: a line, not a header',
+        'diff --git a/logo.png b/logo.png',
+        'Binary files a/logo.png and b/logo.png differ',
+      ].join('\n'),
+    );
+    expect(diff.files).toEqual([
+      { path: 'src/old.ts', additions: 0, deletions: 2, hunks: [{ file: 'src/old.ts', oldStart: 1, oldLines: 2, newStart: 0, newLines: 0, newLineNumbers: [] }] },
+    ]);
+  });
+
+  it('ends a hunk at its header counts: no phantom line from a trailing newline or the no-newline marker', () => {
+    const diff = parseUnifiedDiff(['diff --git a/a.ts b/a.ts', '--- a/a.ts', '+++ b/a.ts', '@@ -1,1 +1,2 @@', ' one', '+two', '\\ No newline at end of file', ''].join('\n'));
+    expect(diff.files[0]!.hunks[0]!.newLineNumbers).toEqual([1, 2]);
+  });
 });

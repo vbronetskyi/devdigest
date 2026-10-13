@@ -27,18 +27,31 @@ export interface ChangedFile {
   patch: string | null;
 }
 
-const MIGRATION = /(^|\/)migrations?\/[^/]+\.(sql|[cm]?[jt]s|py)$/i;
-const SCHEMA = /(^|\/)(schema\.prisma|db\/schema(\/[^/]+|\.[cm]?[jt]s))$/i;
+// Anything under a migration folder, at any depth (Prisma nests one folder per migration).
+const MIGRATION = /(^|\/)migrations?\/./i;
+const SCHEMA = /(^|\/)(schema\.prisma|db\/schema([./].+)?)$/i;
 const MANIFEST = /(^|\/)(package\.json|requirements[^/]*\.txt|pyproject\.toml|go\.mod|Cargo\.toml|Gemfile|composer\.json)$/;
 const LOCKFILE = /(^|\/)(pnpm-lock\.yaml|package-lock\.json|yarn\.lock|bun\.lockb?|poetry\.lock|go\.sum|Cargo\.lock|Gemfile\.lock|composer\.lock)$/;
 const SECURITY_PATH = /(^|[/._-])(auth|authn|authz|session|sessions|secret|secrets|token|tokens|password|passwords|permission|permissions|crypto|oauth|jwt|csrf|cors)([/._-]|$)/i;
 const ENV_FILE = /(^|\/)\.env(\.[\w-]+)?$/;
 const CI_WORKFLOW = /(^|\/)\.github\/workflows\/[^/]+\.ya?ml$/;
-const ROUTES = /(^|\/)(routes?|controllers?|handlers?|api)(\/[^/]+)?\.[cm]?[jt]sx?$|(^|\/)(routes|api)\/.+\.[cm]?[jt]sx?$/i;
+const SOURCE = String.raw`\.(?:[cm]?[jt]sx?|py|rb|go|java|kt|php|cs|rs)$`;
+// A route / controller / handler by its file name (`routes.ts`, `user.controller.ts`,
+// `users_controller.rb`) or any source file under `api/` or `routes/`.
+const ROUTES = new RegExp(String.raw`(^|[/._-])(routes?|controllers?|handlers?)([._-][^/]*)?${SOURCE}|(^|/)api${SOURCE}|(^|/)(api|routes)/.+${SOURCE}`, 'i');
 // Public contracts only — a database schema is a db_migration signal, not an API one.
 const CONTRACT = /(^|\/)contracts?\/.+\.(ts|json|ya?ml)$|(^|\/)(openapi|swagger)[^/]*\.(json|ya?ml)$|\.(proto|graphql|gql)$/i;
 
 const isTest = (path: string) => /(^|\/)(test|tests|__tests__|e2e)\/|\.(test|spec)\.[cm]?[jt]sx?$/.test(path);
+const isMarkdown = (path: string) => /\.mdx?$/i.test(path);
+
+/** Paths that make every PR "overlap" without telling anything (AC-3). */
+const HISTORY_NOISE = /(^|\/)(pnpm-lock\.yaml|package-lock\.json|yarn\.lock|bun\.lockb?|Cargo\.lock|Gemfile\.lock|poetry\.lock|go\.sum|composer\.lock)$|\.mdx?$|(^|\/)migrations\/meta\//i;
+
+/** AC-3/AC-6: the changed files worth a history lookup — no lockfiles, Markdown or migration metadata. */
+export function historyPaths(paths: readonly string[]): string[] {
+  return paths.filter((p) => !HISTORY_NOISE.test(p));
+}
 
 /** AC-1: risk signals by rules from the changed files; at most one signal per kind and severity. */
 export function riskSignals(files: readonly ChangedFile[]): RiskSignal[] {
@@ -46,10 +59,13 @@ export function riskSignals(files: readonly ChangedFile[]): RiskSignal[] {
   const add = (kind: SignalKind, severity: RiskSeverity, title: string, reason: string, matched: ChangedFile[]) => {
     if (matched.length > 0) out.push({ kind, severity, title, reason, files: matched.map((f) => f.path) });
   };
-  const code = files.filter((f) => !isTest(f.path));
+  const code = files.filter((f) => !isTest(f.path) && !isMarkdown(f.path));
 
-  add('db_migration', 'high', 'Database migration', 'A migration runs against every environment; it must be safe on real data and reversible.', code.filter((f) => MIGRATION.test(f.path)));
-  add('db_migration', 'medium', 'Database schema changed', 'The schema definition changed; check the generated migration and every query on the touched tables.', code.filter((f) => SCHEMA.test(f.path) && !MIGRATION.test(f.path)));
+  const migrations = code.filter((f) => MIGRATION.test(f.path));
+  const schemas = code.filter((f) => SCHEMA.test(f.path) && !MIGRATION.test(f.path));
+  // With a migration in the PR, the schema files belong to that signal.
+  add('db_migration', 'high', 'Database migration', 'A migration runs against every environment; it must be safe on real data and reversible.', migrations.length > 0 ? [...migrations, ...schemas] : []);
+  if (migrations.length === 0) add('db_migration', 'medium', 'Database schema changed', 'The schema definition changed without a migration; check how it reaches the database and every query on the touched tables.', schemas);
 
   const manifests = code.filter((f) => MANIFEST.test(f.path));
   const lockfiles = code.filter((f) => LOCKFILE.test(f.path));
