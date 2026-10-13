@@ -144,7 +144,7 @@ UI
 
 ## Untrusted inputs
 
-PR title, description, diff, file paths, commit subjects and bodies, PR titles, authors
+PR title, description, diff, file paths, commit subjects, PR titles, authors
 and the stored intent (model-derived from the author's text) are untrusted: they go to
 the model inside `<untrusted>` blocks; the output is grounded by the server (AC-10–AC-14)
 and rendered without links (AC-24). PR links are built from the repo owner, name and an

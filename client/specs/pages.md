@@ -39,9 +39,11 @@ then:
 - `usePrActiveRuns` → `GET /pulls/:id/runs/active` — polled while runs are live.
 - Trace drawer (`?trace=<runId>`) → `GET /runs/:id/trace`, live log over SSE.
 - Files changed tab → `useSmartDiff` → `GET /pulls/:id/smart-diff`.
+- Brief card → `useBrief` → `GET /pulls/:id/brief`; Generate → `POST` (one model call).
+- git-why panel → `useWhy` → `GET /pulls/:id/why?file=&line=`, only while it is open.
 
-**Overview tab** — the PR description, the intent card and the blast radius card
-(`blast-radius.md`), loaded after the PR detail. The intent card reads
+**Overview tab** — the PR description, the intent card, the Brief card and the blast
+radius card (`blast-radius.md`), loaded after the PR detail. The intent card reads
 `GET /pulls/:id/intent` (free) and derives only on click (`POST`, one model call):
 intent quote, in/out of scope, "Derived by <model> · <cost> · for <sha>", and a
 note when the PR head moved since.
@@ -58,6 +60,26 @@ note when the PR head moved since.
 
 **Files changed tab** (`?tab=diff`) — Smart order or Original order, finding
 markers and the split banner (`smart-diff.md`), plus GitHub comments.
+`?file=<path>&line=<n>` opens that file (unfolding it) and scrolls to the new-side
+line with a focus ring; without `line` it scrolls to the file.
+
+## Risk brief and git-why (HW L05)
+
+- **Brief card** (Overview) — empty state with Generate. Then risk pills (kind icon,
+  severity colour, title, first file reference): the pill opens Files changed at its
+  first reference, the chevron expands the explanation (safe Markdown, no links) and
+  every reference. "Review focus — read these first" lists `file:line` spots; the
+  history accordion lists other merged PRs on the same files, each linked on GitHub,
+  with who merged it, the model's note and the overlapping files. It says when the
+  history is limited (shallow clone), unavailable (no clone) or from the default branch
+  while the PR targets another. Footer: model, cost and head — or "signals only" and
+  why; a warning when the head moved since. A failed regeneration shows its message
+  above the kept brief.
+- **git-why** (Files changed) — removed and context lines get a "why" button on hover
+  (not added lines; no button at all when the PR's base is not the default branch). It
+  opens a panel under the line: short sha, subject, author, date, the PR linked on
+  GitHub when the server names one, the "earlier history" / "no history" note, or the
+  server's error message.
 
 ## Project Context and Onboarding (L05)
 
@@ -74,4 +96,5 @@ markers and the split banner (`smart-diff.md`), plus GitHub comments.
   cost and index commit, or the skeleton's reason.
 
 No page triggers an LLM call by being opened. Model calls happen only from
-**Run Review**, the intent card's **Derive** and the tour's **Generate / Regenerate**.
+**Run Review**, the intent card's **Derive**, the tour's **Generate / Regenerate** and
+the Brief card's **Generate / Regenerate**.

@@ -54,6 +54,16 @@ path. Style, constant and type-only modules are left out there; the rest keeps r
 order. Expect the same skew anywhere `getTopFilesByRank` picks "important" files.
 Evidence: `src/modules/onboarding/constants.ts:20`
 
+### 2026-10-13 — On a fork, a `(#N)` in a commit subject is not this repo's PR #N
+This repo is a fork of the course repo, and its `main` carries the upstream's squash
+commits: `e07efea chore: cleanup before home tasks (#11)` sits in the history of
+`server/src/modules/pulls/routes.ts`, while #11 here is an open lab PR. The brief listed
+it as prior history and git-why would have linked it. A number from a subject now
+counts only if `pull_requests` has that PR for this repo with status `merged` (the
+column is GitHub's state; the PR-list sync asks for `state: 'all'`). Anything that
+reads PR numbers out of git must do the same check.
+Evidence: `src/modules/reviews/repository/brief.repo.ts:19`, `src/modules/why/service.ts:51`, `src/modules/pulls/status.ts:50`
+
 ## Codebase Patterns
 
 ### 2026-10-07 — PR list aggregates belong in SQL, filtered to `done` runs
@@ -257,6 +267,14 @@ run two trace assertions failed this way. The trace is now saved first at all th
 completion points.
 Evidence: `src/modules/reviews/run-executor.ts:324`
 
+### 2026-10-13 — `rev-list --ancestry-path --merges <sha>..HEAD` also finds merges for mainline commits
+`mergedVia` takes the oldest first-parent merge that descends from a commit. For a
+commit that is itself on the first-parent line (the root commit, a direct push, a squash)
+every later merge descends from it, so the live run credited the repo's root commit to
+PR #4. A commit on the mainline is answered with null before the rev-list; the
+regression test builds that shape in a real repo.
+Evidence: `src/adapters/git/simple-git.ts:199`, `test/git-history.test.ts:92`
+
 ## Session Notes
 
 ### 2026-10-07 — Lab 1: run cost
@@ -309,6 +327,14 @@ facts, a failed regenerate overwriting a good tour); live runs changed the spec 
 more (document headings, reading-path leaves). A failed regenerate never replaces a
 model-written tour.
 Evidence: `../specs/project-context/spec.md:1`, `../specs/onboarding/spec.md:1`, `src/modules/onboarding/service.ts:93`
+
+### 2026-10-13 — Homework 5: risk brief and git-why
+`GET/POST /pulls/:id/brief` (rule signals + default-branch history for $0, one
+model call grounded against the diff's new-side lines, signals-only fallback) and
+`GET /pulls/:id/why` (blame at the merge base, the PR that merged the commit). Live on
+PR #5: one deepseek-v4-flash call, $0.0017, 6 risks, history #4 only. Both specs changed
+twice after implementation started; see their changelogs.
+Evidence: `src/modules/reviews/brief/builder.ts:20`, `src/modules/why/service.ts:15`, `../specs/risk-brief/spec.md:1`
 
 ## Open Questions
 
