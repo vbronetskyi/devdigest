@@ -33,10 +33,10 @@ const BRIEF: RiskBrief = {
   meta: { source: "model", reason: null, model: "gpt-4.1", cost_usd: 0.0123, head_sha: "head123456", generated_at: "2026-10-13T10:00:00Z" },
 };
 
-const renderCard = (onOpenFile = vi.fn()) => {
+const renderCard = (onOpenFile = vi.fn(), historyBranch: string | null = null) => {
   render(
     <NextIntlClientProvider locale="en" messages={{ brief }}>
-      <BriefCard prId="p1" repo="acme/api" onOpenFile={onOpenFile} />
+      <BriefCard prId="p1" repo="acme/api" historyBranch={historyBranch} onOpenFile={onOpenFile} />
     </NextIntlClientProvider>,
   );
   return onOpenFile;
@@ -75,6 +75,14 @@ describe("BriefCard", () => {
     fireEvent.click(screen.getByRole("button", { name: /Other PRs touching these files/ }));
     expect(screen.getByRole("link", { name: "#4" }).getAttribute("href")).toBe("https://github.com/acme/api/pull/4");
     expect(screen.getByText("Added the limiter.")).toBeTruthy();
+    expect(screen.queryByText(/targets another branch/)).toBeNull();
+  });
+
+  it("edge case: a PR into another branch says the history is the default branch's", () => {
+    h.data = { brief: BRIEF, stale: false };
+    renderCard(vi.fn(), "main");
+    fireEvent.click(screen.getByRole("button", { name: /Other PRs touching these files/ }));
+    expect(screen.getByText("This PR targets another branch; the history is from main.")).toBeTruthy();
   });
 
   it("AC-23: names model, cost and head — or says signals-only and why; warns when stale", () => {

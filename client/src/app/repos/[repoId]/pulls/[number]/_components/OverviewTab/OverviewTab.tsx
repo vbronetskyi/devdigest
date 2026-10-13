@@ -12,12 +12,14 @@ interface OverviewTabProps {
   prId: string;
   repo: string | null;
   defaultBranch: string;
+  /** Set when the PR targets a branch other than the default one (see BriefCard). */
+  historyBranch: string | null;
   headSha: string | null | undefined;
   /** Open Files changed at this file (and new-side line). */
   onOpenFile: (file: string, line: number | null) => void;
 }
 
-export function OverviewTab({ prBody, prId, repo, defaultBranch, headSha, onOpenFile }: OverviewTabProps) {
+export function OverviewTab({ prBody, prId, repo, defaultBranch, historyBranch, headSha, onOpenFile }: OverviewTabProps) {
   return (
     <>
       {prBody && (
@@ -27,7 +29,7 @@ export function OverviewTab({ prBody, prId, repo, defaultBranch, headSha, onOpen
         </section>
       )}
       <IntentCard prId={prId} headSha={headSha} />
-      <BriefCard prId={prId} repo={repo} onOpenFile={onOpenFile} />
+      <BriefCard prId={prId} repo={repo} historyBranch={historyBranch} onOpenFile={onOpenFile} />
       {repo && <BlastRadiusCard prId={prId} repo={repo} defaultBranch={defaultBranch} />}
     </>
   );

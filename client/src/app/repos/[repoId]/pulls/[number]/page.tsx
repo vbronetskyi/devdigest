@@ -155,6 +155,7 @@ export default function PRDetailPage() {
             prId={prId}
             repo={repoFullName}
             defaultBranch={activeRepo?.default_branch ?? "main"}
+            historyBranch={activeRepo && pr.base !== activeRepo.default_branch ? activeRepo.default_branch : null}
             headSha={pr.head_sha}
             onOpenFile={openFile}
           />

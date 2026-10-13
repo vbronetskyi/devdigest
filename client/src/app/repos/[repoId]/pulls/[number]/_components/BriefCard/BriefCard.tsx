@@ -19,9 +19,11 @@ interface BriefCardProps {
   prId: string;
   repo: string | null;
   onOpenFile: (file: string, line: number | null) => void;
+  /** The default branch, when the PR targets another one: its history is still the default branch's. */
+  historyBranch?: string | null;
 }
 
-export function BriefCard({ prId, repo, onOpenFile }: BriefCardProps) {
+export function BriefCard({ prId, repo, onOpenFile, historyBranch = null }: BriefCardProps) {
   const t = useTranslations("brief");
   const { data, isLoading } = useBrief(prId);
   const generate = useGenerateBrief(prId);
@@ -59,14 +61,26 @@ export function BriefCard({ prId, repo, onOpenFile }: BriefCardProps) {
             </Button>
           </div>
         ) : (
-          <BriefBody brief={brief} stale={data?.stale ?? false} repo={repo} onOpenFile={onOpenFile} />
+          <BriefBody brief={brief} stale={data?.stale ?? false} repo={repo} historyBranch={historyBranch} onOpenFile={onOpenFile} />
         )}
       </div>
     </section>
   );
 }
 
-function BriefBody({ brief, stale, repo, onOpenFile }: { brief: RiskBrief; stale: boolean; repo: string | null; onOpenFile: BriefCardProps["onOpenFile"] }) {
+function BriefBody({
+  brief,
+  stale,
+  repo,
+  historyBranch,
+  onOpenFile,
+}: {
+  brief: RiskBrief;
+  stale: boolean;
+  repo: string | null;
+  historyBranch: string | null;
+  onOpenFile: BriefCardProps["onOpenFile"];
+}) {
   const t = useTranslations("brief");
   const [open, setOpen] = React.useState<number | null>(null);
   const [historyOpen, setHistoryOpen] = React.useState(false);
@@ -139,6 +153,7 @@ function BriefBody({ brief, stale, repo, onOpenFile }: { brief: RiskBrief; stale
         </button>
         {historyOpen && (
           <div style={s.historyBody}>
+            {historyBranch && <p style={s.none}>{t("risk.historyOtherBase", { branch: historyBranch })}</p>}
             {brief.history_state !== "ok" && (
               <p style={s.none}>{t(brief.history_state === "limited" ? "risk.historyLimited" : "risk.historyUnavailable")}</p>
             )}

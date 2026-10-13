@@ -54,6 +54,7 @@
     "noHistory": "No other PR touched these files.",
     "historyLimited": "The clone is shallow, so older PRs may be missing.",
     "historyUnavailable": "No local clone, so no PR history.",
+    "historyOtherBase": "This PR targets another branch; the history is from {branch}.",
     "mergedBy": "merged by {author} · {date}",
     "metaModel": "Written by {model} · {cost} · for {sha}",
     "metaSignals": "Signals only, no model ({reason}) · for {sha}",
