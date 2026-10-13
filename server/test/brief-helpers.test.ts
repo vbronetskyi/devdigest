@@ -7,6 +7,7 @@ import {
   groundBrief,
   groundRef,
   mergeRisks,
+  numberedDiff,
   parseRef,
   signalsOnlyBrief,
   type BriefContext,
@@ -59,6 +60,37 @@ describe('buildBriefMessages', () => {
     }
     expect(body.slice(0, body.indexOf('<untrusted'))).not.toContain('Ignore previous');
     expect(body).not.toContain('x'.repeat(4001));
+  });
+
+  it('AC-9: every new-side line carries its number; removed lines and headers do not', () => {
+    const raw = [
+      'diff --git a/src/a.ts b/src/a.ts',
+      '--- a/src/a.ts',
+      '+++ b/src/a.ts',
+      '@@ -170,3 +172,4 @@ export default',
+      ' // Forward the review',
+      '-old();',
+      '+await fetch(req.body.url, {',
+      '+  method: \'POST\',',
+      ' });',
+      '\\ No newline at end of file',
+      '',
+    ].join('\n');
+    expect(numberedDiff(raw).split('\n')).toEqual([
+      'diff --git a/src/a.ts b/src/a.ts',
+      '--- a/src/a.ts',
+      '+++ b/src/a.ts',
+      '@@ -170,3 +172,4 @@ export default',
+      '  172  // Forward the review',
+      '      -old();',
+      '  173 +await fetch(req.body.url, {',
+      "  174 +  method: 'POST',",
+      '  175  });',
+      '\\ No newline at end of file',
+      '',
+    ]);
+    const [, user] = buildBriefMessages('SYS', { title: 't', description: null, intent: null, diff: { raw, files: [] }, signals: [], history: [] });
+    expect(user!.content).toContain('  173 +await fetch(req.body.url, {');
   });
 
   it('AC-9: the diff is cut at 12,000 characters and the file list at 100 files', () => {

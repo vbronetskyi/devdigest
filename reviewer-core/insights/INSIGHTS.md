@@ -70,4 +70,13 @@ Evidence: `src/llm/openrouter.ts:54`
 `assembly.skills`, so the trace drawer shows it unchanged.
 Evidence: `src/prompt.ts:41`, `src/prompt.ts:113`
 
+### 2026-10-13 — Findings land two lines off: the model counts lines from the hunk header
+On demo PR #3 every reviewer put the SSRF finding on `routes.ts:175` (`headers:`); the
+`fetch` is on 173. The diff goes into the prompt raw, so the model counts from `@@` and
+drifts — grounding still passes, since 175 is a shown line. The risk brief had the same
+error and fixed it by prefixing each new-side line with its number (server
+`reviews/brief/helpers.ts` `numberedDiff`): two runs then cited 173 exactly. Doing the
+same here would change every review prompt, so it was left for a reviewer-core task.
+Evidence: `src/prompt.ts:182`, `../server/src/modules/reviews/brief/helpers.ts:48`
+
 ## Open Questions

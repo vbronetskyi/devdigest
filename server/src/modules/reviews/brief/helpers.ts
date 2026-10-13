@@ -40,10 +40,44 @@ export interface BriefInput {
   history: PrHistoryItem[];
 }
 
+/**
+ * AC-9: the diff with each new-side line prefixed by its number (`  173 +code`), removed
+ * lines by blanks. Models miscount lines from a hunk header; a number they can read is
+ * one they cite. A hunk ends at its header's counts, like the parser's.
+ */
+export function numberedDiff(raw: string): string {
+  const out: string[] = [];
+  let newNo = 0;
+  let oldLeft = 0;
+  let newLeft = 0;
+  for (const line of raw.split('\n')) {
+    const header = line.match(/^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+    if (header) {
+      oldLeft = header[1] === undefined ? 1 : Number(header[1]);
+      newNo = Number(header[2]);
+      newLeft = header[3] === undefined ? 1 : Number(header[3]);
+      out.push(line);
+    } else if ((oldLeft === 0 && newLeft === 0) || line.startsWith('\\')) {
+      out.push(line); // file headers, between hunks, the no-newline marker
+    } else if (line.startsWith('-')) {
+      out.push(`${' '.repeat(LINE_NO_WIDTH)} ${line}`);
+      oldLeft--;
+    } else {
+      out.push(`${String(newNo).padStart(LINE_NO_WIDTH)} ${line}`);
+      newNo++;
+      newLeft--;
+      if (!line.startsWith('+')) oldLeft--;
+    }
+  }
+  return out.join('\n');
+}
+const LINE_NO_WIDTH = 5;
+
 /** AC-9: fixed instructions; every repository-made or model-derived text in its own untrusted block. */
 export function buildBriefMessages(system: string, input: BriefInput): ChatMessage[] {
   const files = input.diff.files.slice(0, MAX_FILES).map((f) => `${f.path} (+${f.additions} −${f.deletions})`).join('\n');
-  const diff = input.diff.raw.length > PATCH_MAX_CHARS ? `${input.diff.raw.slice(0, PATCH_MAX_CHARS)}\n[… diff cut at ${PATCH_MAX_CHARS} characters]` : input.diff.raw;
+  const numbered = numberedDiff(input.diff.raw);
+  const diff = numbered.length > PATCH_MAX_CHARS ? `${numbered.slice(0, PATCH_MAX_CHARS)}\n[… diff cut at ${PATCH_MAX_CHARS} characters]` : numbered;
   // Signals cover every file (AC-2); the prompt names at most MAX_FILES of each.
   const signals = input.signals.map((s) => ({ kind: s.kind, severity: s.severity, title: s.title, files: s.files.slice(0, MAX_FILES) }));
   const history = input.history.map((h) => ({ pr_number: h.pr_number, title: h.title, merged_at: h.merged_at, files: h.files_overlap }));
@@ -55,7 +89,7 @@ export function buildBriefMessages(system: string, input: BriefInput): ChatMessa
     input.intent ? `## Derived intent (unverified)\n${wrapUntrusted('intent', JSON.stringify(input.intent, null, 1))}` : '',
     `## Changed files\n${wrapUntrusted('files', files)}`,
     `## History (other PRs that touched these files)\n${wrapUntrusted('history', JSON.stringify(history, null, 1))}`,
-    `## Diff\n${wrapUntrusted('diff', diff)}`,
+    `## Diff (new-side line numbers on the left)\n${wrapUntrusted('diff', diff)}`,
   ].filter(Boolean);
   return [
     { role: 'system', content: system },

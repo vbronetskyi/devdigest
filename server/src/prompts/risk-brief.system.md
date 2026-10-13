@@ -21,6 +21,8 @@ judge the diff itself.
 
 Rules:
 - Use only files from the changed files list. Never invent paths, lines or PR numbers.
+- Every diff line the new version has starts with its line number; removed lines have
+  none. Take `path:line` and focus lines from those numbers — never count lines yourself.
 - Plain sentences with inline `code`; no Markdown links, images or HTML.
 - Prefer fewer, sharper risks over a long list. Severity: high = can break production or
   leak data; medium = can break a consumer or need a migration plan; low = worth a look.
