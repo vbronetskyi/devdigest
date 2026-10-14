@@ -51,3 +51,18 @@ across AC-1 – AC-15 (179 client tests, 14 server tests, a 12.7 ms load median)
 | Nothing tested that the breakdown passes the key, not the label, into `sliceColors` | untested | the deleted agent's swatch is checked to be the unknown grey | `0265617` |
 | The API still said `low_sample: true` when nothing was decided; only the UI hid it | deviation | the server rule follows AC-5 (`decided > 0`), the UI shows the flag as is | `0265617` |
 | `title` on the wrapper and `aria-label` on the icon could announce the trend twice | nit | one `role="img"` element with the label; the icon is hidden | `0265617` |
+
+## Pass 4 — at `061fb3e`
+
+**Verdict: ready.** The pass-3 items are resolved: six chart tokens in both themes, a
+palette test that fails on a grey, a repeat, a token equal to the unknown grey or a
+missing token in either theme (checked against altered copies of the stylesheet); the
+deleted agent's swatch proves the key reaches `sliceColors`; the server's `low_sample`
+follows AC-5; one announced trend label. No regressions across AC-1 – AC-15; contract
+copies identical; 14 server, 181 client tests.
+
+Nits taken after the verdict (`cd798b3`): emerald and teal were close and green/red read
+as good/bad in a cost chart — the palette is now blue, violet, amber, pink, cyan, lime and
+the test also rejects near duplicates; the zero-decided rule is in the contract comment
+and both package specs; a test fixture the server could not produce was replaced; the
+plan's AC-5 and AC-11 rows name their new tests.
