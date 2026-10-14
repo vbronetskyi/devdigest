@@ -150,14 +150,26 @@ const CHAR_REFERENCE = /&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);/i;
 /** Outside ASCII, Latin letters (`naïve`) and this typography need no source; any other character must come from the facts. */
 const TYPOGRAPHY = new Set(['—', '–', '‘', '’', '“', '”', '…', '−', '→', '«', '»']);
 const LATIN_LETTER = /\p{Script=Latin}/u;
-/** Cyrillic and Greek letters that look Latin, read as Latin for the number words and multipliers. */
+/**
+ * Letters that look Latin, read as Latin for the number words and multipliers:
+ * Cyrillic, Greek and a few Latin variants. Letters only — `з` is not a 3, or every
+ * Ukrainian title with "з" would hold a digit.
+ */
 const LOOK_ALIKES: Record<string, string> = {
-  а: 'a', в: 'b', е: 'e', ё: 'e', з: '3', і: 'i', ї: 'i', ј: 'j', к: 'k', м: 'm', н: 'h', о: 'o', р: 'p', с: 'c', т: 't', у: 'y', х: 'x', ѕ: 's',
+  а: 'a', в: 'b', е: 'e', ё: 'e', і: 'i', ї: 'i', ј: 'j', к: 'k', м: 'm', н: 'h', о: 'o', р: 'p', с: 'c', т: 't', у: 'y', х: 'x', ѕ: 's',
   α: 'a', β: 'b', ε: 'e', ι: 'i', κ: 'k', μ: 'u', ν: 'v', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x',
+  ı: 'i', ɡ: 'g', ɑ: 'a', ᴋ: 'k', ʜ: 'h', ᴛ: 't', ᴡ: 'w', ʏ: 'y', ᴏ: 'o',
 };
-const asLatin = (text: string) => text.replace(/./gu, (c) => LOOK_ALIKES[c.toLowerCase()] ?? c);
+/** Compatibility forms (`ｔ`) and accents (`é`) folded, then look-alikes read as Latin. */
+const asLatin = (text: string) =>
+  text
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/./gu, (c) => LOOK_ALIKES[c.toLowerCase()] ?? c);
+/** LaTeX braces or backslashes (GitHub renders `$9{}000$` as math) and emoji shortcodes (`:heavy_multiplication_x:`). */
+const MARKUP = /[{}\\]|:[a-z][a-z0-9_+-]*:/i;
 /** Digits split only by a space or an apostrophe read as one number: "9 000", "1'000", "9 0000". */
-const GROUP_SEPARATOR = /(\d)[ '‘’′`](?=\d)/g;
+const GROUP_SEPARATOR = /(\d)[ '‘’′`]+(?=\d)/g;
 
 /** The tokens of a text that hold a digit, without sentence punctuation around them. */
 export function tokensIn(text: string): string[] {
@@ -226,8 +238,9 @@ export function checkHighlight(raw: string, facts: FactsCheck): string | null {
     .replace(/ {2,}/g, ' ')
     .trim();
   if (!line) return null;
-  // The clean-up can rebuild a reference: `3&*times;` → `3&times;`.
-  if (CHAR_REFERENCE.test(line)) return null;
+  // The clean-up can rebuild a reference or a comment: `3&*times;` → `3&times;`.
+  line = line.replace(HTML_COMMENT, '');
+  if (CHAR_REFERENCE.test(line) || MARKUP.test(line)) return null;
   if (line.length > HIGHLIGHT_MAX_CHARS) line = `${line.slice(0, HIGHLIGHT_MAX_CHARS - 1).trimEnd()}…`;
   if ([...line].some((c) => c > '\x7f' && !TYPOGRAPHY.has(c) && !LATIN_LETTER.test(c) && !facts.chars.has(c))) return null;
   // Backticks do not separate a digit from its multiplier; look-alike letters read as Latin.

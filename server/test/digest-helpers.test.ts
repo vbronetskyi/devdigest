@@ -247,6 +247,36 @@ describe('facts and the number check (AC-7)', () => {
       'Runs reached 4<!-- -->2.',
       'Runs rose twen<!-- -->ty percent.',
       'Runs fell to 8.9999999999999999.',
+      // More quotes and marks between a digit and its multiplier; LaTeX and shortcodes.
+      'Runs grew «3» times.',
+      'Runs hit «9» K.',
+      'Runs grew {3} times.',
+      'Runs hit <9> K.',
+      'Runs grew 3− times.',
+      'a 3 −fold rise',
+      'Runs grew 3… times.',
+      'Runs reached $9{}000{}$.',
+      'Runs reached $9\\,000$.',
+      'Runs grew 3:heavy_multiplication_x:',
+      // Latin look-alikes and number words run together.
+      'Runs rose by ei\u0261ht.',
+      'Runs rose by th\u0131rty.',
+      'Cost fell by h\u0251lf.',
+      'Runs rose tw\u00e9nty percent.',
+      'Runs rose ｔｗｅｎｔｙ percent.',
+      'Runs hit 9 ｋ.',
+      'Runs rose 3 ｘ.',
+      'Runs hit 9 \u1d0b.',
+      'Runs hit fortytwo.',
+      'Runs hit twentytwo.',
+      'Runs hit tenthousand.',
+      'Runs hit onehundred.',
+      'Cost hit $9 MM.',
+      'Runs hit 9 trn.',
+      'Runs hit 9 lakh.',
+      "Runs reached 9' 000.",
+      'Runs reached 9 ` 000.',
+      'Runs reached 4<\u200b!-- -->2.',
     ];
     for (const line of invented) expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
   });
@@ -271,6 +301,11 @@ describe('facts and the number check (AC-7)', () => {
     expect(checkHighlight('Review runs went 26 → 9.', allowed)).not.toBeNull();
     expect(checkHighlight('A naïve URL check in PR #3 is still open.', allowed)).not.toBeNull();
     // A title stored decomposed (NFD, as macOS writes paths) still matches the composed quote.
+    // Common Ukrainian titles quoted from the facts are not number words or multipliers.
+    for (const title of ['Виправити обробку помилок', 'Видалити старий кеш', 'Клієнт для вебхуків', 'Тимчасово вимкнути ретраї', 'Робота з ключем API', 'Узгодити з тим, що є', 'Перевірка зв’язку з базою', 'Хліб і сіль']) {
+      const check = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: title }] });
+      expect([title, checkHighlight(`PR #3 "${title}" still has 4 open critical findings.`, check)]).toEqual([title, `PR #3 "${title}" still has 4 open critical findings.`]);
+    }
     const nfd = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Чаи\u0306ник' }] });
     expect(checkHighlight('PR #3 "Чайник" is still open.', nfd)).not.toBeNull();
   });

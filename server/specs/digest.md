@@ -52,9 +52,13 @@ typography (— – ‘ ’ “ ” … − → « ») nor in the facts text (a 
 `四十二`, `✕` or a Cyrillic `х` cannot come from nowhere), a numeral outside ASCII (`４`,
 `④`, `²`, `½`), a number word (`NUMBER_WORDS`: stems zero … trillion, also glued to
 `fold`; half, twice, thrice, doubled…) or a multiplier after a digit with spaces,
-brackets, quotes or dashes between (`MULTIPLIER`: `3×`, `(3) times`, `3–fold`, `9 K`,
-`9 bln`, `$9 grand`, `10^3`). For those two tests backticks are ignored and Cyrillic or
-Greek look-alikes read as Latin (`twеnty`). Last, every token with a digit must check out
+brackets, quotes, dashes or an ellipsis between (`MULTIPLIER`: `3×`, `(3) times`,
+`«3» times`, `3–fold`, `9 K`, `9 bln`, `9 MM`, `$9 grand`, `10^3`); number words may run
+together (`fortytwo`). For those two tests backticks are ignored, compatibility and
+accented forms are folded (NFKD) and Cyrillic, Greek and Latin look-alikes read as Latin
+(`twеnty`, `ｔｗｅｎｔｙ`, `eiɡht`); word edges are Unicode letters, and `з` stays a letter,
+so a quoted Ukrainian title ("Виправити…", "Хліб…") is not a multiplier. LaTeX braces or
+backslashes (`$9{}000$` renders as math in GitHub) and emoji shortcodes drop a line. Last, every token with a digit must check out
 (`checkHighlight`, `factsCheck`); numbers compare as written, not through `Number()`
 (`8.9999999999999999` is not 9). Digit runs split only by a space or an
 apostrophe (`9 000`, `1'000`, `9 0000`) are joined into one number first. The facts text
