@@ -26,16 +26,18 @@ describe("agent performance helpers (SPEC-05)", () => {
 
   it("AC-11: in both themes the palette's colours are distinct, and none is the grey of the unknown slice", () => {
     const css = readFileSync(resolve(__dirname, "../../../../vendor/ui/styles.css"), "utf8");
-    const themes = [css.slice(css.indexOf(":root,"), css.indexOf("}")), css.slice(css.indexOf('[data-theme="light"] {'))];
+    const light = css.indexOf('[data-theme="light"] {');
+    const themes = [css.slice(css.indexOf(":root,"), css.indexOf("}")), css.slice(light, css.indexOf("}", light))];
     for (const theme of themes) {
       const value = (token: string) => new RegExp(`${token}:\\s*(#[0-9a-f]{6})`, "i").exec(theme)![1]!.toLowerCase();
       const hexes = SLICE_COLORS.map((c) => value(/var\((--[\w-]+)\)/.exec(c)![1]!));
       expect(new Set(hexes).size).toBe(SLICE_COLORS.length);
       expect(hexes).not.toContain(value(/var\((--[\w-]+)\)/.exec(NEUTRAL_SLICE)![1]!));
-      for (const hex of hexes) {
-        const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-        expect(Math.max(r!, g!, b!) - Math.min(r!, g!, b!)).toBeGreaterThan(60); // a hue, not a grey
-      }
+      const rgb = hexes.map((hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number]);
+      for (const [r, g, b] of rgb) expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeGreaterThan(60); // a hue, not a grey
+      // No two close enough to be mistaken for each other.
+      for (let i = 0; i < rgb.length; i++)
+        for (let j = i + 1; j < rgb.length; j++) expect(Math.hypot(...rgb[i]!.map((v, k) => v - rgb[j]![k]!))).toBeGreaterThan(60);
     }
   });
 

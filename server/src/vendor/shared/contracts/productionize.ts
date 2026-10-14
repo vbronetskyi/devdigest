@@ -165,7 +165,7 @@ export const AgentPerfRow = z.object({
   accept_rate: z.number().nullable(),
   decided: z.number().int(),
   accept_trend: z.enum(['up', 'down', 'flat']).nullable(),
-  /** Fewer decided findings than a trend needs, in this window or the previous one. */
+  /** Fewer decided findings than a trend needs, in this window or the previous one — false when nothing is decided. */
   low_sample: z.boolean(),
   last_run_at: z.string().nullable(),
   recent: z.array(AgentPerfRun),

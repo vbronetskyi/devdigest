@@ -109,7 +109,8 @@ not under a repository.
   known" for this window or the previous one, whichever it is), the pooled accept rate
   with the decided count, the most active agent. The table is a native `<table>` (accept
   rate first, unknown last): runs, average cost and duration, the accept rate with a
-  trend arrow (text label) and "low sample" under 5 decisions, the last run. The agent
+  trend arrow (text label) and "low sample" under 5 decisions (not when nothing is
+  decided — that is "—"), the last run. The agent
   cell's button (`aria-expanded`) opens the last five runs, each linking the PR's Agent
   runs tab (a deleted PR's run is unlinked). Every unknown is `Unknown` — "—" with its
   reason in `title` and in visually hidden text. Cost donuts by agent and by model show

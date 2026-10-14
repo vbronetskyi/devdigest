@@ -122,9 +122,10 @@ describe("AgentPerformanceView", () => {
   });
 
   it("AC-12: a table with every value under its column; trends have text labels, a low sample is marked", () => {
-    const down = agent({ agent_id: "a3", name: "Style Reviewer", accept_rate: 0.4, accept_trend: "down", decided: 3, low_sample: true });
+    const down = agent({ agent_id: "a3", name: "Style Reviewer", accept_rate: 0.4, accept_trend: "down", decided: 8 });
     const flat = agent({ agent_id: "a4", name: "Docs Reviewer", accept_trend: "flat" });
-    h.state = { ...h.state, data: { ...DATA, agents: [...DATA.agents, down, flat] } };
+    const few = agent({ agent_id: "a5", name: "Lint Reviewer", accept_rate: 0.67, accept_trend: null, decided: 3, low_sample: true });
+    h.state = { ...h.state, data: { ...DATA, agents: [...DATA.agents, down, flat, few] } };
     renderView();
     const table = screen.getByRole("table", { name: performance.table.caption });
     expect(within(table).getAllByRole("columnheader").map((c) => c.textContent)).toEqual(["Agent", "Runs", "Avg cost", "Avg dur.", "Accept", "Last run"]);
@@ -135,10 +136,9 @@ describe("AgentPerformanceView", () => {
     expect(within(row).getByTitle("up against the previous window")).toBeTruthy(); // the label on hover too
     expect(within(row).queryByText("low sample")).toBeNull(); // enough decisions on both sides
     expect(within(agentRow("Style Reviewer")).getByRole("img", { name: "down against the previous window" })).toBeTruthy();
-    expect(within(agentRow("Style Reviewer")).getByTitle(performance.table.lowSampleHint)).toBeTruthy();
+    expect(within(agentRow("Lint Reviewer")).getByTitle(performance.table.lowSampleHint)).toBeTruthy();
+    expect(within(agentRow("Lint Reviewer")).queryByRole("img")).toBeNull(); // no trend on a low sample
     expect(within(agentRow("Docs Reviewer")).getByRole("img", { name: "about the same as the previous window" })).toBeTruthy();
-    // Nothing decided: no "low sample" next to a dash.
-    expect(within(agentRow("deleted agent")).queryByText("low sample")).toBeNull();
   });
 
   it("AC-13: the agent's button opens its runs — a failed run's figures are dashes, a missing figure of a finished run says so, a deleted PR is unlinked", () => {

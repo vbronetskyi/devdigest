@@ -21,7 +21,7 @@ Aggregates (`repository.ts`, raw SQL; dates go in as ISO text with `::timestampt
 | cost | `sum(cost_usd)` of `done` runs with a cost; null when none — a failed run records none by design, and even a recorded one is not summed |
 | avg cost, avg duration | over `done` runs with a cost / a duration (a failed run's `duration_ms = 0` stub is not averaged) |
 | accept rate | accepted ÷ (accepted + dismissed) of findings whose review's `run_id` is a counted run; null when nothing is decided |
-| trend | vs the previous window: up/down past 1.0 pp (inclusive band), flat within, null under 5 decisions on either side (`low_sample`) |
+| trend | vs the previous window: up/down past 1.0 pp (inclusive band), flat within, null under 5 decisions on either side (`low_sample` — false when nothing is decided, which already reads "—") |
 | runs per day | exactly `days` numbers, 0 for empty days |
 | cost by agent / model | known costs with shares of the known total; model null → "unknown model" |
 | recent | last 5 counted runs per agent (`row_number()`), PR repo/number/title (null for a deleted PR); a failed run's score/findings/duration/cost are null |
