@@ -64,6 +64,14 @@ the file whenever the focus line is not among its rendered lines, rather than on
 there is no line at all, so a link never lands nowhere.
 Evidence: `src/components/diff-viewer/FileCard/FileCard.tsx:56`
 
+### 2026-10-14 — "—" with a reason needs more than `title`
+A `title` is shown on hover but not announced by screen readers, so an unknown value read
+as a bare dash. `Unknown` renders the dash with the reason both in `title` and in
+visually hidden text. For an expandable table use a native `<table>` and a disclosure
+`<button aria-expanded>` in the first cell; `role="row"` on a button loses the button
+role and its `aria-label` hides the cells.
+Evidence: `src/app/agent-performance/_components/AgentPerformanceView/_components/Unknown/Unknown.tsx:9`, `src/app/agent-performance/_components/AgentPerformanceView/_components/AgentsTable/AgentsTable.tsx:69`
+
 ## Tool & Library Notes
 
 ### 2026-10-07 — `messages/en/runs.json` is not uniformly indented
@@ -118,6 +126,15 @@ them). Headings, lists and code blocks now have styles in `em`; `safe` mode keep
 http(s) links and drops images for text written outside DevDigest.
 Evidence: `src/vendor/ui/primitives/Markdown.tsx:28`
 
+### 2026-10-14 — TanStack Query 5: a mutation tied to a page parameter needs it in `mutationKey`
+`useMutation` options are re-applied to a pending mutation on every render, so an
+`onSuccess` that reads the page's current `week` from its closure wrote one week's answer
+into another week's cache when the user navigated mid-request, and `isPending`/`isError`
+carried over. Put the parameter in `mutationKey` (a key change resets the observer), read
+the target from the mutation's `variables` in `onSuccess`, and use `useIsMutating` with
+the key to show progress after a remount.
+Evidence: `src/lib/hooks/digest.ts:35`, `src/lib/hooks/digest.ts:43`
+
 ## Recurring Errors & Fixes
 
 ### 2026-10-08 — A disabled-and-pressed toggle traps the user
@@ -159,6 +176,12 @@ could be focused. The parser drops the marker and the empty string after a final
 newline.
 Evidence: `src/components/diff-viewer/helpers.ts:22`
 
+### 2026-10-14 — Escaping backticks set code-spanned URLs free
+The server keeps bare URLs in model text as code spans so Markdown never links them;
+the digest's `mdSafe` then escaped every backtick for a team channel, and the URL became
+a link again. Split URLs out first and wrap them in a code span; escape only the rest.
+Evidence: `src/app/digest/_components/DigestView/helpers.ts:51`
+
 ## Session Notes
 
 ### 2026-10-07 — Lab 1: run cost
@@ -199,5 +222,10 @@ Overview gets the Brief card (generate on click only); every reference opens
 `?tab=diff&file=&line=`; Files changed gets a "why" button on base lines, hidden when
 the PR's base is not the active repo's default branch.
 Evidence: `src/app/repos/[repoId]/pulls/[number]/_components/BriefCard/BriefCard.tsx:24`, `src/app/repos/[repoId]/pulls/[number]/page.tsx:196`
+
+### 2026-10-14 — Homework 8: Agent Performance and Weekly Digest pages
+Both under a new GLOBAL nav group (`g m`, `g w`). `Donut` takes `format(value, index)`
+for sub-cent costs and shares; slice colours follow the slice key, not its position.
+Evidence: `src/vendor/ui/nav.ts:39`, `src/vendor/ui/charts/Donut.tsx:23`
 
 ## Open Questions

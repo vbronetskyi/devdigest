@@ -139,6 +139,26 @@ show (context documents, manifests) goes through `readCommitted` (`git show
 HEAD:<path>`) and only for paths `listFiles` returned, which already drops symlinks.
 Evidence: `src/adapters/git/simple-git.ts:130`, `src/adapters/git/simple-git.ts:141`, `src/adapters/git/simple-git.ts:151`
 
+### 2026-10-14 — Checking a model's numbers: tokens against trusted numbers, not a number regex
+The digest's first number check pulled numbers out with one regex and lookarounds
+("not glued to a letter, `-`, `.`, `/`"), so everything glued was skipped: `-42`, `.95`,
+`10k`, `3rd`, `1_000`, `3-5`, full-width `４２`, code spans — 20-odd shapes passed with an
+invented number. What holds: split the line into tokens that contain a digit; a plain
+number must be in the trusted set, anything else must appear verbatim in the facts or
+split at `-`/`/` into trusted numbers. The trusted set comes from the facts text with the
+untrusted strings (titles, names, paths) redacted — otherwise a PR titled "Handle 250
+rows" lets "250 runs" through — and untrusted strings are collapsed to one line so a
+newline cannot forge a fact line.
+Evidence: `src/modules/digest/helpers.ts:137`, `src/modules/digest/helpers.ts:164`, `src/modules/digest/helpers.ts:100`
+
+### 2026-10-14 — `reviews.agent_id` survives an agent's deletion; `agent_runs.agent_id` does not
+`agent_runs.agent_id` is `ON DELETE SET NULL`, so runs of every deleted agent collapse
+into one null group. `reviews.agent_id` has no foreign key and keeps the id. Grouping
+"per agent" over runs (the digest's latest run per PR and agent) needs
+`coalesce(r.agent_id, v.agent_id, r.id)`, or two deleted agents on one PR hide each
+other's findings.
+Evidence: `src/db/schema/reviews.ts:17`, `src/modules/digest/repository.ts:101`
+
 ## Tool & Library Notes
 
 ### 2026-10-07 — OpenRouter usage counters lag behind the generation
@@ -184,6 +204,18 @@ Evidence: `src/vendor/shared/adapters.ts:232`
 is not permitted without enabling allowUnsafeEditor": Claude Code's shell exports
 GIT_EDITOR. Pass only what git needs (PATH, HOME, the dates) when a test sets env.
 Evidence: `test/git-history.test.ts:59`
+
+### 2026-10-14 — Raw ``db.execute(sql`…`)`` parameters go as text: a `Date` fails
+Drizzle's query builder serialises a `Date` for a timestamp column; a parameter inside a
+raw `sql` template is passed to postgres-js as is and fails with "must be string". Pass
+`date.toISOString()` and cast in SQL: `${ts(from)}::timestamptz`.
+Evidence: `src/modules/performance/repository.ts:44`
+
+### 2026-10-14 — `Date.UTC(26, …)` is 1926
+`Date.UTC` maps years 0–99 to 1900–1999, so `parseWeek('0026-W42')` answered with 1926
+data labelled `26-W42`. Build such dates with `setUTCFullYear(year, month, day)` and pad
+the year to four digits when formatting.
+Evidence: `src/modules/digest/helpers.ts:17`
 
 ## Recurring Errors & Fixes
 
@@ -300,6 +332,19 @@ has. `diff` and `diffNameOnly` now pass `-c core.quotepath=off`, like `history` 
 Any new git call that prints paths needs it (or `-z`).
 Evidence: `src/adapters/git/simple-git.ts:99`, `test/git-history.test.ts:157`
 
+### 2026-10-14 — The start-up reaper turns a test's `running` run into `failed`
+`buildApp` reaps stale `running` rows as `failed` (meant for runs killed by a restart).
+A fixture that inserts a `running` run before building the app finds it `failed`, and
+"running runs are not counted" tests pass for the wrong reason. Insert in-flight runs
+after `buildApp`.
+Evidence: `src/modules/reviews/repository/run.repo.ts:132`, `test/performance.it.test.ts:104`
+
+### 2026-10-14 — A "within 1 point" band failed on its own boundary
+`0.81 - 0.80` is `0.010000000000000009` in floating point, so an accept rate that moved
+exactly one point came out "up" instead of "flat". The band compares with a 1e-9
+tolerance.
+Evidence: `src/modules/performance/helpers.ts:44`
+
 ## Session Notes
 
 ### 2026-10-07 — Lab 1: run cost
@@ -360,6 +405,13 @@ model call grounded against the diff's new-side lines, signals-only fallback) an
 PR #5: one deepseek-v4-flash call, $0.0017, 6 risks, history #4 only. Both specs changed
 twice after implementation started; see their changelogs.
 Evidence: `src/modules/reviews/brief/builder.ts:20`, `src/modules/why/service.ts:15`, `../specs/risk-brief/spec.md:1`
+
+### 2026-10-14 — Homework 8: agent performance and weekly digest
+SPEC-05 (`GET /agents/performance`, replacing the starter's unimplemented `AgentPerf`
+stub but keeping its names) and SPEC-06 (`GET /digest`, `POST /digest/highlights`, one
+model call whose numbers are checked). Two verification passes; a load test puts both
+endpoints at 13–15 ms with 10,000 runs and 50,000 findings.
+Evidence: `src/modules/performance/service.ts:1`, `src/modules/digest/service.ts:1`, `test/performance-digest-load.it.test.ts:1`
 
 ## Open Questions
 
