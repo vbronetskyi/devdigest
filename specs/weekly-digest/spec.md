@@ -47,7 +47,8 @@ Facts (no model)
   weekday and time). The change shown is the absolute difference, null when either side
   is unknown.
 - **AC-3** The system shall list up to 5 open critical findings — CRITICAL, undecided — of
-  the latest `done` run per PR and agent in the week, ordered by run time (newest first),
+  the latest `done` run per PR and agent in the week (a deleted agent is told apart by the
+  agent its review recorded), ordered by run time (newest first),
   then file and line, with repository, PR number and title, file:line, finding title,
   agent ("deleted agent" when gone) and the PR's GitHub state when it is merged or
   closed; and the total count ("5 of 12").
@@ -65,13 +66,19 @@ Highlights (one model call)
   ask for at most 5 one-line highlights.
 - **AC-7** The facts text shall list the week's numbers, the previous week's and the
   changes in display form (costs as `$0.0123`, rates as whole percents, unknowns as
-  `null`), the PR numbers and titles (titles cut to 120 characters, at most 20 agents and
-  the 5 criticals). A highlight shall be kept only if every number in it, after removing
-  `$`, `%` and thousands separators and ignoring trailing zeros, is one of the numbers of
-  that text; digits inside code spans, paths or identifiers (`v2`, `gpt-4.1`) are not
-  numbers; a line with a number word from two to twenty, "dozen", "half", "twice" or
-  "double" is dropped. Links, images and HTML are removed first and each line is cut to
-  200 characters before the check.
+  `null`), the PR numbers and titles (titles, names and paths collapsed to one line and
+  cut to 120 characters, at most 20 agents and the 5 criticals). Links, images and HTML
+  are removed from a highlight and it is cut to 200 characters; then it is kept only if
+  every token with a digit checks out:
+  - a number (optional sign, `$`, thousands separators, decimals, `%`; `.5` is 0.5,
+    trailing zeros ignored) must be one the facts state — a number of the facts text
+    outside titles, names and paths, so untrusted text cannot add numbers;
+  - any other token (`gpt-4.1`, `2026-W42`, `10k`, `3rd`, `1_000`, `3-5`) must appear
+    as it is in the facts text, or split at `-` and `/` into numbers that each check out;
+  - code spans are checked like the rest; a digit outside ASCII drops the line, and so
+    does a number word: two to twenty, dozen(s), half / halves / halved, twice, thrice,
+    double / triple / quadruple and their -d / -s / -ing forms, N-fold, hundred(s),
+    thousand(s), million(s).
 - **AC-8** The kept highlights shall be stored per workspace and week with the model,
   cost, time and a hash of the facts used; `GET /digest` returns them with `stale: true`
   when the facts changed since. Asking again replaces them. IF the call fails, the
@@ -83,16 +90,20 @@ Highlights (one model call)
 UI
 - **AC-10** A "Weekly Digest" page in the sidebar shall show the week (`from`–`to`, UTC)
   with previous / next navigation (no next past the current week), the facts as cards with
-  the change against the previous week, the open critical findings each opening its PR's
+  the change against the previous week (decisions included; an unknown change is "—"
+  with its reason, never "no change"), the open critical findings each opening its PR's
   Files changed at that line, and the agents of the week.
 - **AC-11** The page shall show stored highlights labelled "AI-written, numbers checked"
   with model, cost and time (and "stale" when the facts moved), or a "Write highlights"
-  button — disabled while a request runs, showing the server's reason on failure. Opening
-  the page never calls a model.
-- **AC-12** "Copy as Markdown" shall put the digest (facts, changes, open criticals,
-  agents, highlights if any) on the clipboard as Markdown: titles and names escaped,
-  whitespace collapsed, `@` mentions, `#N` references and `<!…>` neutralised; PR links are
-  GitHub URLs built from owner, name and number.
+  button — disabled while a request runs, showing the server's reason on failure. A
+  request belongs to its week: moving to another week while it runs shows neither its
+  progress, its failure nor its answer there. Opening the page never calls a model.
+- **AC-12** "Copy as Markdown" shall put the digest (facts with the previous week and the
+  change, open criticals with PR, title, file:line and agent, agents, highlights if any)
+  on the clipboard as Markdown: titles, names and paths escaped, whitespace collapsed,
+  `@` mentions, `#N` references and `<!…>` neutralised, bare URLs kept inside code spans
+  so no channel turns them into links; PR links are GitHub URLs built from owner, name
+  and number.
 - **AC-13** Unknown numbers shall show as "—", never 0; an empty week shall say "No review
   activity this week" (PRs opened, if any, still shown).
 
@@ -101,6 +112,9 @@ UI
 - A week with runs but no findings: severity counts 0 (known zero), accept rate "—".
 - The current week: numbers so far, marked "in progress"; highlights may be written.
 - A finding decided this week from an older run counts as decided this week (AC-1).
+- Highlights written during the week go stale when it closes: the comparison moves from
+  the same elapsed days to the whole previous week, so the facts they were checked
+  against changed.
 
 ## Non-functional
 
@@ -138,3 +152,10 @@ model id `weekly_digest`.
   hash, a 502 with the reason, the registry default, Markdown safe for channels, the UI's
   AI label and request states.
 - 2026-10-14 — before code: the starter's sent-digest stubs named as out of scope.
+- 2026-10-14 — after the first verification: AC-7's number check by tokens (signs,
+  leading dots, unit suffixes, ranges, underscores, non-ASCII digits and inflected number
+  words no longer slip through; numbers only from the trusted part of the facts; code
+  spans not exempt; untrusted text collapsed to one line); AC-3 tells deleted agents
+  apart; AC-10 unknown change as "—", decisions with a change; AC-11 a request tied to its
+  week; AC-12 changes, previous week, criticals' titles and agents, URLs in code spans;
+  stale highlights at the week's close written down.
