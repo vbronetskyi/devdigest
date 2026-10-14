@@ -102,3 +102,21 @@ Accepted by the spec as written: non-English number words (`двадцять`, `
 off the list (`a score`, `tenth`, `a couple`), identifiers a title carries as written,
 ratios, `×3`, a flipped sign; scripts that need combining marks (Devanagari, Thai) lose
 them in a quoted title.
+
+## Pass 5 — at `a3f08a2`
+
+**Verdict: not ready — a regression, nothing an attacker needs.** No line a reader would
+take for an invented number got through; all pass-4 items were confirmed. But the
+pass-4 look-alike reading broke honest lines.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| Quoted Ukrainian titles were dropped: `з` was read as the digit 3 and word edges were ASCII, so `3 "В…` or `з в…` read as a multiplier — "Виправити обробку помилок", "Видалити старий кеш", "Робота з ключем API"… | honest lines dropped (regression from `911eb1e`) | `з` stays a letter; word edges are Unicode letters in both rules; eight common titles in the honest-line test | `1d6d0a7`, `3d3206d` |
+| Quotes and marks the spec names were missing between a digit and a multiplier: `«3» times`, `<9> K`, `3− times`, `3… times` | nit | added | `3d3206d` |
+| GitHub inline math: `$9{}000{}$` renders 9000 | nit | LaTeX braces and backslashes drop the line; so do emoji shortcodes (`:heavy_multiplication_x:`) | `1d6d0a7`, `3d3206d` |
+| Latin look-alikes (`eiɡht`, `thırty`, `twénty`, `ｔｗｅｎｔｙ`, `9 ᴋ`) and run-together words (`fortytwo`, `tenthousand`) | nit | NFKD fold, marks removed and Latin variants mapped for the word and multiplier tests; stems may repeat | `3d3206d` |
+| `9 MM`, `9 trn`, `9 lakh`; `9' 000`; a comment rebuilt around a zero-width space | nit | added; separators may repeat; comments removed again after the clean-up | `3d3206d` |
+
+The invented-shape table has 149 lines; 11 more mutations, all fail a test (one first
+survived — no title placed `х` before an unmapped letter — and "Хліб і сіль" now pins it).
+Three live calls after the change kept 5 of 5 lines each.
