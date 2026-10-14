@@ -213,6 +213,40 @@ describe('facts and the number check (AC-7)', () => {
       'Runs rose 3&times;.',
       'Runs reached 9&nbsp;000.',
       'Runs reached 1&apos;000.',
+      // A reference the clean-up would rebuild.
+      'Runs reached 4&#5*7;.',
+      'Runs rose 3&*times;.',
+      'Runs rose 3&_times;.',
+      'Runs rose 3&ti~~mes;.',
+      'Runs rose 3&\u200btimes;.',
+      'Runs rose 3&\u0000times;.',
+      'Runs reached 9&*nbsp;000.',
+      // Backticks, brackets, quotes and dashes between a digit and its multiplier.
+      'Runs grew 3 `times`.',
+      'Runs grew `3` times.',
+      'Runs hit `9`K.',
+      'Runs hit `9` K.',
+      'Runs fell `3`x.',
+      'Runs fell 3`x`.',
+      'Runs hit 10`^`3.',
+      'a `3`-fold rise',
+      'a 3–fold rise',
+      'a 3—fold rise',
+      'a twenty–fold rise',
+      'Runs grew (3) times.',
+      'Runs grew "3" times.',
+      'a 3- fold rise',
+      'a 3 x-fold rise',
+      'Runs hit 9 bln.',
+      'Runs hit 9 bil.',
+      'Runs hit 9 mill.',
+      'Cost hit $9 grand.',
+      'Runs hit 9 thou.',
+      'Runs hit 9 Mio.',
+      // HTML comments and a float that only rounds to a stated number.
+      'Runs reached 4<!-- -->2.',
+      'Runs rose twen<!-- -->ty percent.',
+      'Runs fell to 8.9999999999999999.',
     ];
     for (const line of invented) expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
   });
@@ -226,6 +260,19 @@ describe('facts and the number check (AC-7)', () => {
     const ua = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Додати ліміт запитів' }] });
     expect(checkHighlight('PR #3 "Додати ліміт запитів" still has an open critical finding.', ua)).not.toBeNull();
     expect(checkHighlight('PR #3 "Додати ліміт запитів" still has an open critical finding.', allowed)).toBeNull(); // not from the facts
+    // Letters the facts carry still cannot spell a number word or a multiplier.
+    const cyr = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'двадцять хвилин' }] });
+    expect(checkHighlight('Runs rose tw\u0435nty percent.', cyr)).toBeNull();
+    expect(checkHighlight('Runs rose 3 \u0445.', cyr)).toBeNull();
+    // Paths keep their underscores; Latin letters, arrows and an NFD title in the facts are fine.
+    expect(checkHighlight('The check in src/modules/_shared/markdown.ts and src/__tests__/a.ts is open.', allowed)).toBe(
+      'The check in src/modules/_shared/markdown.ts and src/__tests__/a.ts is open.',
+    );
+    expect(checkHighlight('Review runs went 26 → 9.', allowed)).not.toBeNull();
+    expect(checkHighlight('A naïve URL check in PR #3 is still open.', allowed)).not.toBeNull();
+    // A title stored decomposed (NFD, as macOS writes paths) still matches the composed quote.
+    const nfd = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Чаи\u0306ник' }] });
+    expect(checkHighlight('PR #3 "Чайник" is still open.', nfd)).not.toBeNull();
   });
 
   it('names the last day of the week, not the next Monday', () => {

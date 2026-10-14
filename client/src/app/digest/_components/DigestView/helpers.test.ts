@@ -42,6 +42,7 @@ describe("digest helpers (SPEC-06)", () => {
     expect(safe).toContain("\\`url\\`");
     expect(safe.includes("\n")).toBe(false);
     expect(mdSafe("a|b~c>d")).toBe("a\\|b\\~c\\>d");
+    expect(mdSafe("runs 4&#57; and 3&times;")).toBe("runs 4\\&#\u200b57; and 3\\&times;"); // no reference renders as a number
   });
 
   it("AC-12: a URL stays readable but inside a code span, so no channel links it", () => {

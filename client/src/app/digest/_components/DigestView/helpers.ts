@@ -61,7 +61,7 @@ const LINKABLE =
 
 /**
  * Untrusted text (PR titles, finding titles, agent names, highlights) made safe for a
- * team channel: one line, Markdown syntax escaped, `@mentions`, `#123` / `GH-123`
+ * team channel: one line, Markdown syntax and `&` (character references) escaped, `@mentions`, `#123` / `GH-123`
  * references and `<!here>`-style commands neutralised, URLs and bare domains inside code
  * spans so no channel links them (SPEC-06 AC-12).
  */
@@ -74,7 +74,7 @@ export function mdSafe(text: string): string {
       i % 2 === 1
         ? `\`${part}\``
         : part
-            .replace(/([\\`*_[\]<>|~])/g, "\\$1")
+            .replace(/([\\`*_[\]<>|~&])/g, "\\$1")
             .replace(/@(?=\w)/g, "@\u200b")
             .replace(/#(?=\d)/g, "#\u200b")
             .replace(/\bGH-(?=\d)/gi, (m) => `${m.slice(0, 2)}\u200b-`),

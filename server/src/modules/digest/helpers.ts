@@ -141,12 +141,21 @@ const NUMBER = /^[+\-\u2212]?\$?(?:(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?|\.(\d+))
 const NON_ASCII_NUMERAL = /[^\P{N}0-9]/u;
 /** Control, invisible and combining characters: they can hide between digits ("4\u200b2", "4⃣2⃣"). */
 const HIDDEN = /[\p{C}\p{M}]/gu;
-/** Markdown emphasis: `*` and `~` anywhere, `_` at a word's edge (not inside `user_id`). */
-const EMPHASIS = /[*~]+|(?<![\p{L}\p{N}])_+|_+(?![\p{L}\p{N}])/gu;
+/** Markdown emphasis: `*` and `~` anywhere, `_` at a word's edge — not inside `user_id` or a path's `_shared/`. */
+const EMPHASIS = /[*~]+|(?<![\p{L}\p{N}/._])_+|(?<![/.])_+(?![\p{L}\p{N}/_]|\.[\p{L}\p{N}])/gu;
+/** An HTML comment: `4<!-- -->2` reads as 42 once it is gone. */
+const HTML_COMMENT = /<!--[\s\S]*?(?:-->|$)/g;
 /** An HTML character reference renders as something else: `3&times;`, `9&nbsp;000`. */
 const CHAR_REFERENCE = /&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);/i;
-/** Typography a model may use outside ASCII; any other such character must come from the facts. */
-const TYPOGRAPHY = new Set(['—', '–', '‘', '’', '“', '”', '…', '−']);
+/** Outside ASCII, Latin letters (`naïve`) and this typography need no source; any other character must come from the facts. */
+const TYPOGRAPHY = new Set(['—', '–', '‘', '’', '“', '”', '…', '−', '→', '«', '»']);
+const LATIN_LETTER = /\p{Script=Latin}/u;
+/** Cyrillic and Greek letters that look Latin, read as Latin for the number words and multipliers. */
+const LOOK_ALIKES: Record<string, string> = {
+  а: 'a', в: 'b', е: 'e', ё: 'e', з: '3', і: 'i', ї: 'i', ј: 'j', к: 'k', м: 'm', н: 'h', о: 'o', р: 'p', с: 'c', т: 't', у: 'y', х: 'x', ѕ: 's',
+  α: 'a', β: 'b', ε: 'e', ι: 'i', κ: 'k', μ: 'u', ν: 'v', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x',
+};
+const asLatin = (text: string) => text.replace(/./gu, (c) => LOOK_ALIKES[c.toLowerCase()] ?? c);
 /** Digits split only by a space or an apostrophe read as one number: "9 000", "1'000", "9 0000". */
 const GROUP_SEPARATOR = /(\d)[ '‘’′`](?=\d)/g;
 
@@ -155,13 +164,16 @@ export function tokensIn(text: string): string[] {
   return [...text.matchAll(TOKEN)].map((m) => m[0].replace(/[.,/+\-\u2212]+$/u, '').replace(/^[,/]+/, ''));
 }
 
-/** A plain number token, canonical (`$1,200.50` → "1200.5", `.5` → "0.5"); null otherwise. */
+/**
+ * A plain number token, canonical as written (`$1,200.50` → "1200.5", `.5` → "0.5",
+ * `009` → "9"); null otherwise. Not through `Number()`: 8.9999999999999999 is not 9.
+ */
 export function asNumber(token: string): string | null {
   const m = NUMBER.exec(token);
   if (!m) return null;
-  const whole = (m[1] ?? '0').replace(/,/g, '');
-  const frac = m[2] ?? m[3];
-  return String(Number(frac ? `${whole}.${frac}` : whole));
+  const whole = (m[1] ?? '0').replace(/,/g, '').replace(/^0+(?=\d)/, '');
+  const frac = (m[2] ?? m[3] ?? '').replace(/0+$/, '');
+  return frac ? `${whole}.${frac}` : whole;
 }
 
 /** What a highlight is checked against (AC-7). */
@@ -179,7 +191,8 @@ export function factsCheck(d: Omit<WeeklyDigest, 'highlights'>): FactsCheck {
     .map(asNumber)
     .filter((n): n is string => n !== null);
   const text = factsText(d);
-  return { numbers: new Set(numbers), tokens: new Set(tokensIn(text)), chars: new Set([...text].filter((c) => c > '\x7f')) };
+  const chars = [...text.normalize('NFC')].filter((c) => c > '\x7f');
+  return { numbers: new Set(numbers), tokens: new Set(tokensIn(text)), chars: new Set(chars) };
 }
 
 /** AC-7: a token checks out when it is a stated number, appears in the facts as written, or splits into stated numbers. */
@@ -202,7 +215,7 @@ function tokenChecks(token: string, facts: FactsCheck): boolean {
  * out against the facts. Returns the cleaned line or null.
  */
 export function checkHighlight(raw: string, facts: FactsCheck): string | null {
-  const stripped = stripLinks(raw);
+  const stripped = stripLinks(raw).replace(HTML_COMMENT, '');
   if (CHAR_REFERENCE.test(stripped)) return null;
   let line = stripped
     .normalize('NFC')
@@ -213,8 +226,12 @@ export function checkHighlight(raw: string, facts: FactsCheck): string | null {
     .replace(/ {2,}/g, ' ')
     .trim();
   if (!line) return null;
+  // The clean-up can rebuild a reference: `3&*times;` → `3&times;`.
+  if (CHAR_REFERENCE.test(line)) return null;
   if (line.length > HIGHLIGHT_MAX_CHARS) line = `${line.slice(0, HIGHLIGHT_MAX_CHARS - 1).trimEnd()}…`;
-  if ([...line].some((c) => c > '\x7f' && !TYPOGRAPHY.has(c) && !facts.chars.has(c))) return null;
-  if (NON_ASCII_NUMERAL.test(line) || NUMBER_WORDS.test(line) || MULTIPLIER.test(line)) return null;
+  if ([...line].some((c) => c > '\x7f' && !TYPOGRAPHY.has(c) && !LATIN_LETTER.test(c) && !facts.chars.has(c))) return null;
+  // Backticks do not separate a digit from its multiplier; look-alike letters read as Latin.
+  const words = asLatin(line.replace(/`/g, ''));
+  if (NON_ASCII_NUMERAL.test(line) || NUMBER_WORDS.test(words) || MULTIPLIER.test(words)) return null;
   return tokensIn(line.replace(GROUP_SEPARATOR, '$1')).every((t) => tokenChecks(t, facts)) ? line : null;
 }

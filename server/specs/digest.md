@@ -42,17 +42,21 @@ one untrusted block — numbers in display form (costs as the UI shows them, rat
 percents, unknown `null`), changes in words ("down 2"), titles, names and paths collapsed
 to one line (a newline cannot forge a fact line) and cut to 120, ≤ 20 agents.
 
-Each returned line is cleaned first: links/images/HTML stripped (an HTML character
-reference such as `&times;` drops the line), NFC, whitespace collapsed, every control,
-format and combining character removed (`4\u200b2`, `4⃣2⃣` would read as 42), Markdown
-emphasis removed (`*`, `~`, `_` at a word's edge — `user_id` keeps its underscore), cut to
-200. It is then dropped if it has a non-ASCII character that is neither common typography
-(— – ‘ ’ “ ” … −) nor in the facts text (a title may be Ukrainian; `四十二`, `✕` or a
-Cyrillic `х` cannot come from nowhere), a numeral outside ASCII (`４`, `④`, `²`, `½`), a
-number word (`NUMBER_WORDS`: stems zero … trillion with an optional `-fold`, half,
-twice, thrice, doubled…) or a multiplier after a digit (`MULTIPLIER`: `3×`, `3 x`,
-`3 times`, `3-fold`, `9 K`, `9 bn`, `9 mil`, `10^3`), or a token with a digit that does
-not check out (`checkHighlight`, `factsCheck`). Digit runs split only by a space or an
+Each returned line is cleaned first: links/images/HTML and HTML comments stripped, NFC,
+whitespace collapsed, every control, format and combining character removed (`4\u200b2`,
+`4⃣2⃣` would read as 42), Markdown emphasis removed (`*`, `~`, `_` at a word's edge —
+`user_id` and `src/_shared/` keep theirs), cut to 200. An HTML character reference
+before or after the clean-up drops it (`3&*times;` would become `3&times;`). It is then
+dropped if it has a non-ASCII character that is neither a Latin letter, common
+typography (— – ‘ ’ “ ” … − → « ») nor in the facts text (a title may be Ukrainian;
+`四十二`, `✕` or a Cyrillic `х` cannot come from nowhere), a numeral outside ASCII (`４`,
+`④`, `²`, `½`), a number word (`NUMBER_WORDS`: stems zero … trillion, also glued to
+`fold`; half, twice, thrice, doubled…) or a multiplier after a digit with spaces,
+brackets, quotes or dashes between (`MULTIPLIER`: `3×`, `(3) times`, `3–fold`, `9 K`,
+`9 bln`, `$9 grand`, `10^3`). For those two tests backticks are ignored and Cyrillic or
+Greek look-alikes read as Latin (`twеnty`). Last, every token with a digit must check out
+(`checkHighlight`, `factsCheck`); numbers compare as written, not through `Number()`
+(`8.9999999999999999` is not 9). Digit runs split only by a space or an
 apostrophe (`9 000`, `1'000`, `9 0000`) are joined into one number first. The facts text
 names the week's last day (Sunday), not the next Monday. The facts text says how many
 criticals it lists ("4 (1 listed)"), so "1 of 4" checks out.
