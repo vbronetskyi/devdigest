@@ -55,7 +55,8 @@ Facts (no model)
 - **AC-4** The system shall list the agents with runs in the week: runs, known cost, and
   the accept rate of the week's decisions on their findings.
 - **AC-5** `GET /digest?week=` (default: the current week) shall answer for the caller's
-  workspace, reject a malformed, non-existent (e.g. `2025-W53`) or future week with 422,
+  workspace, reject a malformed, non-existent (e.g. `2025-W53`), pre-1970 or future week
+  with 422,
   mark the current week as in progress, and make no model call.
 
 Highlights (one model call)
@@ -75,10 +76,15 @@ Highlights (one model call)
     outside titles, names and paths, so untrusted text cannot add numbers;
   - any other token (`gpt-4.1`, `2026-W42`, `10k`, `3rd`, `1_000`, `3-5`) must appear
     as it is in the facts text, or split at `-` and `/` into numbers that each check out;
-  - code spans are checked like the rest; a digit outside ASCII drops the line, and so
-    does a number word: two to twenty, dozen(s), half / halves / halved, twice, thrice,
-    double / triple / quadruple and their -d / -s / -ing forms, N-fold, hundred(s),
-    thousand(s), million(s).
+  - code spans are checked like the rest; invisible and combining characters are removed
+    first; digits grouped by a space or an apostrophe (`9 000`, `1'000`) are one number;
+  - a numeral outside ASCII (`４２`, `④`, `²`, `½`) drops the line, and so does a number
+    word — zero, two to twenty, the tens to ninety, dozen(s), half / halves / halved,
+    twice, thrice, double / triple / quadruple and their -d / -s / -ing forms, N-fold,
+    hundred(s), thousand(s), million(s), billion(s) — or a multiplier after a digit
+    (`3×`, `3 x`, `3 times`, `9 K`, `10^3`).
+  The facts text states how many open criticals it lists ("5 listed"), so "5 of 12" can
+  be checked.
 - **AC-8** The kept highlights shall be stored per workspace and week with the model,
   cost, time and a hash of the facts used; `GET /digest` returns them with `stale: true`
   when the facts changed since. Asking again replaces them. IF the call fails, the
@@ -101,9 +107,9 @@ UI
 - **AC-12** "Copy as Markdown" shall put the digest (facts with the previous week and the
   change, open criticals with PR, title, file:line and agent, agents, highlights if any)
   on the clipboard as Markdown: titles, names and paths escaped, whitespace collapsed,
-  `@` mentions, `#N` references and `<!…>` neutralised, bare URLs kept inside code spans
-  so no channel turns them into links; PR links are GitHub URLs built from owner, name
-  and number.
+  `@` mentions, `#N` / `GH-N` references and `<!…>` neutralised, URLs and bare
+  domains (`evil.com/login`) kept inside code spans so no channel turns them into links;
+  PR links are GitHub URLs built from owner, name and number.
 - **AC-13** Unknown numbers shall show as "—", never 0; an empty week shall say "No review
   activity this week" (PRs opened, if any, still shown).
 
@@ -112,6 +118,8 @@ UI
 - A week with runs but no findings: severity counts 0 (known zero), accept rate "—".
 - The current week: numbers so far, marked "in progress"; highlights may be written.
 - A finding decided this week from an older run counts as decided this week (AC-1).
+- The week in progress counts up to now everywhere — facts, agents and open criticals —
+  so a run stamped later this week shows nowhere yet.
 - Highlights written during the week go stale when it closes: the comparison moves from
   the same elapsed days to the whole previous week, so the facts they were checked
   against changed.
@@ -159,3 +167,8 @@ model id `weekly_digest`.
   apart; AC-10 unknown change as "—", decisions with a change; AC-11 a request tied to its
   week; AC-12 changes, previous week, criticals' titles and agents, URLs in code spans;
   stale highlights at the week's close written down.
+- 2026-10-15 — after the second verification: AC-7 closes digit groups split by a space or
+  an apostrophe, invisible characters between digits, non-ASCII numerals without a decimal
+  digit, multipliers and more number words, and states the listed criticals' count; AC-5
+  rejects weeks before 1970 (year 0 is not a Postgres date); the week in progress ends at
+  now for agents and criticals too; AC-12 neutralises `GH-N` and bare domains.
