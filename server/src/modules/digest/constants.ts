@@ -15,8 +15,13 @@ export const HIGHLIGHTS_SCHEMA_NAME = 'WeeklyDigestHighlights';
 export const OPENROUTER_FALLBACK_MODEL = 'deepseek/deepseek-v4-flash';
 /** Words a model might use instead of digits — a line with one is dropped (AC-7). */
 export const NUMBER_WORDS = new RegExp(
-  String.raw`\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty` +
+  String.raw`\b(?:zero|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen` +
+    String.raw`|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety` +
     String.raw`|dozens?|half|halves|halved|halving|twice|thrice|(?:doubl|tripl|quadrupl)(?:e|ed|es|ing)` +
-    String.raw`|(?:two|three|four|five|six|seven|eight|nine|ten)-?fold|hundreds?|thousands?|millions?)\b`,
+    String.raw`|(?:two|three|four|five|six|seven|eight|nine|ten|hundred|thousand)-?fold|hundreds?|thousands?|millions?|billions?)\b`,
   'i',
 );
+/** A multiplier after a digit — `3×`, `3 x`, `3 times`, `9 K`, `3 fold`, `10^3` (AC-7). */
+export const MULTIPLIER = /\d\s*(?:[×^]|x\b|times\b|fold\b|[kmb]\b|bn\b)/i;
+/** The first ISO week-year the digest answers for; year 0 is not a Postgres date (AC-5). */
+export const FIRST_YEAR = 1970;

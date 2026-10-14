@@ -114,8 +114,9 @@ not under a repository.
   runs tab (a deleted PR's run is unlinked). Every unknown is `Unknown` — "—" with its
   reason in `title` and in visually hidden text. Cost donuts by agent and by model show
   cost and share in the app's cost format; a slice's colour follows its key
-  (`sliceColors`), the deleted agent and the unknown model are grey, so an agent keeps
-  its colour across windows while the same agents appear.
+  (`sliceColors`) over the `--chart-1…6` tokens (six distinct hues in both themes, none
+  grey), the deleted agent and the unknown model are grey, so an agent keeps its colour
+  across windows while the same agents appear.
 - **Weekly Digest** — previous / next week through `?week=` (no next past the current
   week, which is marked "in progress" and compared with the same elapsed days of last
   week). Cards: PRs opened, PRs reviewed, runs, cost, new findings by severity, decisions
@@ -127,7 +128,8 @@ not under a repository.
   (`useIsMutating`). A failure shows the server's sentence as is. Open critical findings
   ("N of M") open Files changed at their line. **Copy as Markdown** has each number with
   last week's and the change, criticals with PR title, file:line and agent; untrusted text
-  is escaped for a team channel and URLs stay inside code spans; PRs link to GitHub.
+  is escaped for a team channel (`@`, `#N`, `GH-N`, `<!…>` neutralised), and URLs and bare
+  domains on common TLDs stay inside code spans; PRs link to GitHub.
 
 No page triggers an LLM call by being opened. Model calls happen only from
 **Run Review**, the intent card's **Derive**, the tour's **Generate / Regenerate**,

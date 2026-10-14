@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { DigestChange, DigestFacts, WeeklyDigest } from '@devdigest/shared';
 import { stripLinks } from '../_shared/markdown.js';
-import { DAY_MS, HIGHLIGHT_MAX_CHARS, MAX_AGENTS_IN_PROMPT, NUMBER_WORDS, TITLE_MAX_CHARS, WEEK_MS } from './constants.js';
+import { DAY_MS, HIGHLIGHT_MAX_CHARS, MAX_AGENTS_IN_PROMPT, MULTIPLIER, NUMBER_WORDS, TITLE_MAX_CHARS, WEEK_MS } from './constants.js';
 
 /**
  * SPEC-06 — the pure part: ISO weeks, the facts text the model sees, the
@@ -119,7 +119,7 @@ export function factsText(d: Omit<WeeklyDigest, 'highlights'>, redact = false): 
     `Cost of finished runs: ${costText(f.cost_usd)} [${costText(p.cost_usd)}], change ${signed(c.cost_usd, (n) => costText(n))}; finished runs without a cost: ${f.runs_without_cost}`,
     `New findings: CRITICAL ${f.findings.CRITICAL} [${p.findings.CRITICAL}], WARNING ${f.findings.WARNING} [${p.findings.WARNING}], SUGGESTION ${f.findings.SUGGESTION} [${p.findings.SUGGESTION}]`,
     `Decisions this week: accepted ${f.accepted} [${p.accepted}], dismissed ${f.dismissed} [${p.dismissed}], accept rate ${rateText(f.accept_rate)} [${rateText(p.accept_rate)}]`,
-    `Open critical findings: ${d.open_criticals_total}`,
+    `Open critical findings: ${d.open_criticals_total} (${d.open_criticals.length} listed)`,
     ...d.open_criticals.map(
       (x) => `- PR #${x.pr_number} "${text(x.pr_title)}"${x.pr_state ? ` (${x.pr_state})` : ''}: ${text(x.title)} — ${text(x.file)}:${x.line} (${x.agent_name === null ? 'deleted agent' : text(x.agent_name)})`,
     ),
@@ -137,7 +137,12 @@ export const factsHash = (text: string) => createHash('sha256').update(text).dig
 const TOKEN = /[\p{L}\p{N}_$%.,/+\-\u2212]*\p{Nd}[\p{L}\p{N}_$%.,/+\-\u2212]*/gu;
 /** A plain number: sign, `$`, thousands separators, decimals (`.5` too), `%`. */
 const NUMBER = /^[+\-\u2212]?\$?(?:(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?|\.(\d+))%?$/;
-const NON_ASCII_DIGIT = /(?![0-9])\p{Nd}/u;
+/** Any numeral that is not an ASCII digit: `４`, `④`, `²`, `½`. */
+const NON_ASCII_NUMERAL = /[^\P{N}0-9]/u;
+/** Invisible and combining characters: they can hide between digits ("4\u200b2"). */
+const INVISIBLE = /[\p{Cf}\p{Mn}]/gu;
+/** A thousands group split by a space or an apostrophe: "9 000", "1'000". */
+const GROUP_SEPARATOR = /(\d)[ \u00a0\u202f\u2009'\u2019](?=\d{3}(?!\d))/g;
 
 /** The tokens of a text that hold a digit, without sentence punctuation around them. */
 export function tokensIn(text: string): string[] {
@@ -170,7 +175,6 @@ export function factsCheck(d: Omit<WeeklyDigest, 'highlights'>): FactsCheck {
 
 /** AC-7: a token checks out when it is a stated number, appears in the facts as written, or splits into stated numbers. */
 function tokenChecks(token: string, facts: FactsCheck): boolean {
-  if (NON_ASCII_DIGIT.test(token)) return false;
   const n = asNumber(token);
   if (n !== null) return facts.numbers.has(n);
   if (facts.tokens.has(token)) return true;
@@ -182,14 +186,15 @@ function tokenChecks(token: string, facts: FactsCheck): boolean {
 }
 
 /**
- * AC-7: a highlight survives only if its links, images and HTML are stripped, it
- * is cut to 200 characters, it has no number word, and every token with a digit
- * checks out against the facts. Returns the cleaned line or null.
+ * AC-7: a highlight survives only if its links, images, HTML and invisible characters
+ * are stripped, it is cut to 200 characters, it has no non-ASCII numeral, number word
+ * or multiplier, and every token with a digit — thousands groups joined — checks out
+ * against the facts. Returns the cleaned line or null.
  */
 export function checkHighlight(raw: string, facts: FactsCheck): string | null {
-  let line = stripLinks(raw).replace(/\s+/g, ' ').trim().replace(/^[-*•]\s+/, '');
+  let line = stripLinks(raw).normalize('NFC').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim().replace(/^[-*•]\s+/, '');
   if (!line) return null;
   if (line.length > HIGHLIGHT_MAX_CHARS) line = `${line.slice(0, HIGHLIGHT_MAX_CHARS - 1).trimEnd()}…`;
-  if (NUMBER_WORDS.test(line)) return null;
-  return tokensIn(line).every((t) => tokenChecks(t, facts)) ? line : null;
+  if (NON_ASCII_NUMERAL.test(line) || NUMBER_WORDS.test(line) || MULTIPLIER.test(line)) return null;
+  return tokensIn(line.replace(GROUP_SEPARATOR, '$1')).every((t) => tokenChecks(t, facts)) ? line : null;
 }

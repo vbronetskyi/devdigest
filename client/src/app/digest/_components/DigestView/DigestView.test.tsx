@@ -30,6 +30,7 @@ vi.mock("@/lib/hooks/digest", () => ({
 
 import { DigestView } from "./DigestView";
 import { ApiError } from "@/lib/api";
+import { formatCost } from "@/lib/format-cost";
 
 afterEach(() => {
   cleanup();
@@ -100,6 +101,19 @@ describe("DigestView", () => {
     expect(screen.getByText("in progress")).toBeTruthy();
   });
 
+  it("AC-10/AC-13: the agents of the week — a deleted agent by name, unknown cost and rate as dashes", () => {
+    h.query = {
+      ...h.query,
+      data: { ...DIGEST, agents: [...DIGEST.agents, { agent_id: null, name: null, runs: 1, cost_usd: null, accept_rate: null, decided: 0 }] },
+    };
+    renderView();
+    const table = screen.getByLabelText("Agents this week");
+    const row = within(table).getByText("deleted agent").closest("tr")!;
+    expect(within(row).getAllByText("—")).toHaveLength(2);
+    expect(within(row).getByText("of 0")).toBeTruthy();
+    expect(within(within(table).getByText("Security Reviewer").closest("tr")!).getByText(formatCost(0.03))).toBeTruthy();
+  });
+
   it("AC-10: an open critical opens Files changed at its line; the total is shown", () => {
     h.query = { ...h.query, data: DIGEST };
     renderView();
@@ -148,6 +162,7 @@ describe("DigestView", () => {
     h.query = { ...h.query, data: { ...DIGEST, empty: true } };
     renderView();
     expect(screen.getByText("No review activity this week.")).toBeTruthy();
+    expect(within(screen.getByLabelText("PRs OPENED")).getByText("2")).toBeTruthy(); // PRs opened still shown
     expect(screen.getByRole("button", { name: "Write highlights" })).toBeDisabled();
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Copy as Markdown" })));
     expect(writeText.mock.calls[0]![0]).toContain("**Weekly review digest — 2026-W40**");

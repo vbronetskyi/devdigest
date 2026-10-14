@@ -143,10 +143,48 @@ describe('facts and the number check (AC-7)', () => {
       '(42) runs',
       'US$42',
       'up 42%.',
-      'week 42',
+      'week 99',
       'runs 0.95',
+      // Digit groups and hidden characters that would read as one number.
+      'Runs reached 9 000 this week.',
+      'Runs reached 9\u00a0000.',
+      "Runs reached 1'000.",
+      'Runs reached 4\u200b2.',
+      'Runs reached 4\u00ad2.',
+      'Runs reached 4\u03002.',
+      // Numerals that are not ASCII digits, multipliers and more number words.
+      'Runs ④② this week',
+      'Runs rose ²',
+      'Cost fell by ½',
+      'Runs rose 3×',
+      'Runs rose 3 x',
+      'Runs rose 3 times',
+      'Runs hit 9 K',
+      'Runs hit 10^3',
+      'Runs hit thirty',
+      'zero failures',
+      'billions of tokens',
+      'a hundredfold rise',
     ];
     for (const line of invented) expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
+  });
+
+  it('a thousands group split by a space is one number — kept when the facts state it', () => {
+    const big = factsCheck({ ...digest, facts: { ...digest.facts, runs: 9000 } });
+    expect(checkHighlight('Review runs reached 9 000.', big)).toBe('Review runs reached 9 000.');
+    expect(checkHighlight('Review runs reached 9,000.', big)).not.toBeNull();
+  });
+
+  it('states how many criticals it lists, caps agents at 20 and cuts titles at 120', () => {
+    expect(text).toContain('Open critical findings: 4 (1 listed)');
+    expect(checkHighlight('1 of 4 open critical findings is listed.', allowed)).not.toBeNull();
+    const many = factsText({
+      ...digest,
+      agents: Array.from({ length: 25 }, (_, i) => ({ ...digest.agents[0]!, agent_id: `a${i}`, name: `Agent ${i}` })),
+      open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'x'.repeat(300) }],
+    });
+    expect(many.split('\n').filter((l) => l.startsWith('- Agent '))).toHaveLength(20);
+    expect(many).toContain(`"${'x'.repeat(119)}…"`);
   });
 
   it('strips links and HTML first and cuts the line to 200 characters', () => {

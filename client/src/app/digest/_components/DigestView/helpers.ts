@@ -47,14 +47,19 @@ export function criticalHref(c: DigestCritical): string {
 
 export const githubPrUrl = (fullName: string, n: number) => `https://github.com/${fullName}/pull/${n}`;
 
-/** A URL a channel would turn into a link: kept readable, inside a code span. */
-const LINKABLE = /((?:[a-z][a-z0-9+.-]*:\/\/|mailto:|www\.)[^\s`<>]+)/gi;
+/**
+ * What a channel would turn into a link — a URL, `www.`, or a bare domain on a common
+ * TLD (`evil.com/login`; Slack links those) — kept readable, inside a code span. File
+ * names (`routes.ts`, `deploy.sh`) are not on the list.
+ */
+const LINKABLE =
+  /((?:[a-z][a-z0-9+.-]*:\/\/|mailto:|www\.)[^\s`<>]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|dev|app|ai|co|xyz|info|me|ly|gg|link|site|online|biz|us|uk|eu|ru|ua)\b(?:\/[^\s`<>]*)?)/gi;
 
 /**
  * Untrusted text (PR titles, finding titles, agent names, highlights) made safe for a
- * team channel: one line, Markdown syntax escaped, `@mentions`, `#123` references and
- * `<!here>`-style commands neutralised, URLs inside code spans so no channel links
- * them (SPEC-06 AC-12).
+ * team channel: one line, Markdown syntax escaped, `@mentions`, `#123` / `GH-123`
+ * references and `<!here>`-style commands neutralised, URLs and bare domains inside code
+ * spans so no channel links them (SPEC-06 AC-12).
  */
 export function mdSafe(text: string): string {
   return text
@@ -67,7 +72,8 @@ export function mdSafe(text: string): string {
         : part
             .replace(/([\\`*_[\]<>|~])/g, "\\$1")
             .replace(/@(?=\w)/g, "@\u200b")
-            .replace(/#(?=\d)/g, "#\u200b"),
+            .replace(/#(?=\d)/g, "#\u200b")
+            .replace(/\bGH-(?=\d)/gi, (m) => `${m.slice(0, 2)}\u200b-`),
     )
     .join("");
 }

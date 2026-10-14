@@ -47,6 +47,9 @@ describe("digest helpers (SPEC-06)", () => {
   it("AC-12: a URL stays readable but inside a code span, so no channel links it", () => {
     expect(mdSafe("Details at https://evil.example/login now")).toBe("Details at `https://evil.example/login` now");
     expect(mdSafe("see www.evil.example")).toBe("see `www.evil.example`");
+    expect(mdSafe("log in at evil.com/login now")).toBe("log in at `evil.com/login` now");
+    expect(mdSafe("fix routes.ts and deploy.sh")).toBe("fix routes.ts and deploy.sh"); // file names stay text
+    expect(mdSafe("see GH-12")).toBe("see GH\u200b-12");
     // The server already put a bare URL in a code span: escaping its backticks must not set it free.
     expect(mdSafe("see `https://evil.example/login`")).toBe("see \\``https://evil.example/login`\\`");
   });

@@ -5,8 +5,8 @@ file is how it works today. Code: `src/modules/digest/`.
 
 ## `GET /digest?week=YYYY-Www`
 
-`week` absent → the current ISO week. Malformed, non-existent (`2025-W53`) or future →
-422 `invalid_week`. ISO weeks by week-year (`helpers.parseWeek` / `weekOf` / `weekBounds`),
+`week` absent → the current ISO week. Malformed, non-existent (`2025-W53`), before 1970
+(year 0 is not a Postgres date) or future → 422 `invalid_week`. ISO weeks by week-year (`helpers.parseWeek` / `weekOf` / `weekBounds`),
 Monday 00:00 UTC to the next Monday.
 
 Facts (`repository.ts`, raw SQL, workspace-scoped):
@@ -19,7 +19,8 @@ Facts (`repository.ts`, raw SQL, workspace-scoped):
 - decisions: findings with `accepted_at` / `dismissed_at` in the week, whatever run made
   them (a later click moves a decision, so past weeks can change); their accept rate;
 - the previous week on the same basis — for the week in progress, over the same elapsed
-  span (`previousSpan`), not the whole week;
+  span (`previousSpan`), not the whole week. The week in progress ends at now for the
+  facts, the agents and the open criticals alike;
 - open criticals: CRITICAL, undecided findings of the latest `done` run per PR and agent,
   newest run first, then file and line; 5 listed with the total; PR state shown when
   merged or closed. A deleted agent leaves `agent_runs.agent_id` null, so runs are grouped
@@ -41,10 +42,15 @@ one untrusted block — numbers in display form (costs as the UI shows them, rat
 percents, unknown `null`), changes in words ("down 2"), titles, names and paths collapsed
 to one line (a newline cannot forge a fact line) and cut to 120, ≤ 20 agents.
 
-Each returned line: links/images/HTML stripped, whitespace collapsed, cut to 200; dropped
-if it has a number word (`NUMBER_WORDS`: two–twenty, dozen(s), half/halves/halved,
-twice, thrice, doubled/tripled…, N-fold, hundreds…) or a token with a digit that does not
-check out (`checkHighlight`, `factsCheck`):
+Each returned line: links/images/HTML stripped, NFC-normalised, invisible and combining
+characters removed (`4\u200b2` would read as 42), whitespace collapsed, cut to 200;
+dropped if it has a numeral outside ASCII (`４`, `④`, `²`, `½`), a number word
+(`NUMBER_WORDS`: zero, two–twenty, the tens, dozen(s), half/halves/halved, twice, thrice,
+doubled/tripled…, N-fold, hundreds… billions) or a multiplier after a digit (`MULTIPLIER`:
+`3×`, `3 x`, `3 times`, `9 K`, `10^3`), or a token with a digit that does not check out
+(`checkHighlight`, `factsCheck`). Thousands groups split by a space or an apostrophe
+(`9 000`, `1'000`) are joined into one number first. The facts text says how many
+criticals it lists ("4 (1 listed)"), so "1 of 4" checks out.
 
 | Token | Kept when |
 |---|---|

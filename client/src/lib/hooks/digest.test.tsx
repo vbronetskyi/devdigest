@@ -22,6 +22,7 @@ import { useWriteHighlights } from "./digest";
 
 afterEach(() => {
   h.resolve = null;
+  h.reject = null;
   h.posts = [];
 });
 

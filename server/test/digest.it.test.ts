@@ -115,21 +115,30 @@ d('HW L08 weekly digest — SPEC-06 (Testcontainers pg)', () => {
       const id = await run(null, p2, new Date(W37_FROM.getTime() + hour * 3_600_000), 'done', null);
       const [rv] = await db.insert(t.reviews).values({ workspaceId, prId: p2, runId: id, agentId: crypto.randomUUID(), kind: 'review' }).returning({ id: t.reviews.id });
       await db.insert(t.findings).values({ reviewId: rv!.id, file: 'src/ghost.ts', startLine: line, endLine: line, severity: 'CRITICAL', category: 'security', title: `ghost ${line}`, rationale: 'r', confidence: 1 });
+      // Same run, an earlier file at a later line: the file orders before the line.
+      if (line === 2) await db.insert(t.findings).values({ reviewId: rv!.id, file: 'src/a.ts', startLine: 9, endLine: 9, severity: 'CRITICAL', category: 'security', title: 'ghost a', rationale: 'r', confidence: 1 });
     }
     // Another workspace: its run, review and decisions in W37 belong to it alone.
     const [other] = await db.insert(t.workspaces).values({ name: 'other' }).returning({ id: t.workspaces.id });
     const [foreignRun] = await db.insert(t.agentRuns).values({ workspaceId: other!.id, prId: p1, ranAt: W37_FROM, status: 'done', costUsd: 7 }).returning({ id: t.agentRuns.id });
     const [foreign] = await db.insert(t.reviews).values({ workspaceId: other!.id, prId: p1, runId: foreignRun!.id, kind: 'review' }).returning({ id: t.reviews.id });
-    await db.insert(t.findings).values(
-      [1, 2].map((line) => ({ reviewId: foreign!.id, file: 'x.ts', startLine: line, endLine: line, severity: 'CRITICAL', category: 'bug', title: 'x', rationale: 'r', confidence: 1, acceptedAt: W37_FROM })),
-    );
+    await db.insert(t.findings).values([
+      ...[1, 2].map((line) => ({ reviewId: foreign!.id, file: 'x.ts', startLine: line, endLine: line, severity: 'CRITICAL', category: 'bug', title: 'x', rationale: 'r', confidence: 1, acceptedAt: W37_FROM })),
+      { reviewId: foreign!.id, file: 'x.ts', startLine: 3, endLine: 3, severity: 'CRITICAL', category: 'bug', title: 'foreign open', rationale: 'r', confidence: 1 },
+    ]);
+    await db.insert(t.pullRequests).values({ workspaceId: other!.id, repoId: repo!.id, number: 900, title: 'foreign', author: 'a', branch: 'b', base: 'main', headSha: 'h', openedAt: W37_FROM });
+
+    // W34: a decision on a W33 run's finding, and no run — not an empty week.
+    const w33 = await run(gen, p1, new Date('2026-08-12T12:00:00.000Z'), 'done', 0.001);
+    await findings(w33, p1, [{ sev: 'WARNING', dismissed: new Date('2026-08-19T12:00:00.000Z') }]);
 
     // The week in progress: a run stamped later this week is not counted yet; last week counts
     // only up to the same elapsed time.
     const now = Date.now();
     const { from, to } = weekBounds(weekOf(new Date(now)));
     const elapsed = now - from.getTime();
-    await run(gen, p1, new Date(now + (to.getTime() - now) / 2), 'done', 0.1);
+    const later = await run(gen, p1, new Date(now + (to.getTime() - now) / 2), 'done', 0.1);
+    await findings(later, p1, [{ sev: 'CRITICAL', file: 'src/later.ts', line: 1 }]);
     await run(gen, p1, new Date(from.getTime() - WEEK + elapsed / 2), 'done', 0.01);
     await run(gen, p1, new Date(from.getTime() - WEEK + elapsed + (WEEK - elapsed) / 2), 'done', 0.01);
   }, 120_000);
@@ -198,15 +207,23 @@ d('HW L08 weekly digest — SPEC-06 (Testcontainers pg)', () => {
     expect(dg.facts.runs).toBe(4); // first and last millisecond, the two deleted agents' runs; not the cancelled one
     expect(dg.facts.cost_usd).toBeNull(); // no done run reported a cost: unknown, not $0
     expect(dg.facts.runs_without_cost).toBe(4);
-    expect(dg.facts.findings).toEqual({ CRITICAL: 2, WARNING: 2, SUGGESTION: 0 }); // the cancelled run's critical is not new here
+    expect(dg.facts.prs_opened).toBe(0); // not the other workspace's PR
+    expect(dg.facts.findings).toEqual({ CRITICAL: 3, WARNING: 2, SUGGESTION: 0 }); // the cancelled run's critical is not new here
     expect([dg.facts.accepted, dg.facts.dismissed]).toEqual([1, 0]); // dismissed at the next Monday 00:00; not the other workspace's 2
     expect(dg.change.cost_usd).toBeNull();
     expect(dg.agents.map((a) => [a.name, a.runs, a.cost_usd, a.decided])).toEqual([
       [null, 3, null, 0],
       ['General Reviewer', 1, null, 1],
     ]);
-    expect(dg.open_criticals.map((c) => c.title).sort()).toEqual(['ghost 1', 'ghost 2']);
-    expect(dg.open_criticals_total).toBe(2);
+    // Newest run first, then file, then line; not the other workspace's open critical.
+    expect(dg.open_criticals.map((c) => c.title)).toEqual(['ghost a', 'ghost 2', 'ghost 1']);
+    expect(dg.open_criticals_total).toBe(3);
+  });
+
+  it('AC-1/AC-13: a week with decisions but no runs is not empty', async () => {
+    const app = await appWith(new MockLLMProvider('openai'));
+    const dg = (await get(app, '2026-W34')).json() as WeeklyDigest;
+    expect([dg.facts.runs, dg.facts.dismissed, dg.empty]).toEqual([0, 1, false]);
   });
 
   it('AC-2/AC-5: the week in progress counts up to now and compares with the same elapsed time last week', async () => {
@@ -214,6 +231,8 @@ d('HW L08 weekly digest — SPEC-06 (Testcontainers pg)', () => {
     const dg = (await get(app)).json() as WeeklyDigest;
     expect(dg.in_progress).toBe(true);
     expect(dg.facts.cost_usd).toBeNull(); // the run stamped later this week is not here yet
+    expect(dg.agents).toEqual([]); // nor among the agents
+    expect(dg.open_criticals_total).toBe(0); // nor its critical
     expect(dg.prev.cost_usd).toBeCloseTo(0.01); // the second run of last week is past the same elapsed time
   });
 
@@ -222,7 +241,8 @@ d('HW L08 weekly digest — SPEC-06 (Testcontainers pg)', () => {
     const app = await appWith(llm);
     const now = (await get(app)).json() as WeeklyDigest;
     expect(now.in_progress).toBe(true);
-    for (const bad of ['2025-W53', '2026-W00', '2026-40', 'soon', '2099-W01']) expect((await get(app, bad)).statusCode).toBe(422);
+    for (const bad of ['2025-W53', '2026-W00', '2026-40', 'soon', '2099-W01', '0001-W01', '0026-W42', '1969-W52']) expect((await get(app, bad)).statusCode).toBe(422);
+    expect((await get(app, '1970-W01')).statusCode).toBe(200);
     expect(llm.calls).toHaveLength(0);
   });
 
@@ -285,12 +305,21 @@ d('HW L08 weekly digest — SPEC-06 (Testcontainers pg)', () => {
   it('AC-9: a second request for the same week while one runs is a 409', async () => {
     const gated = new GatedLLM('openai', { structuredBySchema: { WeeklyDigestHighlights: { highlights: ['PR #2 is merged.'] } } });
     const app = await appWith(gated);
+    const before = ((await get(app, '2026-W40')).json() as WeeklyDigest).highlights!;
     const first = write(app, '2026-W40');
     await new Promise((r) => setTimeout(r, 50));
     expect((await write(app, '2026-W40')).statusCode).toBe(409);
     gated.release();
     expect((await first).statusCode).toBe(200);
-    // AC-8: asking again replaced the stored lines.
-    expect(((await get(app, '2026-W40')).json() as WeeklyDigest).highlights!.lines).toEqual(['PR #2 is merged.']);
+    // AC-8: asking again replaced the stored lines and when they were written.
+    const after = ((await get(app, '2026-W40')).json() as WeeklyDigest).highlights!;
+    expect(after.lines).toEqual(['PR #2 is merged.']);
+    expect(Date.parse(after.generated_at)).toBeGreaterThan(Date.parse(before.generated_at));
+  });
+
+  it('AC-6: at most 5 lines are kept, however many check out', async () => {
+    const lines = ['PR #1 had a review.', 'PR #2 is merged.', 'PR #1 has an open critical finding.', 'PR #2 has open critical findings.', 'PR #2 was reviewed.', 'PR #1 was reviewed.'];
+    const app = await appWith(new MockLLMProvider('openai', { structuredBySchema: { WeeklyDigestHighlights: { highlights: lines } } }));
+    expect(((await write(app, '2026-W40')).json() as WeeklyDigest).highlights!.lines).toEqual(lines.slice(0, 5));
   });
 });

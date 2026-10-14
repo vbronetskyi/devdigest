@@ -7,7 +7,7 @@ import { wrapUntrusted } from '../../platform/prompt.js';
 import { resolveFeatureLlm } from '../_shared/feature-models.js';
 import { withDeadline } from '../_shared/deadline.js';
 import { DigestRepository } from './repository.js';
-import { HIGHLIGHTS_DEADLINE_MS, HIGHLIGHTS_SCHEMA_NAME, MAX_CRITICALS, MAX_HIGHLIGHTS, OPENROUTER_FALLBACK_MODEL } from './constants.js';
+import { FIRST_YEAR, HIGHLIGHTS_DEADLINE_MS, HIGHLIGHTS_SCHEMA_NAME, MAX_CRITICALS, MAX_HIGHLIGHTS, OPENROUTER_FALLBACK_MODEL } from './constants.js';
 import { changeOf, checkHighlight, factsCheck, factsHash, factsText, formatWeek, parseWeek, previousSpan, weekBounds, weekOf, type IsoWeek } from './helpers.js';
 
 /** The model's answer; limits applied after parsing (strict JSON schema mode). */
@@ -90,12 +90,13 @@ export class DigestService {
     }
   }
 
-  /** AC-5: default the current week; malformed, non-existent or future weeks are a 422. */
+  /** AC-5: default the current week; malformed, non-existent, pre-1970 or future weeks are a 422. */
   private validWeek(weekText: string | undefined, now: Date): IsoWeek {
     const current = weekOf(now);
     if (weekText === undefined) return current;
     const week = parseWeek(weekText);
     if (!week) throw new AppError('invalid_week', `"${weekText}" is not an ISO week (YYYY-Www) that exists.`, 422);
+    if (week.year < FIRST_YEAR) throw new AppError('invalid_week', `${weekText} is before ${FIRST_YEAR}.`, 422);
     if (weekBounds(week).from.getTime() > weekBounds(current).from.getTime()) {
       throw new AppError('invalid_week', `${weekText} has not started yet.`, 422);
     }
@@ -105,13 +106,15 @@ export class DigestService {
   private async compute(ws: string, week: IsoWeek, now: Date): Promise<Omit<WeeklyDigest, 'highlights'>> {
     const { from, to } = weekBounds(week);
     const inProgress = now.getTime() < to.getTime();
+    // The week in progress counts up to now everywhere: a run stamped later shows nowhere yet.
+    const end = inProgress ? now : to;
     const prevSpan = previousSpan(from, to, now);
     const [facts, prev, criticals, agents, agentDecisions] = await Promise.all([
-      this.facts(ws, from, inProgress ? now : to),
+      this.facts(ws, from, end),
       this.facts(ws, prevSpan.from, prevSpan.to),
-      this.repo.openCriticals(ws, from, to),
-      this.repo.agents(ws, from, to),
-      this.repo.agentDecisions(ws, from, to),
+      this.repo.openCriticals(ws, from, end),
+      this.repo.agents(ws, from, end),
+      this.repo.agentDecisions(ws, from, end),
     ]);
     const decided = new Map(agentDecisions.map((d) => [d.agent_id ?? '', d]));
     const open: DigestCritical[] = criticals.slice(0, MAX_CRITICALS).map((c) => ({
