@@ -52,7 +52,8 @@ Data
 - **AC-5** An agent's trend shall be up or down when its accept rate moved by more than
   1.0 percentage point against the previous window (unrounded), flat within that, and
   null when either window has fewer than 5 decided findings; such a row is marked "low
-  sample".
+  sample" — unless nothing is decided in the window, which already reads "—" (nothing
+  decided yet).
 - **AC-6** Runs whose agent was deleted shall count in the totals and appear as one
   "deleted agent" row; it is never the most active agent.
 - **AC-7** The system shall give `runs_per_day` with exactly `days` entries (0 for days
@@ -74,7 +75,9 @@ UI
   runs with a daily sparkline, cost with its change, accept rate (pooled) with the decided
   count, most active agent with its runs and accept rate — a 7 / 30 / 90 days selector,
   the agents table and the cost breakdown by agent and by model, each slice with its
-  share; an agent keeps its colour when the window changes.
+  share. A slice's colour follows its agent or model, not its position: the deleted-agent
+  and unknown-model slices are always grey, and the others keep their colours whenever
+  the same agents (or models) appear.
 - **AC-12** The agents table shall list agent, runs, average cost, average duration,
   accept rate with its trend (an arrow with a text label) and decided count, and last run,
   sorted by accept rate (unknown last), then runs, then name. It shall be a table to
@@ -151,3 +154,7 @@ for this endpoint, replaced by: `window` (`days`, `from`, `to`), `totals` (`runs
   colour; AC-12 is a table to assistive technology (cells, a disclosure button); AC-14
   lists every reason, including the cost change, all-failed agents, fields a finished
   run did not record and the most active agent; two accepted edge cases written down.
+- 2026-10-15 — after the second verification: colours could still shift when the
+  deleted-agent slice came or went (it took a palette slot); grey for the deleted agent and
+  the unknown model, and AC-11 states what stays stable. AC-5 says a row with nothing
+  decided is "—", not "low sample".
