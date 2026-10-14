@@ -81,7 +81,9 @@ UI
   runs tab; a run of a deleted PR is shown, unlinked. (The design's sparkline of the
   expanded row is replaced by this list: a reviewer asked for the runs themselves.)
 - **AC-14** Every unknown value shall show as "—" with its reason on hover (no cost
-  reported, nothing decided yet, failed run); a known cost below $0.01 shows as "<$0.01".
+  reported, nothing decided yet, failed run); a known cost uses the app's cost format
+  (`client/specs/run-cost-display.md`: three significant digits below $1, `$0` only for a
+  genuinely free run).
 - **AC-15** WHILE the window has no runs, the page shall say so and link to the pull
   requests; IF the request fails, THEN it shall show the error with a retry.
 
@@ -131,3 +133,6 @@ for this endpoint, replaced by: `window` (`days`, `from`, `to`), `totals` (`runs
 - 2026-10-14 — aligned with the starter's stub before code: the endpoint is
   `GET /agents/performance` and the contract keeps the stub's names (`AgentPerf`,
   `AgentPerfRow`, `PerfCostSegment`), its fields replaced by this spec's.
+- 2026-10-14 — AC-14 before the UI: "<$0.01" would print the same for every row of a
+  workspace whose runs cost ~$0.0006; the app's cost format keeps three significant digits
+  and never prints $0.00 for a non-zero cost.
