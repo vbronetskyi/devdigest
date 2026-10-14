@@ -17,6 +17,7 @@ violation in the app's error handler. Contract changes in both copies.
   `skipped`, `scan`. New `ConventionScan`, `ConventionList` (`GET` answer).
 - Migration 0012 (generated): unique `skills (workspace_id, name)` (no duplicates in the
   dev database before it), `conventions.commit_sha`, table `convention_scans`.
+- Migration 0013 (generated): `conventions.skill_id` → `skills.id` (on delete set null).
 
 ## Tasks
 
@@ -39,27 +40,27 @@ violation in the app's error handler. Contract changes in both copies.
 | AC | Tasks | Tests | Commit |
 |---|---|---|---|
 | AC-1 | T5 | page "opening the page never scans…" | 227115b |
-| AC-2 | T4 | — (one-line filter; covered by reading) | 227115b |
+| AC-2 | T4 | — (one-line filter; covered by reading); helpers "test, migration and config folders are not samples — at the repository root too" | 227115b, 34c6823 |
 | AC-3 | — | unchanged since lab 2 | — |
 | AC-4 | T3 | it "reads only offered files…" (reads asserted), "a model that picks nothing usable still gets the top candidates" | 227115b |
-| AC-5 | T2, T3 | helpers "a file is cut at the last line break within the budget" | 227115b |
+| AC-5 | T2, T3 | helpers "a file is cut at the last line break within the budget"; it "all files together stay within 60,000 characters" | 227115b, 34c6823 |
 | AC-6 | T2 | helpers "a file cannot close its block, in any case; a path cannot break the label"; it (block label) | 227115b |
 | AC-7 | T2 | helpers "a multi-line quote keeps its range; only its first 8 lines are matched", "finds a re-indented snippet…", "rejects paraphrases…" | 227115b |
 | AC-8 | T2, T3 | helpers "a rule is one line without leading Markdown…"; it "a rule reaches the skill as one line, whatever was sent" | 227115b |
-| AC-9 | T2 | helpers "caps confidence…", "unknown confidence is null and sorts last…" | 227115b |
+| AC-9 | T2 | helpers "caps confidence…", "unknown confidence is null and sorts last…"; it "a confidence the model could not give is stored as unknown and listed last" | 227115b, 34c6823 |
 | AC-10 | T2, T3 | helpers "…accepted rules are skipped; at most 8"; it "a re-scan … does not propose them again" | 227115b |
 | AC-11 | T2 | helpers "drops unknown files and invented quotes; skips repeats separately"; it (dropped / skipped) | 227115b |
 | AC-12 | T3 | it "a scan writes under the repository's lock…" (lock held by another transaction); it (commit per candidate) | dd0588c, 227115b |
 | AC-13 | T1, T3 | it "reads only offered files…" (scan stored, returned after reload) | dd0588c, 227115b |
 | AC-14 | — | unchanged since lab 2 (`deadline.test.ts`) | — |
-| AC-15 | T3 | it (list shape, accepted first) | 227115b |
-| AC-16 | T3 | it "accepts a candidate as an enabled convention skill, exactly once" | 227115b |
+| AC-15 | T3 | it (list shape, accepted first); it (unknown confidence listed last) | 227115b, 34c6823 |
+| AC-16 | T3 | it "accepts a candidate as an enabled convention skill, exactly once"; helpers "the example fence cannot be closed by the quote…" | 227115b, 34c6823 |
 | AC-17 | T1, T3 | it "two accepts racing for one derived name…", "\"Edit first\" … a taken name is a 409"; routes-smoke "a unique-index violation is a 409…" | dd0588c, 227115b |
-| AC-18 | T3 | it "accepts … exactly once", "rejects by deleting…" | — |
+| AC-18 | T3 | it "accepts … exactly once", "rejects by deleting…"; it (rejecting an accepted convention → 409) | 34c6823 |
 | AC-19 | T5 | page "the stored scan is the subtitle after a reload" | 227115b |
 | AC-20 | T5 | page "…before the first scan there is one Run extraction button" | 227115b |
-| AC-21 | T5 | card "links at the commit the quote was read at; unknown confidence is a dash" | 227115b |
-| AC-22 | T5 | — (message wording; shown in the video) | 227115b |
+| AC-21 | T5 | card "links at the commit the quote was read at; unknown confidence is a dash"; it (skill_id after reload); card "an accepted card links its skill after a reload too" | 227115b, 34c6823 |
+| AC-22 | T5 | — (message wording; shown in the video); page "right after a scan the page says what was dropped and what was skipped" | 227115b, 34c6823 |
 | AC-23 | T5 | page "Accept all goes one card at a time and locks every card meanwhile"; card "a locked card cannot start an action" | 227115b |
 
 Mutation-checked: an unoffered path read, the rule not normalized on accept, no retry on

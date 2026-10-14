@@ -59,7 +59,7 @@ Response `ConventionExtraction`: `candidates` (everything stored for the repo),
 |---|---|
 | `GET /repos/:id/conventions` | `{ candidates, last_scan }` — accepted first, then by confidence (unknown last); the last scan or null |
 | `POST /conventions/:id/accept {rule?, name?}` | creates the skill and marks the candidate accepted in one transaction (row locked) — `201` |
-| `DELETE /conventions/:id` | reject = delete the candidate |
+| `DELETE /conventions/:id` | reject = delete a pending candidate; an accepted one → 409 `already_accepted` (it is the record of a skill) |
 
 Accept details:
 
@@ -73,6 +73,15 @@ Accept details:
   name)` is unique in the database: when a concurrent accept takes the derived name
   first, the accept is retried (3 attempts); for an explicit name it is a 409.
 - Accepting twice → `409 already_accepted`.
+- The accepted row keeps `skill_id` (migration 0013), so the page links the skill after
+  a reload.
+
+Migration 0012 creates the unique index on `skills (workspace_id, name)`. A database
+that already has two skills with one name in a workspace fails it; rename one first:
+
+```sql
+select workspace_id, name, count(*) from skills group by 1, 2 having count(*) > 1;
+```
 
 ## Invariants
 
