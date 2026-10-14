@@ -2,6 +2,7 @@ import { pgTable, uuid, text, jsonb, timestamp, doublePrecision, boolean, vector
 import { now } from './_shared';
 import { workspaces } from './core';
 import { repos } from './repos';
+import { skills } from './skills';
 
 // ============================================================ Knowledge / RAG
 
@@ -41,6 +42,8 @@ export const conventions = pgTable('conventions', {
   accepted: boolean('accepted').notNull().default(false),
   /** The clone's commit the evidence was read at (SPEC-07 AC-12); null for older rows. */
   commitSha: text('commit_sha'),
+  /** The skill an accepted convention became (SPEC-07 AC-21); null while pending or for older rows. */
+  skillId: uuid('skill_id').references(() => skills.id, { onDelete: 'set null' }),
 });
 
 /** The last conventions scan of a repository (SPEC-07 AC-13). */

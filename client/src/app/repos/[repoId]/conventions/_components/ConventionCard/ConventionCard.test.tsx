@@ -45,6 +45,12 @@ describe("ConventionCard", () => {
     expect(screen.getByText("—")).toHaveAttribute("title", "The model gave no confidence for this rule.");
   });
 
+  it("SPEC-07 AC-21: an accepted card links its skill after a reload too", () => {
+    const h = renderCard({ candidate: { ...CANDIDATE, accepted: true, skill_id: "s9" } });
+    fireEvent.click(screen.getByText("Open skill"));
+    expect(h.onOpenSkill).toHaveBeenCalledWith("s9");
+  });
+
   it("SPEC-07 AC-23: a locked card cannot start an action", () => {
     renderCard({ locked: true });
     for (const name of ["Accept as Skill", "Edit first", "Reject"]) expect(screen.getByRole("button", { name })).toBeDisabled();

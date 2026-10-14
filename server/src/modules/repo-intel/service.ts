@@ -727,7 +727,7 @@ const JUNK_PATH_PATTERNS = [
   'prettier',
 ] as const;
 
-function isJunkPath(path: string): boolean {
+export function isJunkPath(path: string): boolean {
   // A leading slash lets '/test/' and '/migrations/' match folders at the repo root too.
   const lower = `/${path.toLowerCase()}`;
   return JUNK_PATH_PATTERNS.some((p) => lower.includes(p));

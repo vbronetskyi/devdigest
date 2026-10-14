@@ -160,6 +160,7 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
     // created with one name at the same moment): a conflict, not a server fault.
     const db = err as { code?: string; cause?: { code?: string } };
     if (db?.code === '23505' || db?.cause?.code === '23505') {
+      app.log.warn({ err }, 'unique violation answered as 409');
       reply.status(409).send({ error: { code: 'conflict', message: 'That already exists — refresh and try again.' } });
       return;
     }

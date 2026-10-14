@@ -10,7 +10,7 @@ export interface RawConvention {
   evidence_snippet: string;
   /** Other sampled files said to show the same convention. */
   also_seen_in?: string[];
-  confidence: number;
+  confidence: number | null;
 }
 
 /** A convention whose snippet was found in the cited file. */
@@ -46,12 +46,17 @@ export function normalizeRule(rule: string): string {
 /** The key two rules are "the same" by (SPEC-07 AC-10). */
 export const ruleKey = (rule: string) => normalizeRule(rule).toLowerCase();
 
-/** SPEC-07 AC-5: cut a file at the last line break within `max` characters, so no quoted line is half a line. */
-export function clipAtLine(text: string, max: number): string {
+/**
+ * SPEC-07 AC-5: cut a file at the last line break within `max` characters, so no
+ * quoted line is half a line. With no break in reach the cut is mid-line only when
+ * `midLine` allows it (one line longer than a whole file's budget); otherwise nothing.
+ */
+export function clipAtLine(text: string, max: number, midLine = true): string {
   if (text.length <= max) return text;
   const cut = text.slice(0, max);
   const lastBreak = cut.lastIndexOf('\n');
-  return lastBreak > 0 ? cut.slice(0, lastBreak) : cut;
+  if (lastBreak > 0) return cut.slice(0, lastBreak);
+  return midLine ? cut : '';
 }
 
 const squash = (line: string) => line.replace(/\s+/g, ' ').trim();
@@ -138,9 +143,10 @@ export function groundConventions(
       rule,
       evidencePath: at.start === at.end ? `${path}:${at.start}` : `${path}:${at.start}-${at.end}`,
       evidenceSnippet: dedent(lines),
-      confidence: Number.isFinite(c.confidence)
-        ? Math.min(confidenceCap(path, c.also_seen_in, files), Math.max(0, c.confidence))
-        : null,
+      confidence:
+        typeof c.confidence === 'number' && Number.isFinite(c.confidence)
+          ? Math.min(confidenceCap(path, c.also_seen_in, files), Math.max(0, c.confidence))
+          : null,
     });
   }
   kept.sort((a, b) => (b.confidence ?? -1) - (a.confidence ?? -1));
@@ -216,7 +222,10 @@ export function uniqueName(base: string, taken: ReadonlySet<string>): string {
 
 /** Skill body for an accepted convention — written for the reviewer that will read it. */
 export function buildSkillBody(rule: string, evidencePath: string, snippet: string): string {
-  const fence = snippet.includes('```') ? '~~~' : '```';
+  // A backtick fence longer than any backtick run in the quote: nothing in the quote can
+  // close it early and turn the lines after it into sections of a trusted skill.
+  const longest = Math.max(0, ...(snippet.match(/`+/g) ?? []).map((run) => run.length));
+  const fence = '`'.repeat(Math.max(3, longest + 1));
   return [
     `# ${rule}`,
     '',
@@ -248,6 +257,7 @@ export function toConventionDto(row: ConventionRow): ConventionCandidate {
     confidence: row.confidence ?? null,
     accepted: row.accepted,
     commit_sha: row.commitSha ?? null,
+    skill_id: row.skillId ?? null,
   };
 }
 

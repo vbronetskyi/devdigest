@@ -57,7 +57,8 @@ const Extraction = z.object({
       evidence_path: z.string(),
       evidence_snippet: z.string(),
       also_seen_in: z.array(z.string()),
-      confidence: z.number(),
+      // Nullable: a model that cannot rate a rule says so instead of inventing a number (AC-9).
+      confidence: z.number().nullable(),
     }),
   ),
 });
@@ -190,7 +191,9 @@ export class ConventionsService {
   }
 
   async reject(workspaceId: string, id: string): Promise<void> {
-    if (!(await this.repo.delete(workspaceId, id))) throw new NotFoundError('Convention not found');
+    const outcome = await this.repo.delete(workspaceId, id);
+    if (outcome === 'not_found') throw new NotFoundError('Convention not found');
+    if (outcome === 'accepted') throw new AppError('already_accepted', 'An accepted convention is a skill now; edit or disable the skill instead.', 409);
   }
 
   /**
@@ -221,7 +224,9 @@ export class ConventionsService {
         continue;
       }
       if (!text.trim()) continue;
-      const clipped = clipAtLine(text, Math.min(MAX_FILE_CHARS, MAX_TOTAL_CHARS - total));
+      const budget = Math.min(MAX_FILE_CHARS, MAX_TOTAL_CHARS - total);
+      // A sliver of budget left is not worth half a line: stop instead (AC-5).
+      const clipped = clipAtLine(text, budget, budget === MAX_FILE_CHARS);
       if (!clipped) break;
       out.set(path, clipped);
       total += clipped.length;

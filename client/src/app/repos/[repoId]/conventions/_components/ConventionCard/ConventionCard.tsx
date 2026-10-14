@@ -42,6 +42,8 @@ export function ConventionCard({
   const [name, setName] = React.useState("");
   const ev = parseEvidence(candidate.evidence_path);
   const pct = candidate.confidence == null ? null : Math.round(candidate.confidence * 100);
+  // The stored link survives a reload; the one from this session is there before a refetch (AC-21).
+  const skillLink = skillId ?? candidate.skill_id ?? null;
   const nameInvalid = name !== "" && !SkillName.safeParse(name).success;
   // Once accepted (also after "Edit first") the card is read-only.
   const showEditor = editing && !candidate.accepted;
@@ -116,7 +118,7 @@ export function ConventionCard({
             <Badge color="var(--ok)" bg="var(--ok-bg)" icon="Check">
               {t("card.accepted")}
             </Badge>
-            {skillId && <MonoLink onClick={() => onOpenSkill(skillId)}>{t("card.openSkill")}</MonoLink>}
+            {skillLink && <MonoLink onClick={() => onOpenSkill(skillLink)}>{t("card.openSkill")}</MonoLink>}
           </div>
         ) : showEditor ? (
           <div style={s.actions}>

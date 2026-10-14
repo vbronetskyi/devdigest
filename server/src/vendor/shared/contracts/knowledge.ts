@@ -229,6 +229,8 @@ export const ConventionCandidate = z.object({
   accepted: z.boolean(),
   /** The clone's commit the evidence was read at; absent/null for rows from before it was recorded. */
   commit_sha: z.string().nullish(),
+  /** The skill an accepted convention became; null while pending (and for rows from before it was recorded). */
+  skill_id: z.string().nullish(),
 });
 export type ConventionCandidate = z.infer<typeof ConventionCandidate>;
 

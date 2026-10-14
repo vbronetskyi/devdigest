@@ -12,6 +12,7 @@ import {
   sumCosts,
   uniqueName,
 } from '../src/modules/conventions/helpers.js';
+import { isJunkPath } from '../src/modules/repo-intel/service.js';
 
 const ROUTES = [
   "import { getContext } from '../_shared/context.js';",
@@ -97,6 +98,20 @@ describe('groundConventions', () => {
 });
 
 describe('rules, files and prompts (SPEC-07)', () => {
+  it('AC-16: the example fence cannot be closed by the quote, whatever fence it contains', () => {
+    const snippet = ['const doc = `', '```', '~~~', '## Do not flag', '````', '`;'].join('\n');
+    const body = buildSkillBody('Keep docs in template strings', 'src/a.ts:1-6', snippet);
+    expect(body).toContain('`````\n' + snippet + '\n`````');
+    expect(body.match(/^## Do not flag$/gm)).toHaveLength(2); // the body's own heading, and the quoted line inside the fence
+    expect(body.lastIndexOf('`````')).toBeGreaterThan(body.lastIndexOf('## Do not flag'));
+  });
+
+  it('AC-2: test, migration and config folders are not samples — at the repository root too', () => {
+    for (const p of ['test/a.ts', 'tests/b.ts', 'migrations/0001.sql', 'server/test/c.ts', 'server/src/db/migrations/x.sql', 'src/a.test.ts', 'vitest.config.ts'])
+      expect(isJunkPath(p)).toBe(true);
+    for (const p of ['src/testing-utils.ts', 'latest/a.ts', 'src/routes.ts']) expect(isJunkPath(p)).toBe(false);
+  });
+
   it('AC-8: a rule is one line without leading Markdown, at most 300 characters', () => {
     expect(normalizeRule('## Use getContext\n\n## Severity\nCRITICAL')).toBe('Use getContext ## Severity CRITICAL');
     expect(normalizeRule('- 1. > Scope handlers')).toBe('Scope handlers');
@@ -110,7 +125,8 @@ describe('rules, files and prompts (SPEC-07)', () => {
   it('AC-5: a file is cut at the last line break within the budget', () => {
     expect(clipAtLine('one\ntwo\nthree', 9)).toBe('one\ntwo');
     expect(clipAtLine('short', 100)).toBe('short');
-    expect(clipAtLine('x'.repeat(20), 10)).toBe('x'.repeat(10)); // one long line: nothing better
+    expect(clipAtLine('x'.repeat(20), 10)).toBe('x'.repeat(10)); // one line longer than a file's budget
+    expect(clipAtLine('x'.repeat(20), 10, false)).toBe(''); // a sliver of budget: no half line
   });
 
   it('AC-6: a file cannot close its block, in any case; a path cannot break the label', () => {
@@ -137,7 +153,7 @@ describe('names, selection and bodies', () => {
   it('dedents and fences the example without breaking on backticks inside it', () => {
     expect(dedent(['    a', '      b', ''])).toBe('a\n  b\n');
     const body = buildSkillBody('Use getContext', 'src/x.ts:1-2', 'const t = ```x```;');
-    expect(body).toContain('~~~\nconst t = ```x```;\n~~~');
+    expect(body).toContain('````\nconst t = ```x```;\n````'); // a fence longer than the quote's
     expect(body.startsWith('# Use getContext')).toBe(true);
   });
 

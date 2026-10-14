@@ -105,12 +105,14 @@ export class ConventionsRepository {
     return row;
   }
 
-  async delete(workspaceId: string, id: string): Promise<boolean> {
+  /** Reject = delete a pending candidate; an accepted one is the record of a skill and stays (SPEC-07 AC-18). */
+  async delete(workspaceId: string, id: string): Promise<'deleted' | 'not_found' | 'accepted'> {
     const rows = await this.db
       .delete(t.conventions)
-      .where(and(eq(t.conventions.workspaceId, workspaceId), eq(t.conventions.id, id)))
+      .where(and(eq(t.conventions.workspaceId, workspaceId), eq(t.conventions.id, id), eq(t.conventions.accepted, false)))
       .returning({ id: t.conventions.id });
-    return rows.length > 0;
+    if (rows.length > 0) return 'deleted';
+    return (await this.get(workspaceId, id)) ? 'accepted' : 'not_found';
   }
 
   /**
@@ -158,7 +160,7 @@ export class ConventionsRepository {
       await tx.insert(t.skillVersions).values({ skillId: skill!.id, version: FIRST_SKILL_VERSION, body });
       const [updated] = await tx
         .update(t.conventions)
-        .set({ accepted: true, rule: input.rule })
+        .set({ accepted: true, rule: input.rule, skillId: skill!.id })
         .where(eq(t.conventions.id, conv.id))
         .returning();
       return { kind: 'accepted', convention: updated!, skillId: skill!.id, skillName } as const;

@@ -108,6 +108,13 @@ d('L02 conventions extractor (Testcontainers pg)', () => {
 
     const again = await app.inject({ method: 'POST', url: `/conventions/${candidate!.id}/accept`, payload: {} });
     expect(again.statusCode).toBe(409);
+    expect(again.json().error.code).toBe('already_accepted');
+    // AC-21: after a reload the accepted row still knows its skill.
+    expect((await stored()).candidates.find((c) => c.id === candidate!.id)!.skill_id).toBe(skill_id);
+    // AC-18: an accepted convention cannot be rejected — it keeps its rule from coming back.
+    const reject = await app.inject({ method: 'DELETE', url: `/conventions/${candidate!.id}` });
+    expect(reject.statusCode).toBe(409);
+    expect(reject.json().error.code).toBe('already_accepted');
   });
 
   it('a re-scan replaces pending candidates, keeps accepted ones and does not propose them again', async () => {
@@ -125,6 +132,52 @@ d('L02 conventions extractor (Testcontainers pg)', () => {
       ['Return the service result directly', false],
     ]);
     expect([body.dropped, body.skipped]).toEqual([0, 1]);
+  });
+
+  it('AC-9/AC-15: a confidence the model could not give is stored as unknown and listed last', async () => {
+    fixtures.ConventionExtraction = {
+      conventions: [
+        { rule: 'Unrated rule here', evidence_path: 'src/routes.ts', evidence_snippet: QUOTE, also_seen_in: [], confidence: null },
+        { rule: 'Rated rule here', evidence_path: 'src/routes.ts', evidence_snippet: 'return service.list(workspaceId);', also_seen_in: [], confidence: 0.3 },
+      ],
+    };
+    expect((await extract()).statusCode).toBe(200);
+    const pending = (await stored()).candidates.filter((c) => !c.accepted);
+    expect(pending.map((c) => [c.rule, c.confidence])).toEqual([
+      ['Rated rule here', 0.3],
+      ['Unrated rule here', null],
+    ]);
+  });
+
+  it('AC-5: all files together stay within 60,000 characters', async () => {
+    const big = Array.from({ length: 200 }, (_, i) => `export const value${String(i).padStart(4, '0')} = ${i};`).join('\n'); // ≈ 6.6K chars per file
+    const paths = Array.from({ length: 10 }, (_, i) => `src/m${i}/big.ts`);
+    const many = new MockGitClient({ files: Object.fromEntries(paths.map((p) => [p, big + '\n' + big])), head: 'c0ffee1' });
+    const local = await buildApp({
+      config: config(),
+      db: pg.handle.db,
+      overrides: {
+        embedder: new MockEmbedder(),
+        git: many,
+        github: new MockGitHubClient({ pulls: [] }),
+        llm: { openai: llm },
+        repoIntel: { getConventionSamples: async () => paths } as unknown as RepoIntel,
+      },
+    });
+    const previous = fixtures.ConventionExtraction;
+    fixtures.ConventionFileSelection = { files: paths };
+    fixtures.ConventionExtraction = { conventions: [] };
+    const res = await local.inject({ method: 'POST', url: `/repos/${repoId}/conventions/extract` });
+    fixtures.ConventionFileSelection = { files: ['src/routes.ts'] };
+    fixtures.ConventionExtraction = previous;
+    await local.close();
+    expect(res.statusCode).toBe(200);
+    // ~8,000 per file (cut at a line): the 60,000 budget runs out before the tenth file.
+    expect((res.json() as ConventionExtraction).sampled_files.length).toBeLessThan(10);
+    const prompt = (llm.calls.at(-1)!.req as { messages: ChatMessage[] }).messages[1]!.content;
+    const quoted = prompt.split('<untrusted').slice(1).map((b) => b.slice(b.indexOf('>\n') + 2, b.lastIndexOf('\n</untrusted>')));
+    expect(quoted.reduce((n, b) => n + b.length, 0)).toBeLessThanOrEqual(60_000);
+    expect(quoted.every((b) => b.endsWith(';'))).toBe(true); // every file ends on a whole line
   });
 
   it('AC-4: a model that picks nothing usable still gets the top candidates', async () => {

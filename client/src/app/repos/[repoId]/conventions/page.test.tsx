@@ -72,6 +72,16 @@ describe("Conventions page", () => {
     expect(screen.queryByRole("button", { name: /Run extraction/ })).toBeNull();
   });
 
+  it("AC-22: right after a scan the page says what was dropped and what was skipped", async () => {
+    h.list = { candidates: [candidate("a")], last_scan: null };
+    h.extract.mockImplementation((_v: unknown, opts: { onSuccess: (r: unknown) => void }) =>
+      opts.onSuccess({ candidates: [], sampled_files: ["a"], dropped: 2, skipped: 1, model: "m", cost_usd: null }),
+    );
+    renderPage();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Re-scan" })));
+    expect(screen.getByText("2 rules dropped: their quotes are not in the files · 1 skipped as a repeat, already accepted or over the limit")).toBeTruthy();
+  });
+
   it("AC-23: Accept all goes one card at a time and locks every card meanwhile", async () => {
     h.list = { candidates: [candidate("a"), candidate("b"), candidate("c", true)], last_scan: null };
     renderPage();
