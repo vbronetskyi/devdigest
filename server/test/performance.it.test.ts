@@ -159,7 +159,7 @@ d('HW L08 agent performance — SPEC-05 (Testcontainers pg)', () => {
     expect(a.recent[0]).toMatchObject({ pr_title: 'Add the limiter', score: 80, findings_count: 6, duration_ms: 1000, cost_usd: 0.01 });
     expect(a.last_run_at).toBe(new Date(now - 2 * HOUR).toISOString());
     const b = agents[1]!;
-    expect([b.accept_rate, b.decided, b.accept_trend, b.low_sample]).toEqual([null, 0, null, true]);
+    expect([b.accept_rate, b.decided, b.accept_trend, b.low_sample]).toEqual([null, 0, null, false]); // nothing decided
     expect(b.recent.map((r) => r.status)).toEqual(['done']); // not the running nor the cancelled run
     expect(agents[2]).toMatchObject({ agent_id: null, name: null, runs: 1 });
     expect(agents[2]!.recent).toHaveLength(1); // the other workspace's deleted-agent run is not here

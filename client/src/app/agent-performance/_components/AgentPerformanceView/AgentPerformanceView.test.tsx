@@ -67,7 +67,7 @@ const DATA: AgentPerf = {
         { run_id: "r2", ran_at: new Date().toISOString(), status: "failed", repo_id: null, pr_number: null, pr_title: null, score: null, findings_count: null, duration_ms: null, cost_usd: null },
       ],
     }),
-    agent({ agent_id: null, name: null, runs: 2, failed: 1, cost_usd: null, avg_cost_usd: null, avg_duration_ms: null, accept_rate: null, decided: 0, accept_trend: null, low_sample: true }),
+    agent({ agent_id: null, name: null, runs: 2, failed: 1, cost_usd: null, avg_cost_usd: null, avg_duration_ms: null, accept_rate: null, decided: 0, accept_trend: null, low_sample: false }),
   ],
   cost_by_agent: [{ label: "Security Reviewer", key: "a1", cost_usd: 0.0072, share: 1 }],
   cost_by_model: [{ label: "unknown model", key: null, cost_usd: 0.0072, share: 1 }],
@@ -104,7 +104,7 @@ describe("AgentPerformanceView", () => {
   });
 
   it("AC-14: an unknown cost this window is not a missing previous one; no current agent and an all-failed agent say why", () => {
-    const allFailed = agent({ agent_id: "a2", name: "Broken Reviewer", runs: 3, failed: 3, cost_usd: null, avg_cost_usd: null, avg_duration_ms: null, accept_rate: null, decided: 0, accept_trend: null, low_sample: true });
+    const allFailed = agent({ agent_id: "a2", name: "Broken Reviewer", runs: 3, failed: 3, cost_usd: null, avg_cost_usd: null, avg_duration_ms: null, accept_rate: null, decided: 0, accept_trend: null, low_sample: false });
     h.state = {
       ...h.state,
       data: { ...DATA, totals: { ...DATA.totals, cost_usd: null, prev_cost_usd: 0.002, cost_change_usd: null, most_active: null }, agents: [allFailed] },
@@ -199,7 +199,9 @@ describe("AgentPerformanceView", () => {
     renderView();
     const byAgent = screen.getByLabelText("By agent");
     expect(within(byAgent).getByText("$0.0054 · 75%")).toBeTruthy();
-    expect(within(byAgent).getByText("deleted agent")).toBeTruthy();
+    // The colour follows the key: the deleted agent's swatch is the unknown grey.
+    const swatch = within(byAgent).getByText("deleted agent").previousElementSibling as HTMLElement;
+    expect(swatch.style.background).toBe("var(--text-muted)");
     expect(within(screen.getByLabelText("By model")).getByText(performance.breakdown.unknownModel)).toBeTruthy();
     expect(within(screen.getByLabelText("By model")).getByText("$0.0072 · 100%")).toBeTruthy();
   });

@@ -44,6 +44,7 @@ describe('performance helpers', () => {
     expect(trend({ accepted: 4, decided: 4 }, { accepted: 0, decided: 10 })).toBeNull();
     expect(lowSample({ accepted: 4, decided: 4 }, { accepted: 0, decided: 10 })).toBe(true);
     expect(lowSample({ accepted: 5, decided: 5 }, { accepted: 0, decided: 5 })).toBe(false);
+    expect(lowSample({ accepted: 0, decided: 0 }, { accepted: 3, decided: 10 })).toBe(false); // nothing decided: "—", not low sample
   });
 
   it('AC-8: shares of the known total, largest first; null shares when the total is 0', () => {

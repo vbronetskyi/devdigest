@@ -91,12 +91,12 @@ function AgentRow({ id, agent, expanded, onToggle }: { id: string; agent: AgentP
               {rate ?? <Unknown reason={allFailed ? t("unknown.allFailed") : t("unknown.decided")} />}
             </span>
             {TrendIcon && trend && (
-              <span title={t(`table.trend.${trend}`)} style={s.trendWrap}>
-                <TrendIcon size={12} role="img" aria-label={t(`table.trend.${trend}`)} style={s.trend[trend]} />
+              <span role="img" aria-label={t(`table.trend.${trend}`)} title={t(`table.trend.${trend}`)} style={s.trendWrap}>
+                <TrendIcon size={12} aria-hidden style={s.trend[trend]} />
               </span>
             )}
             <span style={s.muted}>{t("table.decided", { count: agent.decided })}</span>
-            {agent.low_sample && agent.decided > 0 && (
+            {agent.low_sample && (
               <span style={s.low} title={t("table.lowSampleHint")}>
                 {t("table.lowSample")}
               </span>

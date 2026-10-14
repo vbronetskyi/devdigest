@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { formatDuration, percent, runHref, signedCost, sliceColors } from "./helpers";
 import { NEUTRAL_SLICE, SLICE_COLORS } from "./constants";
 
@@ -20,6 +22,21 @@ describe("agent performance helpers (SPEC-05)", () => {
   it("AC-14: a cost change keeps the app's cost format", () => {
     expect(signedCost(0.00042)).toEqual({ sign: "+", amount: "$0.00042" });
     expect(signedCost(-1.2)).toEqual({ sign: "−", amount: "$1.20" });
+  });
+
+  it("AC-11: in both themes the palette's colours are distinct, and none is the grey of the unknown slice", () => {
+    const css = readFileSync(resolve(__dirname, "../../../../vendor/ui/styles.css"), "utf8");
+    const themes = [css.slice(css.indexOf(":root,"), css.indexOf("}")), css.slice(css.indexOf('[data-theme="light"] {'))];
+    for (const theme of themes) {
+      const value = (token: string) => new RegExp(`${token}:\\s*(#[0-9a-f]{6})`, "i").exec(theme)![1]!.toLowerCase();
+      const hexes = SLICE_COLORS.map((c) => value(/var\((--[\w-]+)\)/.exec(c)![1]!));
+      expect(new Set(hexes).size).toBe(SLICE_COLORS.length);
+      expect(hexes).not.toContain(value(/var\((--[\w-]+)\)/.exec(NEUTRAL_SLICE)![1]!));
+      for (const hex of hexes) {
+        const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+        expect(Math.max(r!, g!, b!) - Math.min(r!, g!, b!)).toBeGreaterThan(60); // a hue, not a grey
+      }
+    }
   });
 
   it("AC-11: a slice keeps its colour whatever its position, and slices do not share one", () => {

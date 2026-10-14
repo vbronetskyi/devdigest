@@ -45,7 +45,7 @@ Tests: **H** `server/test/performance-helpers.test.ts`, **I** `server/test/perfo
 | AC | Tasks | Tests | Commits |
 |---|---|---|---|
 | AC-1 | T2 | I "AC-1/AC-2/AC-4/AC-6/AC-7: totals…" | 2481d5f |
-| AC-2 | T2 | I "totals…", I "AC-2/AC-9: the last five runs… a failed run without cost is not without cost", I "AC-2/AC-3/AC-7: a window whose runs report no cost…" | 2481d5f, fff186b, pass 2 |
+| AC-2 | T2 | I "totals…", I "AC-2/AC-9: the last five runs… a failed run without cost is not without cost", I "AC-2/AC-3/AC-7: a window whose runs report no cost…" | 2481d5f, fff186b, fae4095 |
 | AC-3 | T2 | I "AC-3/AC-5/AC-9/AC-12: per-agent rows…" | 2481d5f |
 | AC-4 | T1, T2 | H "AC-4/AC-5: rate is unknown without decisions…", I "totals…" (other workspace's review on our run) | 2481d5f, fff186b |
 | AC-5 | T1, T2, T4 | H "AC-4/AC-5…", I "per-agent rows…", V "AC-12: a table… a low sample is marked" | 2481d5f, 46c0085 |

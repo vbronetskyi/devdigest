@@ -45,8 +45,9 @@ export function trend(current: Decisions, previous: Decisions): 'up' | 'down' | 
   return delta > 0 ? 'up' : 'down';
 }
 
+/** AC-5: too few decisions for a trend — but nothing decided is "—", not a low sample. */
 export const lowSample = (current: Decisions, previous: Decisions): boolean =>
-  current.decided < MIN_DECIDED_FOR_TREND || previous.decided < MIN_DECIDED_FOR_TREND;
+  current.decided > 0 && (current.decided < MIN_DECIDED_FOR_TREND || previous.decided < MIN_DECIDED_FOR_TREND);
 
 /** AC-8: each slice's share of the known total, largest first; null shares when the total is 0. */
 export function shares(items: readonly { label: string; key: string | null; cost: number }[]): PerfCostSegment[] {
