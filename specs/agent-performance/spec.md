@@ -73,15 +73,21 @@ UI
 - **AC-11** An "Agent Performance" page in the sidebar shall show four summary cards —
   runs with a daily sparkline, cost with its change, accept rate (pooled) with the decided
   count, most active agent with its runs and accept rate — a 7 / 30 / 90 days selector,
-  the agents table and the cost breakdown by agent and by model.
+  the agents table and the cost breakdown by agent and by model, each slice with its
+  share; an agent keeps its colour when the window changes.
 - **AC-12** The agents table shall list agent, runs, average cost, average duration,
   accept rate with its trend (an arrow with a text label) and decided count, and last run,
-  sorted by accept rate (unknown last), then runs, then name.
+  sorted by accept rate (unknown last), then runs, then name. It shall be a table to
+  assistive technology too: every row has its cells under the column headers, and the
+  row's runs open from a button in the agent cell that states whether it is expanded.
 - **AC-13** A row shall expand to the agent's last five runs, each opening the PR's Agent
   runs tab; a run of a deleted PR is shown, unlinked. (The design's sparkline of the
   expanded row is replaced by this list: a reviewer asked for the runs themselves.)
-- **AC-14** Every unknown value shall show as "—" with its reason on hover (no cost
-  reported, nothing decided yet, failed run); a known cost uses the app's cost format
+- **AC-14** Every unknown value shall show as "—" with its reason on hover and to screen
+  readers: no cost reported; nothing decided yet; a failed run; all of an agent's runs
+  failed; a value a finished run did not record; no cost known in this window or in the
+  previous one (the cost change); no run by a current agent (most active). A known cost
+  uses the app's cost format
   (`client/specs/run-cost-display.md`: three significant digits below $1, `$0` only for a
   genuinely free run).
 - **AC-15** WHILE the window has no runs, the page shall say so and link to the pull
@@ -92,6 +98,11 @@ UI
 - An agent with runs but no decided findings: accept rate "—" (nothing decided).
 - All runs failed: runs and failures counted; cost, duration and accept rate "—".
 - A run whose PR was deleted counts; its findings went with the PR.
+- The current window ends now and the previous one is whole days, so early in the day
+  the cost change leans negative. Accepted: the window is defined in days, and the card
+  says "vs previous N days".
+- One review per run is how the executor writes them (`reviews.run_id` is not unique in
+  the schema); a second review for a run would count its findings twice.
 - The design's "average accept rate" is a mean of agents (0.61 of 78, 64, 41); here it is
   pooled, so a busy agent weighs more — deliberately.
 
@@ -136,3 +147,7 @@ for this endpoint, replaced by: `window` (`days`, `from`, `to`), `totals` (`runs
 - 2026-10-14 — AC-14 before the UI: "<$0.01" would print the same for every row of a
   workspace whose runs cost ~$0.0006; the app's cost format keeps three significant digits
   and never prints $0.00 for a non-zero cost.
+- 2026-10-14 — after the first verification: AC-11 shows each slice's share with a stable
+  colour; AC-12 is a table to assistive technology (cells, a disclosure button); AC-14
+  lists every reason, including the cost change, all-failed agents, fields a finished
+  run did not record and the most active agent; two accepted edge cases written down.
