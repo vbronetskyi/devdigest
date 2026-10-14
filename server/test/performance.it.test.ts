@@ -20,8 +20,10 @@ d('HW L08 agent performance — SPEC-05 (Testcontainers pg)', () => {
   let llm: MockLLMProvider;
   let alpha: string;
   let beta: string;
+  let gamma: string;
   let prId: string;
   let repoId: string;
+  let now: number;
 
   beforeAll(async () => {
     pg = await startPg();
@@ -34,12 +36,13 @@ d('HW L08 agent performance — SPEC-05 (Testcontainers pg)', () => {
     const agent = (name: string) => ({ workspaceId, name, provider: 'openrouter' as const, model: 'm', systemPrompt: 'p' });
     [{ id: alpha }] = (await db.insert(t.agents).values(agent('Alpha')).returning({ id: t.agents.id })) as [{ id: string }];
     [{ id: beta }] = (await db.insert(t.agents).values(agent('Beta')).returning({ id: t.agents.id })) as [{ id: string }];
+    [{ id: gamma }] = (await db.insert(t.agents).values(agent('Gamma')).returning({ id: t.agents.id })) as [{ id: string }];
     [{ id: prId }] = (await db
       .insert(t.pullRequests)
       .values({ workspaceId, repoId, number: 42, title: 'Add the limiter', author: 'a', branch: 'b', base: 'main', headSha: 'h' })
       .returning({ id: t.pullRequests.id })) as [{ id: string }];
 
-    const now = Date.now();
+    now = Date.now();
     const run = async (over: Partial<typeof t.agentRuns.$inferInsert>) =>
       (await db.insert(t.agentRuns).values({ workspaceId, prId, model: 'deepseek/deepseek-v4-flash', ...over }).returning({ id: t.agentRuns.id }))[0]!.id;
     const review = async (runId: string | null, decisions: ('a' | 'd' | null)[]) => {
@@ -79,6 +82,18 @@ d('HW L08 agent performance — SPEC-05 (Testcontainers pg)', () => {
     const [other] = await db.insert(t.workspaces).values({ name: 'other' }).returning({ id: t.workspaces.id });
     await db.insert(t.agentRuns).values({ workspaceId: other!.id, ranAt: new Date(now - HOUR), status: 'done', costUsd: 100 });
     await review(null, ['a', 'a', 'a']);
+    // Another workspace's review pointing at this workspace's run: its decisions are not Alpha's.
+    const [foreign] = await db.insert(t.reviews).values({ workspaceId: other!.id, prId, runId: a1, kind: 'review' }).returning({ id: t.reviews.id });
+    await db.insert(t.findings).values(
+      [1, 2].map((line) => ({ reviewId: foreign!.id, file: 'x.ts', startLine: line, endLine: line, severity: 'WARNING', category: 'bug', title: 'x', rationale: 'r', confidence: 1, acceptedAt: new Date() })),
+    );
+
+    // Gamma, 15–16 days ago (outside the 7-day window and the one before it): seven done
+    // runs inserted out of order, the newest scoring 10, one on a deleted PR; and a failed
+    // run without a cost, as the executor records it.
+    for (const i of [3, 0, 6, 1, 5, 2, 4])
+      await run({ agentId: gamma, prId: i === 1 ? null : prId, ranAt: new Date(now - 15 * DAY - i * HOUR), status: 'done', costUsd: 0.001, durationMs: 1000, score: 10 * (i + 1), findingsCount: i });
+    await run({ agentId: gamma, ranAt: new Date(now - 16 * DAY), status: 'failed', costUsd: null });
 
     llm = new MockLLMProvider('openai');
     app = await buildApp({
@@ -108,8 +123,11 @@ d('HW L08 agent performance — SPEC-05 (Testcontainers pg)', () => {
     expect(totals.prev_cost_usd).toBeCloseTo(0.02);
     expect(totals.cost_change_usd).toBeCloseTo(0.025);
     expect([totals.accept_rate, totals.decided]).toEqual([0.8, 5]); // the unattributed review's 3 accepts do not count
-    expect(totals.runs_per_day).toHaveLength(7);
-    expect(totals.runs_per_day.reduce((a, b) => a + b, 0)).toBe(5);
+    // Each run on its own UTC day, today last.
+    const perDay = Array<number>(7).fill(0);
+    const today = Math.floor(now / DAY);
+    for (const ago of [1, 2, 3, 4, 5]) perDay[6 - (today - Math.floor((now - ago * HOUR) / DAY))]! += 1;
+    expect(totals.runs_per_day).toEqual(perDay);
     expect(totals.most_active).toEqual({ agent_id: alpha, name: 'Alpha', runs: 3, accept_rate: 0.8 });
   });
 
@@ -121,9 +139,12 @@ d('HW L08 agent performance — SPEC-05 (Testcontainers pg)', () => {
     expect([a.accept_rate, a.decided, a.accept_trend, a.low_sample]).toEqual([0.8, 5, 'up', false]);
     expect(a.recent.map((r) => r.status)).toEqual(['done', 'failed', 'done']);
     expect(a.recent[1]).toMatchObject({ score: null, findings_count: null, duration_ms: null, cost_usd: null, pr_number: 42, repo_id: repoId });
+    expect(a.recent[0]).toMatchObject({ pr_title: 'Add the limiter', score: 80, findings_count: 6, duration_ms: 1000, cost_usd: 0.01 });
+    expect(a.last_run_at).toBe(new Date(now - 2 * HOUR).toISOString());
     const b = agents[1]!;
     expect([b.accept_rate, b.decided, b.accept_trend, b.low_sample]).toEqual([null, 0, null, true]);
     expect(agents[2]).toMatchObject({ agent_id: null, name: null, runs: 1 });
+    expect(agents[2]!.recent).toHaveLength(1); // the other workspace's deleted-agent run is not here
   });
 
   it('AC-8: cost by agent and by model with shares of the known cost', async () => {
@@ -133,10 +154,21 @@ d('HW L08 agent performance — SPEC-05 (Testcontainers pg)', () => {
       ['Alpha', alpha, 0.01, 0.222],
       ['deleted agent', null, 0.005, 0.111],
     ]);
-    expect(cost_by_model.map((s) => [s.label, s.key])).toEqual([
-      ['deepseek/deepseek-v4-flash', 'deepseek/deepseek-v4-flash'],
-      ['unknown model', null],
+    // Known cost of done runs only: not the cancelled 9 nor the failed 0.5 on the same model.
+    expect(cost_by_model.map((s) => [s.label, s.key, Number(s.cost_usd.toFixed(3)), Number(s.share!.toFixed(3))])).toEqual([
+      ['deepseek/deepseek-v4-flash', 'deepseek/deepseek-v4-flash', 0.04, 0.889],
+      ['unknown model', null, 0.005, 0.111],
     ]);
+  });
+
+  it('AC-2/AC-9: the last five runs, newest first; a deleted PR\'s run is unlinked; a failed run without cost is not "without cost"', async () => {
+    const { agents, totals } = (await get('30')).json() as AgentPerf;
+    const g = agents.find((a) => a.agent_id === gamma)!;
+    expect([g.runs, g.failed]).toEqual([8, 1]);
+    expect(g.recent.map((r) => r.score)).toEqual([10, 20, 30, 40, 50]);
+    expect(g.last_run_at).toBe(new Date(now - 15 * DAY).toISOString());
+    expect(g.recent[1]).toMatchObject({ repo_id: null, pr_number: null, pr_title: null, status: 'done', score: 20 });
+    expect(totals.runs_without_cost).toBe(1); // Alpha's done run only
   });
 
   it('AC-10: 30 days by default, 422 for any other window, no model call', async () => {
