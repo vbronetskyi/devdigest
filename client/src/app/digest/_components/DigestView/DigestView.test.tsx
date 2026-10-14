@@ -6,7 +6,9 @@ import digest from "../../../../../messages/en/digest.json";
 
 const h = vi.hoisted(() => ({
   query: { data: undefined as WeeklyDigest | undefined, isLoading: false, isError: false, error: null as unknown, refetch: vi.fn() },
-  write: { mutate: vi.fn(), isPending: false, isError: false, error: null as unknown },
+  write: { mutate: vi.fn(), isError: false, error: null as unknown },
+  writingWeek: null as string | null,
+  writeWeeks: [] as string[],
   weeks: [] as (string | null)[],
   replace: vi.fn(),
   search: new URLSearchParams(),
@@ -20,15 +22,21 @@ vi.mock("@/lib/hooks/digest", () => ({
     h.weeks.push(week);
     return h.query;
   },
-  useWriteHighlights: () => h.write,
+  useWriteHighlights: (week: string) => {
+    h.writeWeeks.push(week);
+    return { ...h.write, writing: h.writingWeek === week };
+  },
 }));
 
 import { DigestView } from "./DigestView";
+import { ApiError } from "@/lib/api";
 
 afterEach(() => {
   cleanup();
   h.replace.mockReset();
-  h.write = { mutate: vi.fn(), isPending: false, isError: false, error: null };
+  h.write = { mutate: vi.fn(), isError: false, error: null };
+  h.writingWeek = null;
+  h.writeWeeks = [];
   h.weeks = [];
   h.search = new URLSearchParams();
 });
@@ -65,9 +73,17 @@ describe("DigestView", () => {
     expect(within(screen.getByLabelText("REVIEW RUNS")).getByText("+4 vs last week")).toBeTruthy();
     const cost = screen.getByLabelText("COST");
     expect(within(cost).getByText("—").getAttribute("title")).toBe("No finished run reported a cost.");
-    expect(within(cost).getByText("no change vs last week")).toBeTruthy(); // the change is unknown
+    // The change is unknown (no cost this week): a dash with its reason, not "no change".
+    expect(within(cost).queryByText(/no change/)).toBeNull();
+    expect(within(cost).getByText("— vs last week").getAttribute("title")).toBe("A change needs a known number in both weeks.");
     expect(within(screen.getByLabelText("NEW FINDINGS")).getByText("critical: +9 vs last week")).toBeTruthy();
-    expect(within(screen.getByLabelText("DECISIONS")).getByText("67%")).toBeTruthy();
+    const decisions = screen.getByLabelText("DECISIONS");
+    expect(within(decisions).getByText("67%")).toBeTruthy();
+    expect(within(decisions).getByText("+2 accepted · +1 dismissed vs last week")).toBeTruthy();
+    cleanup();
+    h.query = { ...h.query, data: { ...DIGEST, change: { ...DIGEST.change, runs: 0 } } };
+    renderView();
+    expect(within(screen.getByLabelText("REVIEW RUNS")).getByText("no change vs last week")).toBeTruthy();
   });
 
   it("AC-10: previous / next week through the URL; no next past the current week", () => {
@@ -98,15 +114,32 @@ describe("DigestView", () => {
     expect(h.write.mutate).not.toHaveBeenCalled();
     expect(screen.getByText("AI-written, numbers checked")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Write highlights" }));
-    expect(h.write.mutate).toHaveBeenCalledWith("2026-W40");
+    expect(h.write.mutate).toHaveBeenCalledWith({ week: "2026-W40", queryWeek: null });
     cleanup();
     h.query = { ...h.query, data: { ...DIGEST, highlights: { lines: ["Runs rose to 5."], model: "gpt-4.1", cost_usd: 0.0001, generated_at: new Date().toISOString(), stale: true } } };
-    h.write = { mutate: vi.fn(), isPending: false, isError: true, error: new Error("No highlight passed the number check") };
+    const reason = "No highlight passed the number check; the stored highlights are kept.";
+    h.write = { mutate: vi.fn(), isError: true, error: new ApiError(reason, 502) };
     renderView();
     expect(screen.getByText("Runs rose to 5.")).toBeTruthy();
     expect(screen.getByRole("status").textContent).toMatch(/changed since/);
     expect(screen.getByText(/^gpt-4.1 · \$0.0001 · just now$/)).toBeTruthy();
-    expect(screen.getByRole("alert").textContent).toMatch(/number check/);
+    expect(screen.getByRole("alert").textContent).toBe(reason); // the server's sentence, once
+    cleanup();
+    h.write = { mutate: vi.fn(), isError: true, error: new TypeError("Failed to fetch") };
+    renderView();
+    expect(screen.getByRole("alert").textContent).toBe(digest.highlights.failed);
+  });
+
+  it("AC-11: a request belongs to its week — another week shows no progress for it", () => {
+    h.writingWeek = "2026-W41";
+    h.query = { ...h.query, data: DIGEST };
+    renderView();
+    expect(h.writeWeeks.at(-1)).toBe("2026-W40");
+    expect(screen.getByRole("button", { name: "Write highlights" })).not.toBeDisabled();
+    cleanup();
+    h.query = { ...h.query, data: { ...DIGEST, week: "2026-W41", from: "2026-10-05T00:00:00.000Z", to: "2026-10-12T00:00:00.000Z" } };
+    renderView();
+    expect(screen.getByRole("button", { name: "Writing…" })).toBeDisabled();
   });
 
   it("AC-12/AC-13: Copy as Markdown writes the digest to the clipboard; an empty week says so", async () => {

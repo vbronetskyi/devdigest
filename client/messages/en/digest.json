@@ -30,7 +30,10 @@
     "noChange": "no change {basis}",
     "unknown": "—",
     "unknownCost": "No finished run reported a cost.",
-    "criticalChange": "critical: {change}"
+    "criticalChange": "critical: {change} {basis}",
+    "decisionsChange": "{accepted} accepted · {dismissed} dismissed {basis}",
+    "unknownChange": "— {basis}",
+    "unknownChangeReason": "A change needs a known number in both weeks."
   },
   "highlights": {
     "title": "Highlights",
@@ -41,7 +44,7 @@
     "meta": "{model} · {cost} · {ago, select, now {just now} other {{ago} ago}}",
     "stale": "The week's numbers changed since these were written.",
     "none": "No highlights yet. One model call writes a few lines from the numbers above; a line with a number that is not in them is dropped.",
-    "failed": "Couldn't write highlights: {message}"
+    "failed": "Couldn't write highlights: the request did not reach the server."
   },
   "criticals": {
     "title": "Open critical findings",

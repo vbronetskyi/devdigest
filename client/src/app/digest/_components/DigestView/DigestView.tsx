@@ -15,7 +15,7 @@ import { ApiError } from "@/lib/api";
 import { formatCost } from "@/lib/format-cost";
 import { relativeTime } from "@/lib/relative-time";
 import { notify } from "@/lib/toast";
-import { criticalHref, digestMarkdown, lastDay, neighbourWeeks, shortDate, signed } from "./helpers";
+import { changeText, criticalHref, digestMarkdown, lastDay, neighbourWeeks, shortDate } from "./helpers";
 import { s } from "./styles";
 
 export function DigestView() {
@@ -82,7 +82,8 @@ function Digest({ digest: d, queryWeek, onWeek }: { digest: WeeklyDigest; queryW
       {d.empty && <p style={{ ...s.muted, marginBottom: 14 }}>{t("page.empty")}</p>}
       <FactsCards digest={d} />
       <div style={s.section}>
-        <Highlights digest={d} queryWeek={queryWeek} />
+        {/* Keyed by week: another week's request shows neither its progress nor its failure here. */}
+        <Highlights key={d.week} digest={d} queryWeek={queryWeek} />
       </div>
       <div style={s.section}>
         <Criticals digest={d} />
@@ -100,11 +101,13 @@ function FactsCards({ digest: d }: { digest: WeeklyDigest }) {
   const t = useTranslations("digest");
   const f = d.facts;
   const basis = d.in_progress ? t("page.comparedSpan") : t("page.comparedWeek");
-  const change = (n: number | null, fmt?: (v: number) => string) => {
-    const text = signed(n, fmt);
-    return text ? t("facts.change", { change: text, basis }) : t("facts.noChange", { basis });
+  // AC-13: an unknown change is a dash with its reason, never "no change".
+  const change = (n: number | null, fmt?: (v: number) => string): React.ReactNode => {
+    const text = changeText(n, fmt);
+    if (text === null) return <span title={t("facts.unknownChangeReason")}>{t("facts.unknownChange", { basis })}</span>;
+    return n === 0 ? t("facts.noChange", { basis }) : t("facts.change", { change: text, basis });
   };
-  const card = (label: string, value: React.ReactNode, sub: React.ReactNode, ch?: string, title?: string) => (
+  const card = (label: string, value: React.ReactNode, sub: React.ReactNode, ch?: React.ReactNode, title?: string) => (
     <section style={s.card} aria-label={label}>
       <div style={s.label}>{label}</div>
       <div className="tnum" style={s.value} title={title}>
@@ -139,13 +142,13 @@ function FactsCards({ digest: d }: { digest: WeeklyDigest }) {
             <Icon.Lightbulb size={13} aria-hidden /> {f.findings.SUGGESTION}
           </span>
         </div>
-        <div style={s.sub}>{t("facts.criticalChange", { change: change(d.change.critical) })}</div>
+        <div style={s.sub}>{t("facts.criticalChange", { change: changeText(d.change.critical) ?? "", basis })}</div>
       </section>
       {card(
         t("facts.decisions"),
         f.accept_rate == null ? t("facts.unknown") : `${Math.round(f.accept_rate * 100)}%`,
         t("facts.decisionsSub", { accepted: f.accepted, dismissed: f.dismissed }),
-        undefined,
+        t("facts.decisionsChange", { accepted: changeText(d.change.accepted) ?? "", dismissed: changeText(d.change.dismissed) ?? "", basis }),
         f.accept_rate == null ? t("facts.acceptRate", { rate: "—" }) : undefined,
       )}
     </div>
@@ -155,17 +158,18 @@ function FactsCards({ digest: d }: { digest: WeeklyDigest }) {
 /** `queryWeek` is the page's `?week=` (null for the current week): the cache entry the answer replaces. */
 function Highlights({ digest: d, queryWeek }: { digest: WeeklyDigest; queryWeek: string | null }) {
   const t = useTranslations("digest");
-  const write = useWriteHighlights(queryWeek);
+  const write = useWriteHighlights(d.week);
   const h = d.highlights;
-  const failure = write.isError ? (write.error instanceof ApiError ? write.error.message : String(write.error)) : null;
+  // The server's message is a whole sentence; the fallback covers a network failure.
+  const failure = write.isError ? (write.error instanceof ApiError && write.error.message ? write.error.message : t("highlights.failed")) : null;
   return (
     <section style={s.panel} aria-label={t("highlights.title")}>
       <div style={s.panelHead}>
         <SectionLabel icon="Sparkles">{t("highlights.title")}</SectionLabel>
         <span style={s.aiLabel}>{t("highlights.label")}</span>
         <span style={{ marginLeft: "auto" }}>
-          <Button kind={h ? "ghost" : "primary"} size="sm" icon="Sparkles" loading={write.isPending} disabled={write.isPending || d.empty} onClick={() => write.mutate(d.week)}>
-            {write.isPending ? t("highlights.writing") : h ? t("highlights.rewrite") : t("highlights.write")}
+          <Button kind={h ? "ghost" : "primary"} size="sm" icon="Sparkles" loading={write.writing} disabled={write.writing || d.empty} onClick={() => write.mutate({ week: d.week, queryWeek })}>
+            {write.writing ? t("highlights.writing") : h ? t("highlights.rewrite") : t("highlights.write")}
           </Button>
         </span>
       </div>
@@ -188,7 +192,7 @@ function Highlights({ digest: d, queryWeek }: { digest: WeeklyDigest; queryWeek:
       )}
       {failure && (
         <div role="alert" style={s.error}>
-          {t("highlights.failed", { message: failure })}
+          {failure}
         </div>
       )}
     </section>
