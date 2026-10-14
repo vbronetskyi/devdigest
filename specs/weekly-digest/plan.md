@@ -61,7 +61,7 @@ Tests: **H** `server/test/digest-helpers.test.ts`, **I** `server/test/digest.it.
 | AC-13 | T4 | V "AC-10/AC-13…", V "AC-12/AC-13…", C "AC-12/AC-13…" | 2e81d47, b489c4b |
 | NFR | T2 | L "SPEC-06: GET /digest for the current week answers in under 1 s" | fff186b |
 
-Spec amendments: e558585, dbb4000.
+Spec amendments: e558585, dbb4000, fd60e1e. Second-check fixes and tests: e2cd1b6.
 
 ## Risks
 

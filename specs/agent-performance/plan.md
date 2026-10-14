@@ -61,7 +61,7 @@ Tests: **H** `server/test/performance-helpers.test.ts`, **I** `server/test/perfo
 | AC-15 | T4 | V "AC-15: an empty window points to the pull requests; a failed request offers a retry that refetches" | a3ebe2c, 46c0085 |
 | NFR | T3 | L "SPEC-05: GET /agents/performance over 90 days answers in under 1 s" | 2481d5f, fff186b |
 
-Spec amendments: e558585, 472d2d1, 244d786, 0d26eeb.
+Spec amendments: e558585, 472d2d1, 244d786, 0d26eeb. Third-check fixes: 0265617.
 
 ## Risks
 
