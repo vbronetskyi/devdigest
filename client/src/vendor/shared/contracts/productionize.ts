@@ -228,3 +228,91 @@ export const DigestRunRequest = z.object({
   period_end: z.string().optional(),
 });
 export type DigestRunRequest = z.infer<typeof DigestRunRequest>;
+
+// ---- Weekly digest (HW L08, SPEC-06): one ISO week, computed from stored data ----
+
+/** The week's numbers; `cost_usd` and `accept_rate` are null when unknown. */
+export const DigestFacts = z.object({
+  prs_opened: z.number().int(),
+  prs_reviewed: z.number().int(),
+  runs: z.number().int(),
+  failed: z.number().int(),
+  cost_usd: z.number().nullable(),
+  runs_without_cost: z.number().int(),
+  findings: z.object({ CRITICAL: z.number().int(), WARNING: z.number().int(), SUGGESTION: z.number().int() }),
+  accepted: z.number().int(),
+  dismissed: z.number().int(),
+  accept_rate: z.number().nullable(),
+});
+export type DigestFacts = z.infer<typeof DigestFacts>;
+
+/** This week minus the previous one, per number; null when either side is unknown. */
+export const DigestChange = z.object({
+  prs_opened: z.number(),
+  prs_reviewed: z.number(),
+  runs: z.number(),
+  cost_usd: z.number().nullable(),
+  critical: z.number(),
+  accepted: z.number(),
+  dismissed: z.number(),
+});
+export type DigestChange = z.infer<typeof DigestChange>;
+
+export const DigestCritical = z.object({
+  finding_id: z.string(),
+  repo_id: z.string(),
+  repo_full_name: z.string(),
+  pr_number: z.number().int(),
+  pr_title: z.string(),
+  /** GitHub state when the PR is no longer open. */
+  pr_state: z.enum(['merged', 'closed']).nullable(),
+  file: z.string(),
+  line: z.number().int(),
+  title: z.string(),
+  /** Null when the agent was deleted. */
+  agent_name: z.string().nullable(),
+  ran_at: z.string(),
+});
+export type DigestCritical = z.infer<typeof DigestCritical>;
+
+export const DigestAgent = z.object({
+  agent_id: z.string().nullable(),
+  name: z.string().nullable(),
+  runs: z.number().int(),
+  cost_usd: z.number().nullable(),
+  accept_rate: z.number().nullable(),
+  decided: z.number().int(),
+});
+export type DigestAgent = z.infer<typeof DigestAgent>;
+
+export const DigestHighlights = z.object({
+  lines: z.array(z.string()),
+  model: z.string(),
+  cost_usd: z.number().nullable(),
+  generated_at: z.string(),
+  /** The week's facts changed since the highlights were written. */
+  stale: z.boolean(),
+});
+export type DigestHighlights = z.infer<typeof DigestHighlights>;
+
+/** Response of GET /digest?week=YYYY-Www (SPEC-06). */
+export const WeeklyDigest = z.object({
+  week: z.string(),
+  from: z.string(),
+  to: z.string(),
+  in_progress: z.boolean(),
+  /** No runs and no decisions in the week. */
+  empty: z.boolean(),
+  facts: DigestFacts,
+  /** The previous week — for a week in progress, over the same elapsed span. */
+  prev: DigestFacts,
+  change: DigestChange,
+  open_criticals: z.array(DigestCritical),
+  open_criticals_total: z.number().int(),
+  agents: z.array(DigestAgent),
+  highlights: DigestHighlights.nullable(),
+});
+export type WeeklyDigest = z.infer<typeof WeeklyDigest>;
+
+export const DigestHighlightsRequest = z.object({ week: z.string() });
+export type DigestHighlightsRequest = z.infer<typeof DigestHighlightsRequest>;

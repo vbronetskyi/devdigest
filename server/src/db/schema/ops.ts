@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, boolean, jsonb, timestamp, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, boolean, jsonb, timestamp, index, doublePrecision, primaryKey } from 'drizzle-orm/pg-core';
 import { workspaces } from './core';
 
 // ============================================================ Jobs & ops
@@ -48,3 +48,22 @@ export const digests = pgTable('digests', {
   bodyMd: text('body_md'),
   deliveredTo: text('delivered_to'),
 });
+
+/** Model-written highlights of one ISO week (SPEC-06 AC-8); the facts are computed, never stored. */
+export const digestHighlights = pgTable(
+  'digest_highlights',
+  {
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    /** ISO week, `YYYY-Www`. */
+    week: text('week').notNull(),
+    lines: jsonb('lines').$type<string[]>().notNull(),
+    model: text('model').notNull(),
+    costUsd: doublePrecision('cost_usd'),
+    /** Hash of the facts text the model saw — a different hash today means stale. */
+    factsHash: text('facts_hash').notNull(),
+    generatedAt: timestamp('generated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.workspaceId, t.week] }) }),
+);

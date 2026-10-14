@@ -37,7 +37,7 @@ import { codeChunks, symbols, references, onboarding } from './schema/context';
 import { evalCases, evalRuns, conformanceChecks, composedReviews } from './schema/eval';
 import { ciInstallations, ciRuns } from './schema/ci';
 import { agentRuns, runTraces, multiAgentRuns } from './schema/runs';
-import { jobs, installedPlugins, digests } from './schema/ops';
+import { jobs, installedPlugins, digests, digestHighlights } from './schema/ops';
 import {
   repoIndexState,
   fileEdges,
@@ -84,6 +84,7 @@ export const schema = {
   jobs,
   installedPlugins,
   digests,
+  digestHighlights,
   // repo-intel: T2 = index state + graph + facts; T3 = rank + map.
   repoIndexState,
   fileEdges,

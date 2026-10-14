@@ -15,6 +15,7 @@ import context from './context/routes.js';
 import onboarding from './onboarding/routes.js';
 import why from './why/routes.js';
 import performance from './performance/routes.js';
+import digest from './digest/routes.js';
 
 /**
  * Module registry. Each feature module is a Fastify plugin in
@@ -46,4 +47,5 @@ export const modules: Record<string, FastifyPluginAsync> = {
   onboarding,
   why,
   performance,
+  digest,
 };

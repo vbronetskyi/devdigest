@@ -18,6 +18,7 @@ export const FeatureModelId = z.enum([
   'risk_brief',
   'conformance',
   'conventions',
+  'weekly_digest',
 ]);
 export type FeatureModelId = z.infer<typeof FeatureModelId>;
 
@@ -67,6 +68,13 @@ export const FEATURE_MODELS: FeatureModelDef[] = [
     id: 'conformance',
     label: 'Conformance',
     description: 'Checks a PR against the project spec.',
+    defaultProvider: 'openai',
+    defaultModel: 'gpt-4.1',
+  },
+  {
+    id: 'weekly_digest',
+    label: 'Weekly Digest',
+    description: 'Writes the highlights of a week of reviews.',
     defaultProvider: 'openai',
     defaultModel: 'gpt-4.1',
   },
