@@ -8,11 +8,12 @@ const h = vi.hoisted(() => ({
   state: { data: undefined as AgentPerf | undefined, isLoading: false, isError: false, error: null as unknown, refetch: vi.fn() },
   days: [] as number[],
   push: vi.fn(),
+  activeRepo: { id: "r1" } as { id: string } | null,
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: h.push }) }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a> }));
 vi.mock("@/components/app-shell", () => ({ AppShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
-vi.mock("@/lib/repo-context", () => ({ useActiveRepo: () => ({ activeRepo: { id: "r1" } }) }));
+vi.mock("@/lib/repo-context", () => ({ useActiveRepo: () => ({ activeRepo: h.activeRepo }) }));
 vi.mock("@/lib/hooks/performance", () => ({
   useAgentPerformance: (days: number) => {
     h.days.push(days);
@@ -26,6 +27,7 @@ afterEach(() => {
   cleanup();
   h.days = [];
   h.push.mockReset();
+  h.activeRepo = { id: "r1" };
 });
 
 const agent = (over: Partial<AgentPerfRow>): AgentPerfRow => ({
@@ -112,7 +114,7 @@ describe("AgentPerformanceView", () => {
     expect(within(cost).getByText("no cost known in this window")).toBeTruthy();
     expect(within(cost).queryByText(/previous 30 days/)).toBeNull();
     expect(within(screen.getByLabelText("MOST-ACTIVE AGENT")).getByTitle(performance.unknown.mostActive)).toBeTruthy();
-    expect(within(agentRow("Broken Reviewer")).getAllByTitle(performance.unknown.allFailed)).toHaveLength(2);
+    expect(within(agentRow("Broken Reviewer")).getAllByTitle(performance.unknown.allFailed)).toHaveLength(3); // cost, duration, accept rate
     cleanup();
     h.state = { ...h.state, data: { ...DATA, totals: { ...DATA.totals, most_active: { ...DATA.totals.most_active!, accept_rate: null } } } };
     renderView();
@@ -130,6 +132,8 @@ describe("AgentPerformanceView", () => {
     expect(within(row).getByRole("rowheader")).toBeTruthy();
     expect(within(row).getAllByRole("cell")).toHaveLength(6);
     expect(within(row).getByRole("img", { name: "up against the previous window" })).toBeTruthy();
+    expect(within(row).getByTitle("up against the previous window")).toBeTruthy(); // the label on hover too
+    expect(within(row).queryByText("low sample")).toBeNull(); // enough decisions on both sides
     expect(within(agentRow("Style Reviewer")).getByRole("img", { name: "down against the previous window" })).toBeTruthy();
     expect(within(agentRow("Style Reviewer")).getByTitle(performance.table.lowSampleHint)).toBeTruthy();
     expect(within(agentRow("Docs Reviewer")).getByRole("img", { name: "about the same as the previous window" })).toBeTruthy();
@@ -153,8 +157,32 @@ describe("AgentPerformanceView", () => {
     expect(within(runs[1]!).getByText("deleted pull request")).toBeTruthy();
     expect(within(runs[1]!).getAllByTitle(performance.unknown.failed)).toHaveLength(4);
     expect(within(runs[2]!).getAllByTitle(performance.unknown.notRecorded)).toHaveLength(1);
+    expect(within(runs[2]!).queryByTitle(performance.unknown.runCost)).toBeNull();
     fireEvent.click(toggle);
     expect(screen.queryAllByTestId("recent-run")).toHaveLength(0);
+  });
+
+  it("AC-14: a finished run without a cost says so", () => {
+    const noCost = { ...DATA.agents[0]!.recent[0]!, run_id: "r9", cost_usd: null };
+    h.state = { ...h.state, data: { ...DATA, agents: [{ ...DATA.agents[0]!, recent: [noCost] }] } };
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Security Reviewer" }));
+    expect(within(screen.getByTestId("recent-run")).getByTitle(performance.unknown.runCost)).toBeTruthy();
+  });
+
+  it("AC-7/AC-11: a known cost change is signed in the app's cost format — up in red, down in green, none plain", () => {
+    const render$ = (change: number) => {
+      cleanup();
+      h.state = { ...h.state, data: { ...DATA, totals: { ...DATA.totals, prev_cost_usd: 0.007, cost_change_usd: change } } };
+      renderView();
+      return screen.getByLabelText("TOTAL COST (30D)");
+    };
+    const up = within(render$(0.0021)).getByText("+$0.0021 vs previous 30 days");
+    expect(up.getAttribute("style")).toContain("var(--crit)");
+    const down = within(render$(-0.0021)).getByText("−$0.0021 vs previous 30 days");
+    expect(down.getAttribute("style")).toContain("var(--ok)");
+    const none = within(render$(0)).getByText("±$0 vs previous 30 days");
+    expect(none.getAttribute("style")).toBeNull();
   });
 
   it("AC-8/AC-11: the breakdown shows each slice's cost and share; an unknown model is labelled", () => {
@@ -191,6 +219,11 @@ describe("AgentPerformanceView", () => {
     renderView();
     fireEvent.click(screen.getByRole("button", { name: "Open pull requests" }));
     expect(h.push).toHaveBeenCalledWith("/repos/r1/pulls");
+    cleanup();
+    h.activeRepo = null;
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Open pull requests" }));
+    expect(h.push).toHaveBeenLastCalledWith("/");
     cleanup();
     h.state = { ...h.state, data: undefined, isError: true, error: new Error("boom") };
     renderView();

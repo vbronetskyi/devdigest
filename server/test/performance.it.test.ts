@@ -6,7 +6,7 @@ import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/platform/config.js';
 import { seed } from '../src/db/seed.js';
 import * as t from '../src/db/schema.js';
-import { MockEmbedder, MockGitClient, MockGitHubClient, MockLLMProvider } from '../src/adapters/mocks.js';
+import { MockAuthProvider, MockEmbedder, MockGitClient, MockGitHubClient, MockLLMProvider } from '../src/adapters/mocks.js';
 
 const hasDocker = await dockerAvailable();
 const d = hasDocker ? describe : describe.skip;
@@ -24,6 +24,7 @@ d('HW L08 agent performance — SPEC-05 (Testcontainers pg)', () => {
   let prId: string;
   let repoId: string;
   let now: number;
+  let quietWorkspace: string;
 
   beforeAll(async () => {
     pg = await startPg();
@@ -78,9 +79,25 @@ d('HW L08 agent performance — SPEC-05 (Testcontainers pg)', () => {
     await run({ agentId: beta, ranAt: new Date(now - 1 * HOUR), status: 'done', costUsd: 0.03, durationMs: 2000 });
     await run({ agentId: null, ranAt: new Date(now - 5 * HOUR), status: 'done', costUsd: 0.005, durationMs: 100, model: null });
     // Not counted: running, cancelled, another workspace; a review without a run is not attributed.
-    await run({ agentId: beta, ranAt: new Date(now - HOUR), status: 'cancelled', costUsd: 9 });
+    const cancelled = await run({ agentId: beta, ranAt: new Date(now - HOUR), status: 'cancelled', costUsd: 9 });
+    await review(cancelled, ['a', 'd']); // decisions on a cancelled run's findings are not Beta's
     const [other] = await db.insert(t.workspaces).values({ name: 'other' }).returning({ id: t.workspaces.id });
-    await db.insert(t.agentRuns).values({ workspaceId: other!.id, ranAt: new Date(now - HOUR), status: 'done', costUsd: 100 });
+    const otherRun = async (ago: number, costUsd: number) =>
+      (await db.insert(t.agentRuns).values({ workspaceId: other!.id, ranAt: new Date(now - ago), status: 'done', costUsd }).returning({ id: t.agentRuns.id }))[0]!.id;
+    const otherNow = await otherRun(HOUR, 100);
+    await otherRun(9 * DAY, 100); // the previous 7-day window of another workspace
+    const [otherReview] = await db.insert(t.reviews).values({ workspaceId: other!.id, prId, runId: otherNow, kind: 'review' }).returning({ id: t.reviews.id });
+    await db.insert(t.findings).values(
+      [1, 2, 3].map((line) => ({ reviewId: otherReview!.id, file: 'y.ts', startLine: line, endLine: line, severity: 'WARNING', category: 'bug', title: 'y', rationale: 'r', confidence: 1, dismissedAt: new Date() })),
+    );
+    // A quiet workspace: runs, but no cost known anywhere.
+    const [quiet] = await db.insert(t.workspaces).values({ name: 'quiet' }).returning({ id: t.workspaces.id });
+    quietWorkspace = quiet!.id;
+    const [quietAgent] = await db.insert(t.agents).values({ ...agent('Quiet'), workspaceId: quietWorkspace }).returning({ id: t.agents.id });
+    await db.insert(t.agentRuns).values([
+      { workspaceId: quietWorkspace, agentId: quietAgent!.id, ranAt: new Date(now - HOUR), status: 'done', costUsd: null, durationMs: 1000 },
+      { workspaceId: quietWorkspace, agentId: quietAgent!.id, ranAt: new Date(now - 2 * HOUR), status: 'failed', costUsd: null },
+    ]);
     await review(null, ['a', 'a', 'a']);
     // Another workspace's review pointing at this workspace's run: its decisions are not Alpha's.
     const [foreign] = await db.insert(t.reviews).values({ workspaceId: other!.id, prId, runId: a1, kind: 'review' }).returning({ id: t.reviews.id });
@@ -143,6 +160,7 @@ d('HW L08 agent performance — SPEC-05 (Testcontainers pg)', () => {
     expect(a.last_run_at).toBe(new Date(now - 2 * HOUR).toISOString());
     const b = agents[1]!;
     expect([b.accept_rate, b.decided, b.accept_trend, b.low_sample]).toEqual([null, 0, null, true]);
+    expect(b.recent.map((r) => r.status)).toEqual(['done']); // not the running nor the cancelled run
     expect(agents[2]).toMatchObject({ agent_id: null, name: null, runs: 1 });
     expect(agents[2]!.recent).toHaveLength(1); // the other workspace's deleted-agent run is not here
   });
@@ -169,6 +187,30 @@ d('HW L08 agent performance — SPEC-05 (Testcontainers pg)', () => {
     expect(g.last_run_at).toBe(new Date(now - 15 * DAY).toISOString());
     expect(g.recent[1]).toMatchObject({ repo_id: null, pr_number: null, pr_title: null, status: 'done', score: 20 });
     expect(totals.runs_without_cost).toBe(1); // Alpha's done run only
+    // Nothing ran 30–60 days ago: the previous cost is unknown, not $0, and so is the change.
+    expect([totals.prev_cost_usd, totals.cost_change_usd]).toEqual([null, null]);
+  });
+
+  it('AC-2/AC-3/AC-7: a window whose runs report no cost has an unknown cost, never 0', async () => {
+    const quiet = await buildApp({
+      config: config(),
+      db: pg.handle.db,
+      overrides: {
+        auth: new MockAuthProvider(undefined, { id: quietWorkspace, name: 'quiet' }),
+        embedder: new MockEmbedder(),
+        git: new MockGitClient(),
+        github: new MockGitHubClient({ pulls: [] }),
+        llm: { openai: llm },
+      },
+    });
+    try {
+      const { totals, agents, cost_by_agent } = (await quiet.inject({ method: 'GET', url: '/agents/performance?days=7' })).json() as AgentPerf;
+      expect([totals.runs, totals.failed, totals.cost_usd, totals.runs_without_cost, totals.cost_change_usd]).toEqual([2, 1, null, 1, null]);
+      expect([agents[0]!.cost_usd, agents[0]!.avg_cost_usd, agents[0]!.avg_duration_ms]).toEqual([null, null, 1000]);
+      expect(cost_by_agent).toEqual([]);
+    } finally {
+      await quiet.close();
+    }
   });
 
   it('AC-10: 30 days by default, 422 for any other window, no model call', async () => {

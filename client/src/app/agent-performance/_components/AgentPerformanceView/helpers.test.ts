@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { formatDuration, percent, runHref, signedCost, sliceColors } from "./helpers";
-import { SLICE_COLORS } from "./constants";
+import { NEUTRAL_SLICE, SLICE_COLORS } from "./constants";
 
 describe("agent performance helpers (SPEC-05)", () => {
   it("formats durations and rates, unknown as null", () => {
@@ -28,6 +28,12 @@ describe("agent performance helpers (SPEC-05)", () => {
     expect(new Set(colors).size).toBe(4);
     const reordered = sliceColors(["agent-c", null, "agent-a", "agent-b"]);
     expect(reordered).toEqual([colors[3], colors[2], colors[0], colors[1]]);
+    // The deleted agent coming or going moves no one: it is grey and takes no slot.
+    const withDeleted = sliceColors(["agent-a", "agent-b", "agent-c", null]);
+    const withoutDeleted = sliceColors(["agent-a", "agent-b", "agent-c"]);
+    expect(withDeleted.slice(0, 3)).toEqual(withoutDeleted);
+    expect(withDeleted[3]).toBe(NEUTRAL_SLICE);
+    expect(withoutDeleted).not.toContain(NEUTRAL_SLICE);
     // Seven slices over a six-colour palette: every colour is used before one repeats.
     expect(new Set(sliceColors(["1", "2", "3", "4", "5", "6", "7"])).size).toBe(SLICE_COLORS.length);
   });

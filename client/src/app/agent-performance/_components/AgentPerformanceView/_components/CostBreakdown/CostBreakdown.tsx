@@ -1,6 +1,6 @@
 /* CostBreakdown — known cost of the window by agent and by model, each with its share
-   (SPEC-05 AC-8, AC-11). A slice's colour follows its key, so an agent keeps its colour
-   when the window changes. */
+   (SPEC-05 AC-8, AC-11). A slice's colour follows its key, not its position; the deleted
+   agent and the unknown model are grey. */
 "use client";
 
 import React from "react";
@@ -30,13 +30,13 @@ function Slices({ title, slices, label }: { title: string; slices: PerfCostSegme
     return share == null ? formatCost(x.cost_usd) : t("breakdown.share", { cost: formatCost(x.cost_usd), share });
   };
   return (
-    <section style={s.card} aria-label={title}>
+    <div role="group" style={s.card} aria-label={title}>
       <div style={s.title}>{title}</div>
       {slices.length === 0 ? (
         <p style={s.empty}>{t("breakdown.empty")}</p>
       ) : (
         <Donut size={120} segments={slices.map((x, i) => ({ label: label(x), value: x.cost_usd, color: colors[i]! }))} format={(_, i) => legend(i)} />
       )}
-    </section>
+    </div>
   );
 }

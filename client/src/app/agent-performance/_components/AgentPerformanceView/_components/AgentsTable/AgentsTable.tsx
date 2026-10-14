@@ -88,9 +88,13 @@ function AgentRow({ id, agent, expanded, onToggle }: { id: string; agent: AgentP
         <td style={s.cell}>
           <span style={s.accept}>
             <span className="tnum" style={rate == null ? undefined : agent.accept_rate! >= 0.6 ? s.good : s.weak}>
-              {rate ?? <Unknown reason={t("unknown.decided")} />}
+              {rate ?? <Unknown reason={allFailed ? t("unknown.allFailed") : t("unknown.decided")} />}
             </span>
-            {TrendIcon && trend && <TrendIcon size={12} role="img" aria-label={t(`table.trend.${trend}`)} style={s.trend[trend]} />}
+            {TrendIcon && trend && (
+              <span title={t(`table.trend.${trend}`)} style={s.trendWrap}>
+                <TrendIcon size={12} role="img" aria-label={t(`table.trend.${trend}`)} style={s.trend[trend]} />
+              </span>
+            )}
             <span style={s.muted}>{t("table.decided", { count: agent.decided })}</span>
             {agent.low_sample && agent.decided > 0 && (
               <span style={s.low} title={t("table.lowSampleHint")}>
@@ -142,7 +146,7 @@ function RecentRun({ run }: { run: AgentPerfRun }) {
       <span className="tnum">{run.score == null ? <Unknown reason={missing} /> : t("table.score", { score: run.score })}</span>
       <span className="tnum">{run.findings_count == null ? <Unknown reason={missing} /> : t("table.findings", { count: run.findings_count })}</span>
       <span className="tnum">{duration ?? <Unknown reason={missing} />}</span>
-      <span className="mono tnum">{run.cost_usd == null ? <Unknown reason={failed ? missing : t("unknown.cost")} /> : formatCost(run.cost_usd)}</span>
+      <span className="mono tnum">{run.cost_usd == null ? <Unknown reason={failed ? missing : t("unknown.runCost")} /> : formatCost(run.cost_usd)}</span>
       <span style={s.muted}>{t("table.ago", { ago: relativeTime(run.ran_at) })}</span>
     </li>
   );

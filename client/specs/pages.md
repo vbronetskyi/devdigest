@@ -114,7 +114,8 @@ not under a repository.
   runs tab (a deleted PR's run is unlinked). Every unknown is `Unknown` — "—" with its
   reason in `title` and in visually hidden text. Cost donuts by agent and by model show
   cost and share in the app's cost format; a slice's colour follows its key
-  (`sliceColors`), so an agent keeps it across windows.
+  (`sliceColors`), the deleted agent and the unknown model are grey, so an agent keeps
+  its colour across windows while the same agents appear.
 - **Weekly Digest** — previous / next week through `?week=` (no next past the current
   week, which is marked "in progress" and compared with the same elapsed days of last
   week). Cards: PRs opened, PRs reviewed, runs, cost, new findings by severity, decisions

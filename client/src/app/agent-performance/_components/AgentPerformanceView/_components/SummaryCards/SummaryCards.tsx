@@ -17,7 +17,7 @@ export function SummaryCards({ totals, days }: { totals: AgentPerf["totals"]; da
   const top = totals.most_active;
   return (
     <div style={s.row}>
-      <section style={s.card} aria-label={t("card.runs", { days })}>
+      <div role="group" style={s.card} aria-label={t("card.runs", { days })}>
         <div style={s.label}>{t("card.runs", { days })}</div>
         <div className="tnum" style={s.value}>
           {totals.runs}
@@ -26,16 +26,18 @@ export function SummaryCards({ totals, days }: { totals: AgentPerf["totals"]; da
         <div style={s.spark}>
           <Sparkline data={totals.runs_per_day} w={200} h={28} />
         </div>
-      </section>
+      </div>
 
-      <section style={s.card} aria-label={t("card.cost", { days })}>
+      <div role="group" style={s.card} aria-label={t("card.cost", { days })}>
         <div style={s.label}>{t("card.cost", { days })}</div>
         <div className="mono tnum" style={s.value}>
           {totals.cost_usd == null ? <Unknown reason={t("unknown.cost")} /> : formatCost(totals.cost_usd)}
         </div>
         <div style={s.sub} title={change ? undefined : t("unknown.costChange")}>
           {change ? (
-            <span style={totals.cost_change_usd! > 0 ? s.up : s.down}>{t("card.costChange", { sign: change.sign, amount: change.amount, days })}</span>
+            <span style={totals.cost_change_usd! > 0 ? s.up : totals.cost_change_usd! < 0 ? s.down : undefined}>
+              {t("card.costChange", { sign: change.sign, amount: change.amount, days })}
+            </span>
           ) : totals.cost_usd == null ? (
             t("card.costUnknown")
           ) : (
@@ -43,9 +45,9 @@ export function SummaryCards({ totals, days }: { totals: AgentPerf["totals"]; da
           )}
         </div>
         {totals.runs_without_cost > 0 && <div style={s.sub}>{t("card.withoutCost", { count: totals.runs_without_cost })}</div>}
-      </section>
+      </div>
 
-      <section style={s.card} aria-label={t("card.accept")}>
+      <div role="group" style={s.card} aria-label={t("card.accept")}>
         <div style={s.top}>
           <span style={s.label}>{t("card.accept")}</span>
           {totals.accept_rate != null && <CircularScore score={Math.round(totals.accept_rate * 100)} size={34} stroke={4} />}
@@ -54,9 +56,9 @@ export function SummaryCards({ totals, days }: { totals: AgentPerf["totals"]; da
           {rate ?? <Unknown reason={t("unknown.decided")} />}
         </div>
         <div style={s.sub}>{t("card.acceptSub", { count: totals.decided })}</div>
-      </section>
+      </div>
 
-      <section style={s.card} aria-label={t("card.mostActive")}>
+      <div role="group" style={s.card} aria-label={t("card.mostActive")}>
         <div style={s.label}>{t("card.mostActive")}</div>
         <div style={s.name}>{top ? top.name : <Unknown reason={t("unknown.mostActive")} />}</div>
         {top && (
@@ -68,7 +70,7 @@ export function SummaryCards({ totals, days }: { totals: AgentPerf["totals"]; da
             })}
           </div>
         )}
-      </section>
+      </div>
     </div>
   );
 }

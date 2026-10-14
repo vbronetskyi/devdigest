@@ -1,6 +1,6 @@
 import type { AgentPerfRun } from "@devdigest/shared";
 import { formatCost } from "@/lib/format-cost";
-import { SLICE_COLORS } from "./constants";
+import { NEUTRAL_SLICE, SLICE_COLORS } from "./constants";
 
 /** "52s", "1m 05s"; null when unknown (the caller shows "—" with a reason). */
 export function formatDuration(ms: number | null): string | null {
@@ -24,21 +24,23 @@ export function signedCost(change: number): { sign: string; amount: string } {
 }
 
 /**
- * A colour per slice key that does not depend on the slice's position: the key hashes to
- * a palette slot, and a taken slot passes to the next free one (keys placed in sorted
- * order, so the same set always gets the same colours). Past the palette, colours repeat.
+ * A colour per slice key that does not depend on the slice's position (SPEC-05 AC-11):
+ * the key hashes to a palette slot, and a taken slot passes to the next free one (keys
+ * placed in sorted order, so the same set always gets the same colours). A null key —
+ * the deleted agent, the unknown model — is grey and takes no slot. Past the palette,
+ * colours repeat.
  */
 export function sliceColors(keys: readonly (string | null)[]): string[] {
   const n = SLICE_COLORS.length;
   const taken = new Set<number>();
   const slot = new Map<string, number>();
-  for (const k of [...new Set(keys.map((k) => k ?? ""))].sort()) {
+  for (const k of [...new Set(keys.filter((k): k is string => k !== null))].sort()) {
     let i = fnv1a(k) % n;
     for (let step = 0; step < n && taken.has(i); step++) i = (i + 1) % n;
     taken.add(i);
     slot.set(k, i);
   }
-  return keys.map((k) => SLICE_COLORS[slot.get(k ?? "")!]!);
+  return keys.map((k) => (k === null ? NEUTRAL_SLICE : SLICE_COLORS[slot.get(k)!]!));
 }
 
 function fnv1a(text: string): number {

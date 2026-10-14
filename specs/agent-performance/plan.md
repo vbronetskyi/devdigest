@@ -45,11 +45,11 @@ Tests: **H** `server/test/performance-helpers.test.ts`, **I** `server/test/perfo
 | AC | Tasks | Tests | Commits |
 |---|---|---|---|
 | AC-1 | T2 | I "AC-1/AC-2/AC-4/AC-6/AC-7: totals…" | 2481d5f |
-| AC-2 | T2 | I "totals…", I "AC-2/AC-9: the last five runs… a failed run without cost is not without cost" | 2481d5f, fff186b |
+| AC-2 | T2 | I "totals…", I "AC-2/AC-9: the last five runs… a failed run without cost is not without cost", I "AC-2/AC-3/AC-7: a window whose runs report no cost…" | 2481d5f, fff186b, pass 2 |
 | AC-3 | T2 | I "AC-3/AC-5/AC-9/AC-12: per-agent rows…" | 2481d5f |
 | AC-4 | T1, T2 | H "AC-4/AC-5: rate is unknown without decisions…", I "totals…" (other workspace's review on our run) | 2481d5f, fff186b |
 | AC-5 | T1, T2, T4 | H "AC-4/AC-5…", I "per-agent rows…", V "AC-12: a table… a low sample is marked" | 2481d5f, 46c0085 |
-| AC-6 | T1, T2 | H "AC-6/AC-7: the most active agent is never the deleted-agent row…", I "totals…" | 2481d5f |
+| AC-6 | T1, T2 | H "AC-6/AC-7: the most active agent is never the deleted-agent row…", I "per-agent rows…" (one null-agent row) | 2481d5f |
 | AC-7 | T1, T2 | H "AC-7: runs per day…", I "totals…" (each run on its UTC day) | 2481d5f, fff186b |
 | AC-8 | T1, T2, T4 | H "AC-8: shares…", I "AC-8: cost by agent and by model…", V "AC-8/AC-11: the breakdown…" | 2481d5f, fff186b, 46c0085 |
 | AC-9 | T2 | I "per-agent rows…", I "AC-2/AC-9: the last five runs, newest first; a deleted PR's run is unlinked…" | 2481d5f, fff186b |
@@ -61,7 +61,7 @@ Tests: **H** `server/test/performance-helpers.test.ts`, **I** `server/test/perfo
 | AC-15 | T4 | V "AC-15: an empty window points to the pull requests; a failed request offers a retry that refetches" | a3ebe2c, 46c0085 |
 | NFR | T3 | L "SPEC-05: GET /agents/performance over 90 days answers in under 1 s" | 2481d5f, fff186b |
 
-Spec amendments: e558585, 472d2d1, 244d786.
+Spec amendments: e558585, 472d2d1, 244d786, 0d26eeb.
 
 ## Risks
 

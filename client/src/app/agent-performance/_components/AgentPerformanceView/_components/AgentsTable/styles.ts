@@ -45,6 +45,7 @@ export const s = {
   accept: { display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 } satisfies CSSProperties,
   good: { color: "var(--ok)" } satisfies CSSProperties,
   weak: { color: "var(--warn)" } satisfies CSSProperties,
+  trendWrap: { display: "inline-flex" } satisfies CSSProperties,
   trend: {
     up: { color: "var(--ok)" },
     down: { color: "var(--warn)" },
