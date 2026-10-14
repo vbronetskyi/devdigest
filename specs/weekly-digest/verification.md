@@ -73,3 +73,32 @@ Accepted by the spec: `×3` (a multiplier before the digit), `9.000` as 9, a fli
 ratios (`9/26`), words off the list (`XLII`, `a third`, `fifth`), identifiers a title
 carries as written. Dropped honest phrasing ("ran 3 times", "first half") is steered away
 in the prompt. Three live calls after the change kept 5 of 5 lines each.
+
+## Pass 4 — at `0a7ea82`
+
+**Verdict: not ready — AC-7 only.** Every pass-3 item confirmed resolved and tested (the
+90-shape table, X-Forwarded-For kept, the last day, `evil.de/login` and `_evil.com_`,
+the 1970-W01 button); no regressions across AC-1 – AC-13; honest lines, bolded numbers
+and quoted Ukrainian titles kept, stored lines clean.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| The clean-up rebuilt an HTML character reference (`3&*times;` → `3&times;`, `4&#5*7;` → `4&#57;`), and `mdSafe` left `&` live, so GitHub rendered 3× or 49 | security | the reference is checked again after the clean-up; `&` escaped in the Markdown | `47e793f`, `911eb1e` |
+| Backticks between a digit and its multiplier: `` `3` times ``, `` 3`x` ``, `` 10`^`3 `` | security | backticks ignored for the number-word and multiplier tests | `47e793f`, `911eb1e` |
+| An en or em dash before `fold`: `3–fold` | security | dashes, brackets and quotes may sit between a digit and its multiplier: `(3) times`, `"3" times`, `3- fold`, `3 x-fold` | `47e793f`, `911eb1e` |
+| More abbreviations: `9 bln`, `9 bil`, `9 mill`, `$9 grand`, `9 thou`, `9 Mio` | security | added | `911eb1e` |
+| HTML comments not removed: `4<!-- -->2` | nit | removed before the check | `911eb1e` |
+| `8.9999999999999999` read as 9 through `Number()` | nit | numbers compared as written | `911eb1e` |
+| `src/modules/_shared/…` stored as `…/shared/…` | honest line misquoted | an underscore next to `/` or a file extension stays | `911eb1e` |
+| An NFD title (as macOS writes paths) could not be quoted; `→` and `naïve` dropped | honest line dropped | facts characters taken after NFC; Latin letters and `→ « »` allowed | `911eb1e` |
+| With Cyrillic in the facts, `twеnty` or `3 х` could pass | hardening | Cyrillic and Greek look-alikes read as Latin for number words and multipliers | `911eb1e` |
+
+The table of invented shapes now has 121 lines; 14 more mutations, all fail a test (two
+first survived — the `-fold` dash on a stem is redundant, as the stem alone matches, and
+the NFD test used a Latin letter — and were fixed). Three live calls after the change
+kept 5 of 5 lines each.
+
+Accepted by the spec as written: non-English number words (`двадцять`, `zwanzig`), words
+off the list (`a score`, `tenth`, `a couple`), identifiers a title carries as written,
+ratios, `×3`, a flipped sign; scripts that need combining marks (Devanagari, Thai) lose
+them in a quoted title.
