@@ -48,3 +48,28 @@ title carries as written (`250k`) may be quoted; "week 42" and dates are dropped
 stated as written; backslash escapes show literally in Slack; letting failed runs into
 the criticals' CTE is an equivalent mutation (a failed run has no review). Three live
 calls after the change kept 5 of 5 lines each.
+
+## Pass 3 — at `061fb3e`
+
+**Verdict: not ready — AC-7 only.** Every pass-2 item was confirmed resolved and tested;
+no regressions across AC-1 – AC-13 (the 1970 floor, one end for the week in progress,
+the listed count, file names left plain).
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| Markdown emphasis between a digit and its multiplier or around a number word: `**3** times`, `**3**x`, `_twenty_` | security | emphasis removed before the check (and from the stored line) | `71b8e76`, `365d182` |
+| Enclosing marks (keycaps `4⃣2⃣`), control characters (`9\u0085000`), NUL (a 500 at the jsonb insert) | security | every `\p{C}` and `\p{M}` removed, after whitespace is collapsed | `71b8e76`, `365d182` |
+| Numerals that are letters (`四十二`), look-alike apostrophes (`1＇000`, `1‘000`), `✕` `⨯` `·`, Cyrillic homoglyphs (`twеnty`, `3 х`) | security | a non-ASCII character must be common typography or appear in the facts — titles in any language still quote | `71b8e76`, `365d182` |
+| N-fold for other N (`twelvefold`, `dozenfold`, `millionfold`); `9 mn`, `9 tn`, `9 mil` | security | number words by stem with an optional `-fold`; more abbreviations | `71b8e76`, `365d182` |
+| HTML character references (`3&times;`, `9&nbsp;000`) render as numbers in GitHub | security | a reference drops the line | `71b8e76`, `365d182` |
+| `9 0000`, `1 00 000` not joined | security | any digit run split only by a space or an apostrophe is one number | `71b8e76`, `365d182` |
+| "PR #3 X-Forwarded-For" dropped as a multiplier | honest line dropped | `x` not before a word character or a hyphen | `365d182` |
+| The facts said "to 2026-10-19" — the exclusive next Monday | off by one | the week's last day | `365d182` |
+| `evil.de/login` and `_evil.com_` stayed live in the Markdown | security | any `host.tld/path`; domains matched without `\b` (AC-12 amended) | `71b8e76`, `365d182` |
+| "Previous week" on 1970-W01 led to a 422 | bug | disabled there (AC-10 amended) | `71b8e76`, `365d182` |
+| Untested `MULTIPLIER` alternatives and the `’` separator; four new tests missing from the matrix | untested | tests and matrix rows added; 14 more mutations, all fail a test | `365d182` |
+
+Accepted by the spec: `×3` (a multiplier before the digit), `9.000` as 9, a flipped sign,
+ratios (`9/26`), words off the list (`XLII`, `a third`, `fifth`), identifiers a title
+carries as written. Dropped honest phrasing ("ran 3 times", "first half") is steered away
+in the prompt. Three live calls after the change kept 5 of 5 lines each.

@@ -46,13 +46,13 @@ Tests: **H** `server/test/digest-helpers.test.ts`, **I** `server/test/digest.it.
 
 | AC | Tasks | Tests | Commits |
 |---|---|---|---|
-| AC-1 | T2 | I "AC-1/AC-2/AC-4: the week's numbers…", I "AC-1/AC-3/AC-4: week edges, unknown cost, cancelled runs, another workspace, two deleted agents" | bef32b3, 23f8267 |
+| AC-1 | T2 | I "AC-1/AC-2/AC-4: the week's numbers…", I "AC-1/AC-3/AC-4: week edges, unknown cost, cancelled runs, another workspace, two deleted agents", I "AC-1/AC-13: a week with decisions but no runs is not empty" | bef32b3, 23f8267, e2cd1b6 |
 | AC-2 | T1, T2 | H "AC-2: a week in progress is compared with the same elapsed span…", I "AC-1/AC-2/AC-4…", I "AC-2/AC-5: the week in progress counts up to now…" | bef32b3, 23f8267 |
 | AC-3 | T2 | I "AC-3: open criticals of the latest run per PR and agent…", I "AC-1/AC-3/AC-4… two deleted agents" | bef32b3, 23f8267 |
 | AC-4 | T2 | I "AC-1/AC-2/AC-4…", I "AC-1/AC-3/AC-4…" | bef32b3, 23f8267 |
 | AC-5 | T1, T2 | H "AC-5: week-year rules…", H "AC-5: a year below 100…", I "AC-5: the current week by default…", I "AC-2/AC-5…" | bef32b3, 23f8267 |
-| AC-6 | T3 | I "AC-6 – AC-8: one call…", I "AC-6/AC-8: an empty week is a 409… no key… a 502…" | bef32b3, 23f8267 |
-| AC-7 | T3 | H "writes changes in words…", H "numbers: $, %, signs…", H "trusts only the numbers DevDigest states…", H "keeps a line whose numbers are all in the facts…", H "drops lines that hide an invented number in another shape", H "strips links and HTML first…" | bef32b3, 23f8267 |
+| AC-6 | T3 | I "AC-6 – AC-8: one call…", I "AC-6/AC-8: an empty week is a 409…" (with no key: a 502), I "AC-6: at most 5 lines are kept…" | bef32b3, 23f8267, e2cd1b6 |
+| AC-7 | T3 | H "writes changes in words…", H "numbers: $, %, signs…", H "trusts only the numbers DevDigest states…", H "keeps a line whose numbers are all in the facts…", H "drops lines that hide an invented number in another shape" (90 shapes), H "keeps honest lines through the clean-up…", H "names the last day of the week…", H "a thousands group split by a space is one number…", H "states how many criticals it lists, caps agents at 20 and cuts titles at 120", H "strips links and HTML first…" | bef32b3, 23f8267, e2cd1b6, 365d182 |
 | AC-8 | T3 | I "AC-6 – AC-8…" (stored, stale), I "AC-6/AC-8…" (502 keeps the lines), I "AC-9…" (asking again replaces) | bef32b3, 23f8267 |
 | AC-9 | T3 | I "AC-9: a second request for the same week while one runs is a 409"; I "AC-6/AC-8…" (a failed request lets go of the week) | bef32b3, 23f8267 |
 | AC-10 | T4 | V "AC-10/AC-13: the week's cards with their change…", V "AC-10: previous / next week…", V "AC-10: an open critical opens Files changed…", C "AC-10/AC-13: … changes are signed…" | 2e81d47, b489c4b |
@@ -61,7 +61,7 @@ Tests: **H** `server/test/digest-helpers.test.ts`, **I** `server/test/digest.it.
 | AC-13 | T4 | V "AC-10/AC-13…", V "AC-12/AC-13…", C "AC-12/AC-13…" | 2e81d47, b489c4b |
 | NFR | T2 | L "SPEC-06: GET /digest for the current week answers in under 1 s" | fff186b |
 
-Spec amendments: e558585, dbb4000, fd60e1e. Second-check fixes and tests: e2cd1b6.
+Spec amendments: e558585, dbb4000, fd60e1e, 71b8e76. Second-check fixes and tests: e2cd1b6.
 
 ## Risks
 
