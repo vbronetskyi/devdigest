@@ -41,3 +41,14 @@ this report.
 Accepted as is: `also_seen_in` stays the model's claim (spec non-goal); three attempts
 at a free derived name; the lock position is checked by a test that holds the lock, not
 by one that proves it precedes the DELETE.
+
+## Pass 3 — at `d27ff98`
+
+**Verdict: ready.** Every pass-2 item resolved, each proven by a test that fails under the
+old behaviour (the unknown-confidence fixture fails the old schema in the mock's
+`safeParse`; the budget fixture gives 10 files with a two-character half line under the
+old clipping). Contract parity and migration 0013 checked.
+
+Left open, not blocking: the AC-12 test proves the scan takes the repository's lock, not
+that the lock comes before the DELETE (it does — `repository.ts:73`).
+

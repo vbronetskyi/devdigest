@@ -13,7 +13,7 @@ const EXTRACT_RATE_LIMIT = { rateLimit: { max: 5, timeWindow: '1 minute' } };
  *   GET    /repos/:id/conventions          → stored candidates (accepted first)
  *   POST   /repos/:id/conventions/extract  → new pass: pick files, extract, ground, replace pending
  *   POST   /conventions/:id/accept         → create a `convention` skill from it {rule?, name?}
- *   DELETE /conventions/:id                → reject (delete the candidate)
+ *   DELETE /conventions/:id                → reject a pending candidate (409 once accepted)
  */
 export default async function conventionsRoutes(appBase: FastifyInstance) {
   const app = appBase.withTypeProvider<ZodTypeProvider>();
