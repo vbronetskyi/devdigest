@@ -97,6 +97,12 @@ changes it. FindingCard did, so every severity filter click logged the warning
 (the Next dev badge showed "1 Issue"). Use per-side colours.
 Evidence: `src/app/repos/[repoId]/pulls/[number]/_components/FindingCard/styles.ts:10`
 
+### 2026-10-14 — A bulk action must lock the other cards, not just itself
+"Accept all" disabled only its own button; the cards' Accept/Reject stayed live, so a
+click during the loop started a second accept in parallel (and could race for one skill
+name). The page passes `locked` to every card while a bulk action runs.
+Evidence: `src/app/repos/[repoId]/conventions/page.tsx:84`
+
 ## Session Notes
 
 ### 2026-10-07 — Lab 1: run cost

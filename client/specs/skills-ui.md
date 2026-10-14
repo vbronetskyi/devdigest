@@ -62,19 +62,24 @@ version, history is never rewritten.
 
 Server behaviour: `server/specs/conventions.md`.
 
-- Heading "Conventions in <repo>". The page loads stored candidates only; a scan
-  (two model calls) runs on **Run extraction / Re-scan** and nowhere else.
-- After a scan the subtitle reports files read, model, how many conventions were
-  dropped because their quote was not in the file, and the cost.
+- Heading "Conventions in <repo name>". The page loads stored candidates only; a
+  scan (two model calls) runs on **Run extraction / Re-scan** and nowhere else.
+  Feature spec: `../../specs/conventions/spec.md` (SPEC-07).
+- Before the first scan the empty state holds the only **Run extraction** button.
+- The subtitle comes from the stored last scan, so it survives a reload: "Detected
+  from N sample files · last scan 5m ago · <model> · <cost>". Right after a scan a
+  second line says how many rules were dropped (no real quote) and how many were
+  skipped (repeats, already accepted, over the limit).
 - A card: the rule (backticked parts rendered as code), the evidence path linked
-  to the lines on GitHub (default branch), the quoted snippet with a copy button,
-  confidence (green ≥ 85 %, amber below).
+  to the lines on GitHub at the commit they were read at (default branch for
+  older rows), the quoted snippet with a copy button, confidence (green ≥ 85 %,
+  amber below, "—" when the model gave none).
 - Actions: **Accept as Skill**; **Edit first** — edit the rule and optionally set
   the skill name (validated against `SkillName`), then accept; **Reject**
   (delete). An accepted card turns read-only with "Accepted" and, in the same
   session, a link to the new skill.
-- **Accept all / Reject all** appear with two or more pending candidates; accepts
-  run one after another.
+- **Accept all / Reject all** appear with two or more pending candidates; they run
+  one card after another, and while they run no card action can start.
 - Nav: Skills Lab → Conventions (`g c`).
 
 ## Trace drawer
@@ -95,4 +100,4 @@ Types can come from the barrel as usual.
 `src/lib/skills.test.ts`, `src/lib/i18n-keys.test.ts`, `src/app/skills/helpers.test.ts`,
 `SkillConfigForm.test.tsx`, `ImportSkillDrawer.test.tsx`,
 `SkillsTab/helpers.test.ts`, `SkillsTab.test.tsx`, `RunTraceDrawer.test.tsx`,
-`conventions/helpers.test.ts`, `ConventionCard.test.tsx`.
+`conventions/helpers.test.ts`, `conventions/page.test.tsx`, `ConventionCard.test.tsx`.

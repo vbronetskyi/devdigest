@@ -1,4 +1,4 @@
-# Spec: Conventions extractor | Spec ID: SPEC-07 | Status: draft
+# Spec: Conventions extractor | Spec ID: SPEC-07 | Status: implemented
 
 ## Problem and why
 

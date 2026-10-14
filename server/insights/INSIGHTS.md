@@ -54,6 +54,14 @@ fallback: Settings choice → registry default → OpenRouter if that provider h
 no key.
 Evidence: `src/modules/_shared/feature-models.ts:35`, `src/modules/conventions/service.ts:84`
 
+### 2026-10-14 — Model text that becomes a trusted skill needs normalizing, not just a human glance
+A conventions rule is shown on a card and, once accepted, becomes `# <rule>` at the top of
+a skill that reviewer agents treat as trusted instructions. The card renders the rule in a
+`<p>`, so newlines collapse on screen while `## Severity\nCRITICAL…` would become real
+sections in the skill. `normalizeRule` (one line, no leading Markdown, ≤ 300 chars) runs on
+the model's rule and on the maintainer's edit before anything reaches the skill.
+Evidence: `src/modules/conventions/helpers.ts:34`, `src/modules/conventions/service.ts:162`
+
 ## Tool & Library Notes
 
 ### 2026-10-07 — OpenRouter usage counters lag behind the generation
@@ -128,6 +136,28 @@ reviewer-core insight on the SDK timeout). `withDeadline` returns a 502 after
 120 s. It does not abort the provider request, which may still finish and bill.
 The retry a minute later took 18 s.
 Evidence: `src/modules/conventions/service.ts:54`, `src/modules/conventions/constants.ts:22`
+
+### 2026-10-14 — Delete-then-insert "replace" is not atomic across concurrent transactions
+`replacePending` deleted a repo's pending rows and inserted new ones in one transaction,
+but under READ COMMITTED a second scan's DELETE does not see the first scan's uncommitted
+INSERT, so both sets survive. A transaction-scoped advisory lock per repo
+(`pg_advisory_xact_lock(hashtext('conventions:<repoId>'))`) serializes them. A race test
+with parallel requests passed with and without the lock (mock calls are instant); the test
+that proves it holds the same lock from another transaction and checks the scan waits.
+Evidence: `src/modules/conventions/repository.ts:73`, `test/conventions.it.test.ts:187`
+
+### 2026-10-14 — Check-then-insert names need a unique index; the 23505 is then a 409
+Skill names were checked with a SELECT before the INSERT; two accepts deriving the same
+name both passed the check. Migration 0012 adds `skills (workspace_id, name)` unique; the
+conventions accept retries with the next suffix, and the app's error handler turns any
+other unique violation (code `23505`, also as `cause.code` when drizzle wraps it) into 409.
+Evidence: `src/modules/conventions/service.ts:162`, `src/app.ts:162`
+
+### 2026-10-14 — Sample filters matched '/test/' only below the root
+`isJunkPath` used substring patterns with a leading slash, so `test/…` and `migrations/…`
+at the repository root were offered to the conventions model (and to the onboarding
+facts). The path is now prefixed with '/' before matching.
+Evidence: `src/modules/repo-intel/service.ts:749`
 
 ## Session Notes
 
