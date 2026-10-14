@@ -18,6 +18,7 @@ export function ConventionCard({
   repoFullName,
   branch,
   busy,
+  locked = false,
   skillId,
   onAccept,
   onReject,
@@ -27,6 +28,8 @@ export function ConventionCard({
   repoFullName: string;
   branch: string;
   busy: boolean;
+  /** "Accept all" / "Reject all" is running: no action of this card may start (AC-23). */
+  locked?: boolean;
   /** Known when the candidate was accepted in this session. */
   skillId?: string;
   onAccept: (overrides: ConventionAcceptRequest) => void;
@@ -38,7 +41,7 @@ export function ConventionCard({
   const [rule, setRule] = React.useState(candidate.rule);
   const [name, setName] = React.useState("");
   const ev = parseEvidence(candidate.evidence_path);
-  const pct = Math.round(candidate.confidence * 100);
+  const pct = candidate.confidence == null ? null : Math.round(candidate.confidence * 100);
   const nameInvalid = name !== "" && !SkillName.safeParse(name).success;
   // Once accepted (also after "Edit first") the card is read-only.
   const showEditor = editing && !candidate.accepted;
@@ -87,7 +90,8 @@ export function ConventionCard({
           )}
           <div style={s.evidence}>
             <div style={s.evidenceHead}>
-              <MonoLink href={githubBlobUrl(repoFullName, branch, ev.file, ev.start, ev.end)}>
+              {/* AC-21: at the commit the quote was read at, so the lines still match. */}
+              <MonoLink href={githubBlobUrl(repoFullName, candidate.commit_sha ?? branch, ev.file, ev.start, ev.end)}>
                 {candidate.evidence_path}
               </MonoLink>
               <IconBtn icon="Copy" size={24} label={t("card.copy")} onClick={copy} />
@@ -99,10 +103,10 @@ export function ConventionCard({
           <div style={s.confidence}>
             <span style={s.confidenceLabel}>{t("card.confidence")}</span>
             <div style={s.bar}>
-              <ProgressBar value={pct} height={5} color={confidenceColor(candidate.confidence)} />
+              <ProgressBar value={pct ?? 0} height={5} color={candidate.confidence == null ? "var(--border)" : confidenceColor(candidate.confidence)} />
             </div>
-            <span className="mono tnum" style={s.pct}>
-              {pct}%
+            <span className="mono tnum" style={s.pct} title={pct == null ? t("card.confidenceUnknown") : undefined}>
+              {pct == null ? "—" : `${pct}%`}
             </span>
           </div>
         </div>
@@ -116,7 +120,7 @@ export function ConventionCard({
           </div>
         ) : showEditor ? (
           <div style={s.actions}>
-            <Button kind="primary" size="sm" icon="Sparkles" full loading={busy} disabled={!rule.trim() || nameInvalid} onClick={accept}>
+            <Button kind="primary" size="sm" icon="Sparkles" full loading={busy} disabled={locked || !rule.trim() || nameInvalid} onClick={accept}>
               {busy ? t("card.accepting") : t("card.acceptAsSkill")}
             </Button>
             <Button
@@ -134,13 +138,13 @@ export function ConventionCard({
           </div>
         ) : (
           <div style={s.actions}>
-            <Button kind="primary" size="sm" icon="Sparkles" full loading={busy} onClick={accept}>
+            <Button kind="primary" size="sm" icon="Sparkles" full loading={busy} disabled={locked} onClick={accept}>
               {busy ? t("card.accepting") : t("card.acceptAsSkill")}
             </Button>
-            <Button kind="ghost" size="sm" icon="Edit" full disabled={busy} onClick={() => setEditing(true)}>
+            <Button kind="ghost" size="sm" icon="Edit" full disabled={busy || locked} onClick={() => setEditing(true)}>
               {t("card.editFirst")}
             </Button>
-            <Button kind="ghost" size="sm" icon="X" full disabled={busy} onClick={onReject}>
+            <Button kind="ghost" size="sm" icon="X" full disabled={busy || locked} onClick={onReject}>
               {t("card.reject")}
             </Button>
           </div>

@@ -1,6 +1,7 @@
-import type { ChatMessage, ConventionCandidate } from '@devdigest/shared';
-import type { ConventionRow } from '../../db/rows.js';
-import { CONFIDENCE_CAP_BY_FILES, MAX_CONVENTIONS, MIN_SNIPPET_CHARS } from './constants.js';
+import type { ChatMessage, ConventionCandidate, ConventionScan } from '@devdigest/shared';
+import type { ConventionRow, ConventionScanRow } from '../../db/rows.js';
+import { wrapUntrusted } from '../../platform/prompt.js';
+import { CONFIDENCE_CAP_BY_FILES, MAX_CONVENTIONS, MAX_RULE_CHARS, MAX_SNIPPET_LINES, MIN_SNIPPET_CHARS } from './constants.js';
 
 /** What the model returns per convention in step 2 (before grounding). */
 export interface RawConvention {
@@ -19,7 +20,38 @@ export interface GroundedConvention {
   evidencePath: string;
   /** The file's own lines for that range, dedented — never the model's copy. */
   evidenceSnippet: string;
-  confidence: number;
+  /** Null when the model gave no usable number. */
+  confidence: number | null;
+}
+
+const MARKDOWN_LEAD = /^(?:#{1,6}\s+|[-*+>]\s+|\d+[.)]\s+)/;
+
+/**
+ * SPEC-07 AC-8: a rule is one line — whitespace collapsed, leading Markdown
+ * markers removed, at most MAX_RULE_CHARS (cut at a word). A rule becomes the
+ * heading of a trusted skill, so it must not carry extra lines or sections.
+ */
+export function normalizeRule(rule: string): string {
+  let out = rule.replace(/\s+/g, ' ').trim();
+  for (let prev = ''; prev !== out; ) {
+    prev = out;
+    out = out.replace(MARKDOWN_LEAD, '').trim();
+  }
+  if (out.length <= MAX_RULE_CHARS) return out;
+  const cut = out.slice(0, MAX_RULE_CHARS - 1);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > MAX_RULE_CHARS / 2 ? cut.slice(0, space) : cut).trimEnd()}…`;
+}
+
+/** The key two rules are "the same" by (SPEC-07 AC-10). */
+export const ruleKey = (rule: string) => normalizeRule(rule).toLowerCase();
+
+/** SPEC-07 AC-5: cut a file at the last line break within `max` characters, so no quoted line is half a line. */
+export function clipAtLine(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastBreak = cut.lastIndexOf('\n');
+  return lastBreak > 0 ? cut.slice(0, lastBreak) : cut;
 }
 
 const squash = (line: string) => line.replace(/\s+/g, ' ').trim();
@@ -30,7 +62,7 @@ const squash = (line: string) => line.replace(/\s+/g, ' ').trim();
  * Returns the 1-based inclusive line range, or null when it is not there.
  */
 export function locateSnippet(content: string, snippet: string): { start: number; end: number } | null {
-  const want = snippet.split(/\r?\n/).map(squash).filter(Boolean);
+  const want = snippet.split(/\r?\n/).map(squash).filter(Boolean).slice(0, MAX_SNIPPET_LINES);
   if (want.length === 0 || want.join(' ').length < MIN_SNIPPET_CHARS) return null;
   const lines = content.split(/\r?\n/).map(squash);
   for (let i = 0; i < lines.length; i++) {
@@ -71,27 +103,36 @@ export function confidenceCap(citedPath: string, alsoSeenIn: readonly string[] |
 
 /**
  * Keep only conventions that cite a file the model was shown and quote it for
- * real; re-read the quoted range from the file itself. Duplicates by rule are
- * dropped, confidence is clamped to the ceiling from `confidenceCap`, the list
- * is capped and sorted.
+ * real; re-read the quoted range from the file itself (SPEC-07 AC-7). Rules are
+ * normalized (AC-8); confidence is clamped to the ceiling from `confidenceCap`,
+ * unknown when the model gave no number (AC-9). `dropped` counts rules without a
+ * real quote; `skipped` counts repeats, rules already `accepted` in the repo and
+ * the ones over the limit (AC-10, AC-11).
  */
 export function groundConventions(
   raw: RawConvention[],
   files: ReadonlyMap<string, string>,
-): { kept: GroundedConvention[]; dropped: number } {
+  accepted: ReadonlySet<string> = new Set(),
+): { kept: GroundedConvention[]; dropped: number; skipped: number } {
   const kept: GroundedConvention[] = [];
   const seen = new Set<string>();
   let dropped = 0;
+  let skipped = 0;
   for (const c of raw) {
-    const rule = c.rule.trim();
+    const rule = normalizeRule(c.rule);
     const path = c.evidence_path.trim().replace(/:\d+(?:-\d+)?$/, '');
     const content = files.get(path);
     const at = content === undefined ? null : locateSnippet(content, c.evidence_snippet);
-    if (!rule || !at || seen.has(rule.toLowerCase())) {
+    if (!rule || !at) {
       dropped++;
       continue;
     }
-    seen.add(rule.toLowerCase());
+    const key = rule.toLowerCase();
+    if (seen.has(key) || accepted.has(key)) {
+      skipped++;
+      continue;
+    }
+    seen.add(key);
     const lines = content!.split(/\r?\n/).slice(at.start - 1, at.end);
     kept.push({
       rule,
@@ -99,11 +140,11 @@ export function groundConventions(
       evidenceSnippet: dedent(lines),
       confidence: Number.isFinite(c.confidence)
         ? Math.min(confidenceCap(path, c.also_seen_in, files), Math.max(0, c.confidence))
-        : 0,
+        : null,
     });
   }
-  kept.sort((a, b) => b.confidence - a.confidence);
-  return { kept: kept.slice(0, MAX_CONVENTIONS), dropped: dropped + Math.max(0, kept.length - MAX_CONVENTIONS) };
+  kept.sort((a, b) => (b.confidence ?? -1) - (a.confidence ?? -1));
+  return { kept: kept.slice(0, MAX_CONVENTIONS), dropped, skipped: skipped + Math.max(0, kept.length - MAX_CONVENTIONS) };
 }
 
 const folderOf = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf('/')));
@@ -142,10 +183,9 @@ export function buildExtractionMessages(
   files: ReadonlyMap<string, string>,
   system: string,
 ): ChatMessage[] {
-  const blocks = [...files].map(([path, text]) => {
-    const safe = text.replaceAll('</untrusted>', '<\\/untrusted>');
-    return `<untrusted source="file:${path}">\n${safe}\n</untrusted>`;
-  });
+  // The shared wrapper defuses the closing marker in any case or spacing (SPEC-07 AC-6);
+  // the label sits in an attribute, so a path cannot close it either.
+  const blocks = [...files].map(([path, text]) => wrapUntrusted(`file:${path.replace(/["<>\r\n]/g, '_')}`, text));
   return [
     { role: 'system', content: system },
     { role: 'user', content: `Repository: ${repoName}\n\n${blocks.join('\n\n')}` },
@@ -205,8 +245,21 @@ export function toConventionDto(row: ConventionRow): ConventionCandidate {
     rule: row.rule,
     evidence_path: row.evidencePath ?? '',
     evidence_snippet: row.evidenceSnippet ?? '',
-    confidence: row.confidence ?? 0,
+    confidence: row.confidence ?? null,
     accepted: row.accepted,
+    commit_sha: row.commitSha ?? null,
+  };
+}
+
+export function toScanDto(row: ConventionScanRow): ConventionScan {
+  return {
+    scanned_at: row.scannedAt.toISOString(),
+    files: row.files,
+    model: row.model,
+    cost_usd: row.costUsd,
+    dropped: row.dropped,
+    skipped: row.skipped,
+    commit_sha: row.commitSha,
   };
 }
 

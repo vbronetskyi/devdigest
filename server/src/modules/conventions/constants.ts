@@ -18,6 +18,10 @@ export const CONFIDENCE_CAP_BY_FILES: readonly number[] = [0, 0.6, 0.8, 1];
 export const MAX_CONVENTIONS = 8;
 /** A shorter snippet ("}", "return x;") proves nothing about where it came from. */
 export const MIN_SNIPPET_CHARS = 12;
+/** Lines of a quote that are matched and kept (SPEC-07 AC-7) — the prompt asks for 1–8. */
+export const MAX_SNIPPET_LINES = 8;
+/** A rule is one sentence; longer text is cut at a word (SPEC-07 AC-8). */
+export const MAX_RULE_CHARS = 300;
 /** Total wait per model call. The SDK timeout alone does not bound a stalled body. */
 export const CALL_DEADLINE_MS = 120_000;
 /** Used when the registry default's provider has no key and nothing was picked in Settings. */

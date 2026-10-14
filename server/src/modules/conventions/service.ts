@@ -2,8 +2,8 @@ import { z } from 'zod';
 import type {
   ConventionAcceptRequest,
   ConventionAcceptResult,
-  ConventionCandidate,
   ConventionExtraction,
+  ConventionList,
   LLMProvider,
 } from '@devdigest/shared';
 import type { Container } from '../../platform/container.js';
@@ -27,13 +27,25 @@ import {
   buildExtractionMessages,
   buildSelectionMessages,
   buildSkillBody,
+  clipAtLine,
   groundConventions,
+  normalizeRule,
   pickOffered,
+  ruleKey,
   ruleToSkillName,
   sumCosts,
   toConventionDto,
+  toScanDto,
   uniqueName,
 } from './helpers.js';
+
+/** Attempts at a derived skill name when a concurrent accept takes it first (SPEC-07 AC-17). */
+const NAME_ATTEMPTS = 3;
+/** Postgres unique_violation, as thrown by the driver (or wrapped by drizzle). */
+const isUniqueViolation = (err: unknown) => {
+  const e = err as { code?: string; cause?: { code?: string } };
+  return e?.code === '23505' || e?.cause?.code === '23505';
+};
 
 // Model output shapes. No min/max: strict JSON-schema mode rejects some keywords;
 // limits are applied after parsing.
@@ -76,9 +88,10 @@ export class ConventionsService {
     this.repo = new ConventionsRepository(container.db);
   }
 
-  async list(workspaceId: string, repoId: string): Promise<ConventionCandidate[]> {
+  async list(workspaceId: string, repoId: string): Promise<ConventionList> {
     await this.requireRepo(workspaceId, repoId);
-    return (await this.repo.list(workspaceId, repoId)).map(toConventionDto);
+    const [rows, scan] = await Promise.all([this.repo.list(workspaceId, repoId), this.repo.lastScan(workspaceId, repoId)]);
+    return { candidates: rows.map(toConventionDto), last_scan: scan ? toScanDto(scan) : null };
   }
 
   async extract(workspaceId: string, repoId: string): Promise<ConventionExtraction> {
@@ -105,7 +118,9 @@ export class ConventionsService {
     // A model that picks nothing usable still gets a fair sample: the most central files.
     if (chosen.length === 0) chosen = pickOffered(candidates, candidates, MAX_SELECTED_FILES, MAX_FILES_PER_FOLDER);
 
-    const files = await this.readFiles({ owner: repo.owner, name: repo.name }, chosen);
+    const ref = { owner: repo.owner, name: repo.name };
+    const commitSha = await this.container.git.currentHead(ref).catch(() => null);
+    const files = await this.readFiles(ref, chosen);
     if (files.size === 0) {
       throw new AppError('clone_unreadable', 'None of the selected files could be read from the local clone.', 409);
     }
@@ -121,35 +136,47 @@ export class ConventionsService {
       CALL_DEADLINE_MS,
       'Extracting conventions',
     );
-    const { kept, dropped } = groundConventions(extraction.data.conventions, files);
-    await this.repo.replacePending(workspaceId, repoId, kept);
+    // AC-10: a rule the repo already accepted is not proposed again.
+    const accepted = new Set((await this.repo.list(workspaceId, repoId)).filter((c) => c.accepted).map((c) => ruleKey(c.rule)));
+    const { kept, dropped, skipped } = groundConventions(extraction.data.conventions, files, accepted);
+    const costUsd = sumCosts([selection.costUsd, extraction.costUsd]);
+    await this.repo.replacePending(workspaceId, repoId, kept, { files: [...files.keys()], model, costUsd, dropped, skipped, commitSha });
 
-    return {
-      candidates: (await this.repo.list(workspaceId, repoId)).map(toConventionDto),
-      sampled_files: [...files.keys()],
-      dropped,
-      model,
-      cost_usd: sumCosts([selection.costUsd, extraction.costUsd]),
-    };
+    const stored = await this.list(workspaceId, repoId);
+    return { candidates: stored.candidates, sampled_files: [...files.keys()], dropped, skipped, model, cost_usd: costUsd, scan: stored.last_scan };
   }
 
   async accept(workspaceId: string, id: string, req: ConventionAcceptRequest): Promise<ConventionAcceptResult> {
     const current = await this.repo.get(workspaceId, id);
     if (!current) throw new NotFoundError('Convention not found');
-    const rule = req.rule ?? current.rule;
+    // AC-8: the rule becomes a trusted skill's heading — one line, bounded, edited or not.
+    const rule = normalizeRule(req.rule ?? current.rule);
+    if (!rule) throw new AppError('invalid_rule', 'The rule is empty once Markdown markers are removed.', 422);
     const evidencePath = current.evidencePath ?? '';
     const evidenceFile = evidencePath.replace(/:\d+(?:-\d+)?$/, '');
-    const outcome = await this.repo.accept({
+    const input = {
       workspaceId,
       conventionId: id,
       rule,
       ...(req.name ? { name: req.name } : {}),
       baseName: ruleToSkillName(rule),
       description: rule.length > 200 ? `${rule.slice(0, 197)}…` : rule,
-      body: (r) => buildSkillBody(r, evidencePath, current.evidenceSnippet ?? ''),
+      body: (r: string) => buildSkillBody(r, evidencePath, current.evidenceSnippet ?? ''),
       evidenceFile,
       uniqueName,
-    });
+    };
+    // AC-17: the database keeps names unique; a concurrent accept that took the
+    // derived name first sends this one to the next free suffix.
+    let outcome: Awaited<ReturnType<ConventionsRepository['accept']>> | null = null;
+    for (let attempt = 1; outcome === null; attempt++) {
+      try {
+        outcome = await this.repo.accept(input);
+      } catch (err) {
+        if (!isUniqueViolation(err)) throw err;
+        if (req.name) outcome = { kind: 'name_taken', name: req.name };
+        else if (attempt >= NAME_ATTEMPTS) throw new AppError('conflict', 'Could not find a free skill name; try again.', 409);
+      }
+    }
     switch (outcome.kind) {
       case 'not_found':
         throw new NotFoundError('Convention not found');
@@ -194,7 +221,7 @@ export class ConventionsService {
         continue;
       }
       if (!text.trim()) continue;
-      const clipped = text.slice(0, Math.min(MAX_FILE_CHARS, MAX_TOTAL_CHARS - total));
+      const clipped = clipAtLine(text, Math.min(MAX_FILE_CHARS, MAX_TOTAL_CHARS - total));
       if (!clipped) break;
       out.set(path, clipped);
       total += clipped.length;

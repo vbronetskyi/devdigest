@@ -224,10 +224,36 @@ export const ConventionCandidate = z.object({
   rule: z.string(),
   evidence_path: z.string(),
   evidence_snippet: z.string(),
-  confidence: z.number().min(0).max(1),
+  /** Null when the model gave no usable number (unknown is not 0). */
+  confidence: z.number().min(0).max(1).nullable(),
   accepted: z.boolean(),
+  /** The clone's commit the evidence was read at; absent/null for rows from before it was recorded. */
+  commit_sha: z.string().nullish(),
 });
 export type ConventionCandidate = z.infer<typeof ConventionCandidate>;
+
+/** The last scan of a repository (SPEC-07 AC-13). */
+export const ConventionScan = z.object({
+  scanned_at: z.string(),
+  /** Files the model actually read. */
+  files: z.array(z.string()),
+  model: z.string(),
+  /** USD billed for both model calls; null when a provider reported no cost. */
+  cost_usd: z.number().nullable(),
+  /** Rules without a real quote in the cited file. */
+  dropped: z.number().int(),
+  /** Repeats, already accepted rules, and rules over the per-scan limit. */
+  skipped: z.number().int(),
+  commit_sha: z.string().nullable(),
+});
+export type ConventionScan = z.infer<typeof ConventionScan>;
+
+/** `GET /repos/:id/conventions`: stored candidates and the last scan. */
+export const ConventionList = z.object({
+  candidates: z.array(ConventionCandidate),
+  last_scan: ConventionScan.nullable(),
+});
+export type ConventionList = z.infer<typeof ConventionList>;
 
 /** Result of one extraction pass over a repo. */
 export const ConventionExtraction = z.object({
@@ -235,11 +261,14 @@ export const ConventionExtraction = z.object({
   candidates: z.array(ConventionCandidate),
   /** Files the model actually read. */
   sampled_files: z.array(z.string()),
-  /** Conventions dropped because their snippet was not found in the cited file. */
+  /** Rules dropped because their quote was not found in the cited file (or was empty / too short). */
   dropped: z.number().int(),
+  /** Rules skipped as repeats, already accepted, or over the per-scan limit. */
+  skipped: z.number().int().nullish(),
   model: z.string(),
   /** USD billed for both model calls; null when the provider reported no cost. */
   cost_usd: z.number().nullable(),
+  scan: ConventionScan.nullish(),
 });
 export type ConventionExtraction = z.infer<typeof ConventionExtraction>;
 

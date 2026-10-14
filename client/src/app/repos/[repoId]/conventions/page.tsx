@@ -14,6 +14,7 @@ import { useAcceptConvention, useConventions, useExtractConventions, useRejectCo
 import { useActiveRepo, useRepoNotFound } from "@/lib/repo-context";
 import { ApiError } from "@/lib/api";
 import { formatCost } from "@/lib/format-cost";
+import { relativeTime } from "@/lib/relative-time";
 import { notify } from "@/lib/toast";
 import { ConventionCard } from "./_components/ConventionCard";
 import { s } from "./styles";
@@ -32,7 +33,9 @@ export default function ConventionsPage() {
   const reject = useRejectConvention(repoId);
   const [busy, setBusy] = React.useState<ReadonlySet<string>>(new Set());
   const [skillIds, setSkillIds] = React.useState<Record<string, string>>({});
-  const [lastScan, setLastScan] = React.useState<ConventionExtraction | null>(null);
+  // The counts of a scan run in this session (AC-22); the scan record itself is stored.
+  const [justScanned, setJustScanned] = React.useState<ConventionExtraction | null>(null);
+  const [bulk, setBulk] = React.useState(false);
 
   const crumb = [{ label: t("page.crumbLab") }, { label: t("page.crumbConventions") }];
   if (repoNotFound) {
@@ -43,7 +46,8 @@ export default function ConventionsPage() {
     );
   }
 
-  const candidates = list ?? [];
+  const candidates = list?.candidates ?? [];
+  const scanRecord = list?.last_scan ?? null;
   const pending = candidates.filter((c) => !c.accepted);
   const mark = (id: string, on: boolean) =>
     setBusy((prev) => {
@@ -76,25 +80,32 @@ export default function ConventionsPage() {
     }
   };
   // Sequential on purpose: each accept takes a row lock and may pick a suffixed name.
-  const acceptAll = async () => {
-    for (const c of pending) await acceptOne(c.id);
+  // While it runs no card can start its own action (AC-23).
+  const runBulk = async (fn: (id: string) => Promise<void>) => {
+    setBulk(true);
+    try {
+      for (const c of pending) await fn(c.id);
+    } finally {
+      setBulk(false);
+    }
   };
+  const acceptAll = () => runBulk((id) => acceptOne(id));
   const rejectAll = async () => {
     if (!window.confirm(t("page.rejectAllConfirm", { count: pending.length }))) return;
-    for (const c of pending) await rejectOne(c.id);
+    await runBulk(rejectOne);
   };
-  const scan = () => extract.mutate(undefined, { onSuccess: setLastScan });
+  const scan = () => extract.mutate(undefined, { onSuccess: setJustScanned });
 
-  const subtitle = lastScan
-    ? t("page.scanSummary", {
-        files: lastScan.sampled_files.length,
-        model: lastScan.model,
-        dropped: lastScan.dropped,
-        cost: formatCost(lastScan.cost_usd),
+  // AC-19: the stored scan, so the summary survives a reload.
+  const subtitle = scanRecord
+    ? t("page.lastScan", {
+        files: scanRecord.files.length,
+        ago: relativeTime(scanRecord.scanned_at),
+        model: scanRecord.model,
+        cost: formatCost(scanRecord.cost_usd),
       })
-    : candidates.length > 0
-      ? t("page.candidateCount", { count: candidates.length })
-      : t("page.subtitle");
+    : t("page.subtitle");
+  const neverScanned = candidates.length === 0 && !scanRecord;
 
   return (
     <AppShell crumb={crumb}>
@@ -104,16 +115,24 @@ export default function ConventionsPage() {
             <h1 style={s.h1}>
               {t("page.headingPrefix")}
               <span className="mono" style={s.repo}>
-                {activeRepo?.full_name ?? t("page.repoFallback")}
+                {activeRepo?.name ?? t("page.repoFallback")}
               </span>
             </h1>
             <p style={s.subtitle}>{subtitle}</p>
+            {justScanned && (
+              <p style={s.subtitle} role="status">
+                {t("page.scanCounts", { dropped: justScanned.dropped, skipped: justScanned.skipped ?? 0 })}
+              </p>
+            )}
           </div>
-          <span title={t("page.costHint")}>
-            <Button kind="secondary" size="sm" icon="RefreshCw" loading={extract.isPending} onClick={scan}>
-              {extract.isPending ? t("page.scanning") : candidates.length ? t("page.rescan") : t("page.runExtraction")}
-            </Button>
-          </span>
+          {/* AC-20: before the first scan the empty state holds the only button. */}
+          {!neverScanned && (
+            <span title={t("page.costHint")}>
+              <Button kind="secondary" size="sm" icon="RefreshCw" loading={extract.isPending} disabled={bulk} onClick={scan}>
+                {extract.isPending ? t("page.scanning") : t("page.rescan")}
+              </Button>
+            </span>
+          )}
         </div>
 
         {extract.isError && (
@@ -124,10 +143,10 @@ export default function ConventionsPage() {
 
         {pending.length > 1 && (
           <div style={s.bulk}>
-            <Button kind="ghost" size="sm" icon="Check" disabled={busy.size > 0} onClick={acceptAll}>
+            <Button kind="ghost" size="sm" icon="Check" disabled={bulk || busy.size > 0} onClick={acceptAll}>
               {t("page.acceptAll", { count: pending.length })}
             </Button>
-            <Button kind="ghost" size="sm" icon="X" disabled={busy.size > 0} onClick={rejectAll}>
+            <Button kind="ghost" size="sm" icon="X" disabled={bulk || busy.size > 0} onClick={rejectAll}>
               {t("page.rejectAll")}
             </Button>
           </div>
@@ -140,7 +159,7 @@ export default function ConventionsPage() {
           </div>
         ) : isError ? (
           <ErrorState title={t("page.loadError")} body={messageOf(error)} onRetry={() => refetch()} />
-        ) : candidates.length === 0 ? (
+        ) : neverScanned ? (
           <EmptyState
             icon="ListChecks"
             title={t("page.empty.title")}
@@ -149,6 +168,8 @@ export default function ConventionsPage() {
             onCta={scan}
             ctaLoading={extract.isPending}
           />
+        ) : candidates.length === 0 ? (
+          <p style={s.subtitle}>{t("page.nothingFound")}</p>
         ) : (
           candidates.map((c) => (
             <ConventionCard
@@ -157,6 +178,7 @@ export default function ConventionsPage() {
               repoFullName={activeRepo?.full_name ?? ""}
               branch={activeRepo?.default_branch ?? "main"}
               busy={busy.has(c.id)}
+              locked={bulk}
               {...(skillIds[c.id] ? { skillId: skillIds[c.id] } : {})}
               onAccept={(overrides) => acceptOne(c.id, overrides)}
               onReject={() => rejectOne(c.id)}

@@ -36,6 +36,20 @@ describe("ConventionCard", () => {
     expect(screen.getByText("90%")).toBeInTheDocument();
   });
 
+  it("SPEC-07 AC-21: links at the commit the quote was read at; unknown confidence is a dash", () => {
+    renderCard({ candidate: { ...CANDIDATE, commit_sha: "c0ffee1", confidence: null } });
+    expect(screen.getByRole("link", { name: CANDIDATE.evidence_path })).toHaveAttribute(
+      "href",
+      "https://github.com/acme/api/blob/c0ffee1/server/src/modules/skills/routes.ts#L28-L31",
+    );
+    expect(screen.getByText("—")).toHaveAttribute("title", "The model gave no confidence for this rule.");
+  });
+
+  it("SPEC-07 AC-23: a locked card cannot start an action", () => {
+    renderCard({ locked: true });
+    for (const name of ["Accept as Skill", "Edit first", "Reject"]) expect(screen.getByRole("button", { name })).toBeDisabled();
+  });
+
   it("accepts as-is and rejects", () => {
     const h = renderCard();
     fireEvent.click(screen.getByRole("button", { name: "Accept as Skill" }));

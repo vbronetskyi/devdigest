@@ -6,8 +6,8 @@ import { api } from "../api";
 import type {
   ConventionAcceptRequest,
   ConventionAcceptResult,
-  ConventionCandidate,
   ConventionExtraction,
+  ConventionList,
 } from "@devdigest/shared";
 
 const key = (repoId: string | null | undefined) => ["conventions", repoId];
@@ -15,7 +15,7 @@ const key = (repoId: string | null | undefined) => ["conventions", repoId];
 export function useConventions(repoId: string | null | undefined) {
   return useQuery({
     queryKey: key(repoId),
-    queryFn: () => api.get<ConventionCandidate[]>(`/repos/${repoId}/conventions`),
+    queryFn: () => api.get<ConventionList>(`/repos/${repoId}/conventions`),
     enabled: !!repoId,
   });
 }
@@ -25,7 +25,8 @@ export function useExtractConventions(repoId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => api.post<ConventionExtraction>(`/repos/${repoId}/conventions/extract`, {}),
-    onSuccess: (res) => qc.setQueryData(key(repoId), res.candidates),
+    onSuccess: (res) =>
+      qc.setQueryData<ConventionList>(key(repoId), (prev) => ({ candidates: res.candidates, last_scan: res.scan ?? prev?.last_scan ?? null })),
   });
 }
 
@@ -35,8 +36,8 @@ export function useAcceptConvention(repoId: string) {
     mutationFn: ({ id, ...overrides }: { id: string } & ConventionAcceptRequest) =>
       api.post<ConventionAcceptResult>(`/conventions/${id}/accept`, overrides),
     onSuccess: (res) => {
-      qc.setQueryData<ConventionCandidate[]>(key(repoId), (list) =>
-        list?.map((c) => (c.id === res.convention.id ? res.convention : c)),
+      qc.setQueryData<ConventionList>(key(repoId), (list) =>
+        list && { ...list, candidates: list.candidates.map((c) => (c.id === res.convention.id ? res.convention : c)) },
       );
       qc.invalidateQueries({ queryKey: ["skills"] });
     },
@@ -48,6 +49,6 @@ export function useRejectConvention(repoId: string) {
   return useMutation({
     mutationFn: (id: string) => api.del<{ ok: true }>(`/conventions/${id}`),
     onSuccess: (_res, id) =>
-      qc.setQueryData<ConventionCandidate[]>(key(repoId), (list) => list?.filter((c) => c.id !== id)),
+      qc.setQueryData<ConventionList>(key(repoId), (list) => list && { ...list, candidates: list.candidates.filter((c) => c.id !== id) }),
   });
 }

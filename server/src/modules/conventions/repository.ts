@@ -1,7 +1,7 @@
-import { and, desc, eq, like } from 'drizzle-orm';
+import { and, desc, eq, like, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
-import type { ConventionRow } from '../../db/rows.js';
+import type { ConventionRow, ConventionScanRow } from '../../db/rows.js';
 import type { GroundedConvention } from './helpers.js';
 
 export type { ConventionRow };
@@ -40,21 +40,37 @@ export class ConventionsRepository {
     return row;
   }
 
-  /** Candidates for a repo: accepted ones first, then by confidence. */
+  /** Candidates for a repo: accepted ones first, then by confidence, unknown last (SPEC-07 AC-15). */
   async list(workspaceId: string, repoId: string): Promise<ConventionRow[]> {
     return this.db
       .select()
       .from(t.conventions)
       .where(and(eq(t.conventions.workspaceId, workspaceId), eq(t.conventions.repoId, repoId)))
-      .orderBy(desc(t.conventions.accepted), desc(t.conventions.confidence));
+      .orderBy(desc(t.conventions.accepted), sql`${t.conventions.confidence} desc nulls last`);
+  }
+
+  async lastScan(workspaceId: string, repoId: string): Promise<ConventionScanRow | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(t.conventionScans)
+      .where(and(eq(t.conventionScans.workspaceId, workspaceId), eq(t.conventionScans.repoId, repoId)));
+    return row;
   }
 
   /**
    * A new pass replaces the repo's pending candidates; accepted ones stay as the
-   * record of what became a skill.
+   * record of what became a skill. The scan record is written with it. A per-repo
+   * advisory lock serializes concurrent passes, so the last one wins whole
+   * (SPEC-07 AC-12, AC-13).
    */
-  async replacePending(workspaceId: string, repoId: string, rows: GroundedConvention[]): Promise<void> {
+  async replacePending(
+    workspaceId: string,
+    repoId: string,
+    rows: GroundedConvention[],
+    scan: Omit<typeof t.conventionScans.$inferInsert, 'repoId' | 'workspaceId'>,
+  ): Promise<void> {
     await this.db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`conventions:${repoId}`}))`);
       await tx
         .delete(t.conventions)
         .where(
@@ -64,6 +80,8 @@ export class ConventionsRepository {
             eq(t.conventions.accepted, false),
           ),
         );
+      const record = { ...scan, workspaceId, repoId, scannedAt: new Date() };
+      await tx.insert(t.conventionScans).values(record).onConflictDoUpdate({ target: t.conventionScans.repoId, set: record });
       if (rows.length === 0) return;
       await tx.insert(t.conventions).values(
         rows.map((r) => ({
@@ -73,6 +91,7 @@ export class ConventionsRepository {
           evidencePath: r.evidencePath,
           evidenceSnippet: r.evidenceSnippet,
           confidence: r.confidence,
+          commitSha: scan.commitSha ?? null,
         })),
       );
     });
