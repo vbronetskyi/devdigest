@@ -41,9 +41,10 @@ Scan
 - **AC-4** Step 1: the model picks files from the candidates; only offered paths survive,
   at most 10, at most 2 per folder. IF none survives, THEN the top candidates are used by
   the same rule. The server shall never read a path that was not offered.
-- **AC-5** The picked files shall be read from the local clone, each cut at a line
-  boundary within 8,000 characters and all within 60,000; unreadable or empty files are
-  skipped; IF none is readable, THEN 409 `clone_unreadable`.
+- **AC-5** The picked files shall be read from the local clone, each cut at the last line
+  break within 8,000 characters (mid-line only when one line alone is longer) and all
+  within 60,000; unreadable or empty files are skipped; IF none is readable, THEN 409
+  `clone_unreadable`.
 - **AC-6** Step 2: each file goes to the model in its own untrusted block whose label is
   the escaped path and whose closing marker cannot be written by the file in any case or
   spacing, under fixed instructions saying the blocks are data.
@@ -84,7 +85,9 @@ Review
   takes the first free `-2`, `-3`… suffix, also when a concurrent accept took the name
   first.
 - **AC-18** Accepting an accepted convention gives 409 `already_accepted`; rejecting
-  deletes a pending candidate.
+  deletes a pending candidate, and an accepted one cannot be rejected (409
+  `already_accepted`) — it is the record of a skill and keeps its rule from being proposed
+  again.
 
 UI
 - **AC-19** The page "Conventions in <repository name>" shall load stored candidates only
@@ -94,7 +97,8 @@ UI
   "Run extraction" button.
 - **AC-21** A card shall show the rule, the confidence (or "—"), the evidence linked on
   GitHub at the commit it was read at, the quote with a copy button, and Accept / Edit
-  first / Reject; an accepted card is read-only with a link to its skill.
+  first / Reject; an accepted card is read-only with a link to its skill, also after a
+  reload (the convention keeps its skill's id).
 - **AC-22** After a scan the page shall say how many rules were dropped for having no real
   quote and how many were skipped as repeats or over the limit.
 - **AC-23** "Accept all" / "Reject all" (2+ pending) shall act one card at a time, and
@@ -126,9 +130,15 @@ model names are checked against the offered list (AC-4); quotes are replaced by 
 own lines (AC-7); rules are normalized (AC-8) and shown to a maintainer before they can
 become a skill; the UI renders them as text.
 
+## Edge cases (storage)
+
+- Migration 0012 makes skill names unique per workspace; a database that already holds
+  two skills with one name in a workspace must rename one before it (see
+  `server/specs/conventions.md`).
+
 ## Contract
 
-`ConventionCandidate` gains `commit_sha` (nullable) and a nullable `confidence`.
+`ConventionCandidate` gains `commit_sha`, `skill_id` (nullable) and a nullable `confidence`.
 `ConventionExtraction` gains `skipped` and `scan`. New `ConventionScan` (`scanned_at`,
 `files`, `model`, `cost_usd`, `dropped`, `skipped`, `commit_sha`) and `ConventionList`
 (`candidates`, `last_scan`) — the answer of `GET /repos/:id/conventions`.
@@ -142,3 +152,8 @@ become a skill; the UI renders them as text.
   the commit per candidate (AC-12), the stored last scan (AC-13, AC-19), unique skill
   names (AC-17), root-level test and migration folders (AC-2), one empty-state button
   (AC-20), no concurrent card actions during bulk (AC-23).
+- 2026-10-14 — after the second check: AC-5 says when a cut is mid-line; AC-18 refuses to
+  reject an accepted convention; AC-21 keeps the skill link after a reload; the model's
+  schema allows an unknown confidence (it was required, so "unknown" could not happen);
+  the skill body's example fence is longer than any fence-like run in the quote; the
+  duplicate-name precondition of migration 0012 stated.
