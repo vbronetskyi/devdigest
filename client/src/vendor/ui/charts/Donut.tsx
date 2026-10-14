@@ -19,8 +19,8 @@ export function Donut({
   size?: number;
   stroke?: number;
   valuePrefix?: string;
-  /** Legend text for a value; default `${valuePrefix}${value.toFixed(2)}` (sub-cent costs need their own). */
-  format?: (value: number) => string;
+  /** Legend text for a segment's value; default `${valuePrefix}${value.toFixed(2)}` (sub-cent costs need their own). */
+  format?: (value: number, index: number) => string;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -49,7 +49,7 @@ export function Donut({
             <span style={{ width: 9, height: 9, borderRadius: 2, background: s.color }} />
             <span style={{ color: "var(--text-secondary)", flex: 1 }}>{s.label}</span>
             <span className="mono tnum" style={{ color: "var(--text-primary)", fontWeight: 600 }}>
-              {format ? format(s.value) : `${valuePrefix}${s.value.toFixed(2)}`}
+              {format ? format(s.value, i) : `${valuePrefix}${s.value.toFixed(2)}`}
             </span>
           </div>
         ))}

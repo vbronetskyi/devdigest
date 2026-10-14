@@ -77,12 +77,16 @@ const renderView = () =>
     </NextIntlClientProvider>,
   );
 
+const agentRow = (name: string) => screen.getByRole("button", { name }).closest("tr")!;
+
 // SPEC-05 AC-11 – AC-15.
 describe("AgentPerformanceView", () => {
-  it("AC-11/AC-14: four cards; unknown values are a dash with a reason, small costs keep their digits", () => {
+  it("AC-11/AC-14: four cards with the daily sparkline; unknown values are a dash with a reason, small costs keep their digits", () => {
     h.state = { ...h.state, data: DATA, isLoading: false, isError: false };
     renderView();
-    expect(within(screen.getByLabelText("TOTAL RUNS (30D)")).getByText("14")).toBeTruthy();
+    const runsCard = screen.getByLabelText("TOTAL RUNS (30D)");
+    expect(within(runsCard).getByText("14")).toBeTruthy();
+    expect(runsCard.querySelector("svg")).not.toBeNull();
     expect(screen.getByText("2 failed")).toBeTruthy();
     expect(within(screen.getByLabelText("TOTAL COST (30D)")).getByText("$0.0091")).toBeTruthy();
     expect(screen.getByText("no cost known for the previous 30 days")).toBeTruthy();
@@ -90,23 +94,86 @@ describe("AgentPerformanceView", () => {
     expect(within(screen.getByLabelText("ACCEPT RATE")).getByText("63%")).toBeTruthy();
     expect(screen.getByText("of 16 decided findings")).toBeTruthy();
     expect(screen.getByText("12 runs · 80% accept")).toBeTruthy();
-    // The deleted agent's unknown accept rate and cost carry their reasons.
-    const deleted = screen.getByRole("row", { name: "Show recent runs of deleted agent" });
+    // The deleted agent's unknown accept rate and cost carry their reasons, readable without hovering.
+    const deleted = agentRow("deleted agent");
     expect(within(deleted).getAllByText("—").length).toBeGreaterThanOrEqual(3);
-    expect(within(deleted).getAllByTitle("Nothing decided yet: accept or dismiss findings to get a rate.").length).toBe(1);
+    expect(within(deleted).getAllByTitle(performance.unknown.decided)).toHaveLength(1);
+    expect(within(deleted).getByText(performance.unknown.cost)).toBeTruthy();
   });
 
-  it("AC-12/AC-13: the trend has a text label; a row opens its runs — a failed run's figures are dashes, a deleted PR is unlinked", () => {
-    h.state = { ...h.state, data: DATA };
+  it("AC-14: an unknown cost this window is not a missing previous one; no current agent and an all-failed agent say why", () => {
+    const allFailed = agent({ agent_id: "a2", name: "Broken Reviewer", runs: 3, failed: 3, cost_usd: null, avg_cost_usd: null, avg_duration_ms: null, accept_rate: null, decided: 0, accept_trend: null, low_sample: true });
+    h.state = {
+      ...h.state,
+      data: { ...DATA, totals: { ...DATA.totals, cost_usd: null, prev_cost_usd: 0.002, cost_change_usd: null, most_active: null }, agents: [allFailed] },
+    };
     renderView();
-    expect(screen.getByRole("img", { name: "up against the previous window" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("row", { name: "Show recent runs of Security Reviewer" }));
-    const runs = screen.getAllByTestId("recent-run");
+    const cost = screen.getByLabelText("TOTAL COST (30D)");
+    expect(within(cost).getByText("no cost known in this window")).toBeTruthy();
+    expect(within(cost).queryByText(/previous 30 days/)).toBeNull();
+    expect(within(screen.getByLabelText("MOST-ACTIVE AGENT")).getByTitle(performance.unknown.mostActive)).toBeTruthy();
+    expect(within(agentRow("Broken Reviewer")).getAllByTitle(performance.unknown.allFailed)).toHaveLength(2);
+    cleanup();
+    h.state = { ...h.state, data: { ...DATA, totals: { ...DATA.totals, most_active: { ...DATA.totals.most_active!, accept_rate: null } } } };
+    renderView();
+    expect(within(screen.getByLabelText("MOST-ACTIVE AGENT")).getByTitle(performance.unknown.decided)).toBeTruthy();
+  });
+
+  it("AC-12: a table with every value under its column; trends have text labels, a low sample is marked", () => {
+    const down = agent({ agent_id: "a3", name: "Style Reviewer", accept_rate: 0.4, accept_trend: "down", decided: 3, low_sample: true });
+    const flat = agent({ agent_id: "a4", name: "Docs Reviewer", accept_trend: "flat" });
+    h.state = { ...h.state, data: { ...DATA, agents: [...DATA.agents, down, flat] } };
+    renderView();
+    const table = screen.getByRole("table", { name: performance.table.caption });
+    expect(within(table).getAllByRole("columnheader").map((c) => c.textContent)).toEqual(["Agent", "Runs", "Avg cost", "Avg dur.", "Accept", "Last run"]);
+    const row = agentRow("Security Reviewer");
+    expect(within(row).getByRole("rowheader")).toBeTruthy();
+    expect(within(row).getAllByRole("cell")).toHaveLength(6);
+    expect(within(row).getByRole("img", { name: "up against the previous window" })).toBeTruthy();
+    expect(within(agentRow("Style Reviewer")).getByRole("img", { name: "down against the previous window" })).toBeTruthy();
+    expect(within(agentRow("Style Reviewer")).getByTitle(performance.table.lowSampleHint)).toBeTruthy();
+    expect(within(agentRow("Docs Reviewer")).getByRole("img", { name: "about the same as the previous window" })).toBeTruthy();
+    // Nothing decided: no "low sample" next to a dash.
+    expect(within(agentRow("deleted agent")).queryByText("low sample")).toBeNull();
+  });
+
+  it("AC-13: the agent's button opens its runs — a failed run's figures are dashes, a missing figure of a finished run says so, a deleted PR is unlinked", () => {
+    const withGap = { ...DATA.agents[0]!.recent[0]!, run_id: "r3", score: null };
+    h.state = { ...h.state, data: { ...DATA, agents: [{ ...DATA.agents[0]!, recent: [...DATA.agents[0]!.recent, withGap] }, DATA.agents[1]!] } };
+    renderView();
+    const toggle = screen.getByRole("button", { name: "Security Reviewer" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    const panel = document.getElementById(toggle.getAttribute("aria-controls")!)!;
+    const runs = within(panel).getAllByTestId("recent-run");
     expect(within(runs[0]!).getByRole("link").getAttribute("href")).toBe("/repos/repo/pulls/3?tab=findings");
     expect(within(runs[0]!).getByText("score 61")).toBeTruthy();
     expect(within(runs[1]!).queryByRole("link")).toBeNull();
     expect(within(runs[1]!).getByText("deleted pull request")).toBeTruthy();
-    expect(within(runs[1]!).getAllByTitle("A failed run records no score, findings, duration or cost.")).toHaveLength(4);
+    expect(within(runs[1]!).getAllByTitle(performance.unknown.failed)).toHaveLength(4);
+    expect(within(runs[2]!).getAllByTitle(performance.unknown.notRecorded)).toHaveLength(1);
+    fireEvent.click(toggle);
+    expect(screen.queryAllByTestId("recent-run")).toHaveLength(0);
+  });
+
+  it("AC-8/AC-11: the breakdown shows each slice's cost and share; an unknown model is labelled", () => {
+    h.state = {
+      ...h.state,
+      data: {
+        ...DATA,
+        cost_by_agent: [
+          { label: "Security Reviewer", key: "a1", cost_usd: 0.0054, share: 0.75 },
+          { label: "deleted agent", key: null, cost_usd: 0.0018, share: 0.25 },
+        ],
+      },
+    };
+    renderView();
+    const byAgent = screen.getByLabelText("By agent");
+    expect(within(byAgent).getByText("$0.0054 · 75%")).toBeTruthy();
+    expect(within(byAgent).getByText("deleted agent")).toBeTruthy();
+    expect(within(screen.getByLabelText("By model")).getByText(performance.breakdown.unknownModel)).toBeTruthy();
+    expect(within(screen.getByLabelText("By model")).getByText("$0.0072 · 100%")).toBeTruthy();
   });
 
   it("AC-11: the window selector asks for 7, 30 or 90 days", () => {
@@ -119,7 +186,7 @@ describe("AgentPerformanceView", () => {
     expect(h.days.at(-1)).toBe(90);
   });
 
-  it("AC-15: an empty window points to the pull requests; a failed request offers a retry", () => {
+  it("AC-15: an empty window points to the pull requests; a failed request offers a retry that refetches", () => {
     h.state = { ...h.state, data: { ...DATA, totals: { ...DATA.totals, runs: 0 }, agents: [] } };
     renderView();
     fireEvent.click(screen.getByRole("button", { name: "Open pull requests" }));
@@ -128,5 +195,7 @@ describe("AgentPerformanceView", () => {
     h.state = { ...h.state, data: undefined, isError: true, error: new Error("boom") };
     renderView();
     expect(screen.getByText("Could not load agent performance.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+    expect(h.state.refetch).toHaveBeenCalledTimes(1);
   });
 });

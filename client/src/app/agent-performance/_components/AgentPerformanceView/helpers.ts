@@ -1,5 +1,6 @@
 import type { AgentPerfRun } from "@devdigest/shared";
 import { formatCost } from "@/lib/format-cost";
+import { SLICE_COLORS } from "./constants";
 
 /** "52s", "1m 05s"; null when unknown (the caller shows "—" with a reason). */
 export function formatDuration(ms: number | null): string | null {
@@ -20,4 +21,28 @@ export function runHref(run: AgentPerfRun): string | null {
 /** A cost change as sign + amount in the app's cost format. */
 export function signedCost(change: number): { sign: string; amount: string } {
   return { sign: change > 0 ? "+" : change < 0 ? "−" : "±", amount: formatCost(Math.abs(change)) };
+}
+
+/**
+ * A colour per slice key that does not depend on the slice's position: the key hashes to
+ * a palette slot, and a taken slot passes to the next free one (keys placed in sorted
+ * order, so the same set always gets the same colours). Past the palette, colours repeat.
+ */
+export function sliceColors(keys: readonly (string | null)[]): string[] {
+  const n = SLICE_COLORS.length;
+  const taken = new Set<number>();
+  const slot = new Map<string, number>();
+  for (const k of [...new Set(keys.map((k) => k ?? ""))].sort()) {
+    let i = fnv1a(k) % n;
+    for (let step = 0; step < n && taken.has(i); step++) i = (i + 1) % n;
+    taken.add(i);
+    slot.set(k, i);
+  }
+  return keys.map((k) => SLICE_COLORS[slot.get(k ?? "")!]!);
+}
+
+function fnv1a(text: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193) >>> 0;
+  return h;
 }

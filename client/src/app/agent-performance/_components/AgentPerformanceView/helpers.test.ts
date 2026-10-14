@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { formatDuration, percent, runHref, signedCost } from "./helpers";
+import { formatDuration, percent, runHref, signedCost, sliceColors } from "./helpers";
+import { SLICE_COLORS } from "./constants";
 
 describe("agent performance helpers (SPEC-05)", () => {
   it("formats durations and rates, unknown as null", () => {
@@ -19,5 +20,15 @@ describe("agent performance helpers (SPEC-05)", () => {
   it("AC-14: a cost change keeps the app's cost format", () => {
     expect(signedCost(0.00042)).toEqual({ sign: "+", amount: "$0.00042" });
     expect(signedCost(-1.2)).toEqual({ sign: "−", amount: "$1.20" });
+  });
+
+  it("AC-11: a slice keeps its colour whatever its position, and slices do not share one", () => {
+    const keys = ["agent-a", "agent-b", null, "agent-c"];
+    const colors = sliceColors(keys);
+    expect(new Set(colors).size).toBe(4);
+    const reordered = sliceColors(["agent-c", null, "agent-a", "agent-b"]);
+    expect(reordered).toEqual([colors[3], colors[2], colors[0], colors[1]]);
+    // Seven slices over a six-colour palette: every colour is used before one repeats.
+    expect(new Set(sliceColors(["1", "2", "3", "4", "5", "6", "7"])).size).toBe(SLICE_COLORS.length);
   });
 });

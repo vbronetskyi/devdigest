@@ -20,8 +20,8 @@
     "accept": "ACCEPT RATE",
     "acceptSub": "{count, plural, =0 {nothing decided yet} one {of # decided finding} other {of # decided findings}}",
     "mostActive": "MOST-ACTIVE AGENT",
-    "mostActiveSub": "{runs, plural, one {# run} other {# runs}} · {accept} accept",
-    "none": "—"
+    "mostActiveSub": "{runs, plural, one {# run} other {# runs}} · <rate>{accept}</rate> accept",
+    "costUnknown": "no cost known in this window"
   },
   "table": {
     "agent": "Agent",
@@ -40,24 +40,30 @@
     },
     "deletedAgent": "deleted agent",
     "deletedPr": "deleted pull request",
-    "expand": "Show recent runs of {name}",
-    "recent": "Last runs in this window",
+    "recent": "Last runs of {name} in this window",
     "failed": "failed",
     "done": "done",
     "score": "score {score}",
     "findings": "{count, plural, one {# finding} other {# findings}}",
-    "ago": "{ago, select, now {just now} other {{ago} ago}}"
+    "ago": "{ago, select, now {just now} other {{ago} ago}}",
+    "caption": "Reviewer agents in this window. Open an agent to see its last runs."
   },
   "unknown": {
     "cost": "No cost reported for these runs.",
     "failed": "A failed run records no score, findings, duration or cost.",
     "decided": "Nothing decided yet: accept or dismiss findings to get a rate.",
-    "duration": "No finished run with a recorded duration."
+    "duration": "No finished run with a recorded duration.",
+    "allFailed": "Every run of this agent failed, and a failed run records no cost or duration.",
+    "notRecorded": "This run finished without recording it.",
+    "costChange": "A cost change needs a known cost in this window and the previous one.",
+    "mostActive": "No run by a current agent in this window: runs of deleted agents do not count."
   },
   "breakdown": {
     "title": "Cost breakdown",
     "byAgent": "By agent",
     "byModel": "By model",
-    "empty": "No known cost in this window."
+    "empty": "No known cost in this window.",
+    "unknownModel": "unknown model",
+    "share": "{cost} · {share}"
   }
 }

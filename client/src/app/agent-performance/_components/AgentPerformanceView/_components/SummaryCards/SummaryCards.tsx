@@ -7,11 +7,11 @@ import { CircularScore, Sparkline } from "@devdigest/ui";
 import type { AgentPerf } from "@devdigest/shared";
 import { formatCost } from "@/lib/format-cost";
 import { percent, signedCost } from "../../helpers";
+import { Unknown } from "../Unknown";
 import { s } from "./styles";
 
 export function SummaryCards({ totals, days }: { totals: AgentPerf["totals"]; days: number }) {
   const t = useTranslations("performance");
-  const dash = t("card.none");
   const rate = percent(totals.accept_rate);
   const change = totals.cost_change_usd == null ? null : signedCost(totals.cost_change_usd);
   const top = totals.most_active;
@@ -30,12 +30,14 @@ export function SummaryCards({ totals, days }: { totals: AgentPerf["totals"]; da
 
       <section style={s.card} aria-label={t("card.cost", { days })}>
         <div style={s.label}>{t("card.cost", { days })}</div>
-        <div className="mono tnum" style={s.value} title={totals.cost_usd == null ? t("unknown.cost") : undefined}>
-          {totals.cost_usd == null ? dash : formatCost(totals.cost_usd)}
+        <div className="mono tnum" style={s.value}>
+          {totals.cost_usd == null ? <Unknown reason={t("unknown.cost")} /> : formatCost(totals.cost_usd)}
         </div>
-        <div style={s.sub}>
+        <div style={s.sub} title={change ? undefined : t("unknown.costChange")}>
           {change ? (
             <span style={totals.cost_change_usd! > 0 ? s.up : s.down}>{t("card.costChange", { sign: change.sign, amount: change.amount, days })}</span>
+          ) : totals.cost_usd == null ? (
+            t("card.costUnknown")
           ) : (
             t("card.costNoChange", { days })
           )}
@@ -48,16 +50,24 @@ export function SummaryCards({ totals, days }: { totals: AgentPerf["totals"]; da
           <span style={s.label}>{t("card.accept")}</span>
           {totals.accept_rate != null && <CircularScore score={Math.round(totals.accept_rate * 100)} size={34} stroke={4} />}
         </div>
-        <div className="tnum" style={s.value} title={rate == null ? t("unknown.decided") : undefined}>
-          {rate ?? dash}
+        <div className="tnum" style={s.value}>
+          {rate ?? <Unknown reason={t("unknown.decided")} />}
         </div>
         <div style={s.sub}>{t("card.acceptSub", { count: totals.decided })}</div>
       </section>
 
       <section style={s.card} aria-label={t("card.mostActive")}>
         <div style={s.label}>{t("card.mostActive")}</div>
-        <div style={s.name}>{top ? top.name : dash}</div>
-        {top && <div style={s.sub}>{t("card.mostActiveSub", { runs: top.runs, accept: percent(top.accept_rate) ?? dash })}</div>}
+        <div style={s.name}>{top ? top.name : <Unknown reason={t("unknown.mostActive")} />}</div>
+        {top && (
+          <div style={s.sub}>
+            {t.rich("card.mostActiveSub", {
+              runs: top.runs,
+              rate: (chunks) => (top.accept_rate == null ? <Unknown reason={t("unknown.decided")} /> : chunks),
+              accept: percent(top.accept_rate) ?? "",
+            })}
+          </div>
+        )}
       </section>
     </div>
   );

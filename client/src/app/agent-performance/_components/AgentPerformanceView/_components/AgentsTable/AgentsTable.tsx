@@ -1,5 +1,6 @@
 /* AgentsTable — one row per agent with runs in the window (SPEC-05 AC-12, AC-13): runs,
-   averages, accept rate with its trend, last run; a row opens its last five runs. */
+   averages, accept rate with its trend, last run. A native table, so every value is read
+   under its column; the agent cell's button opens the agent's last five runs. */
 "use client";
 
 import React from "react";
@@ -10,86 +11,124 @@ import type { AgentPerfRow, AgentPerfRun } from "@devdigest/shared";
 import { formatCost } from "@/lib/format-cost";
 import { relativeTime } from "@/lib/relative-time";
 import { formatDuration, percent, runHref } from "../../helpers";
+import { Unknown } from "../Unknown";
+import { COLUMN_WIDTHS } from "./constants";
 import { s } from "./styles";
 
 export function AgentsTable({ agents }: { agents: AgentPerfRow[] }) {
   const t = useTranslations("performance");
   const [open, setOpen] = React.useState<string | null>(null);
+  const headers = [t("table.agent"), t("table.runs"), t("table.avgCost"), t("table.avgDuration"), t("table.accept"), t("table.lastRun")];
   return (
-    <div style={s.table} role="table" aria-label={t("page.title")}>
-      <div style={s.head} role="row">
-        {[t("table.agent"), t("table.runs"), t("table.avgCost"), t("table.avgDuration"), t("table.accept"), t("table.lastRun"), ""].map((c, i) => (
-          <div key={i} role="columnheader">
-            {c}
-          </div>
-        ))}
-      </div>
-      {agents.map((a) => {
-        const key = a.agent_id ?? "deleted";
-        return <AgentRow key={key} agent={a} expanded={open === key} onToggle={() => setOpen(open === key ? null : key)} />;
-      })}
+    <div style={s.frame}>
+      <table style={s.table}>
+        <caption style={s.caption}>{t("table.caption")}</caption>
+        <colgroup>
+          {COLUMN_WIDTHS.map((w, i) => (
+            <col key={i} style={{ width: w }} />
+          ))}
+        </colgroup>
+        <thead>
+          <tr>
+            {headers.map((c) => (
+              <th key={c} scope="col" style={s.th}>
+                {c}
+              </th>
+            ))}
+            <td style={s.th} />
+          </tr>
+        </thead>
+        <tbody>
+          {agents.map((a) => {
+            const key = a.agent_id ?? "deleted";
+            return <AgentRow key={key} id={key} agent={a} expanded={open === key} onToggle={() => setOpen(open === key ? null : key)} />;
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-function AgentRow({ agent, expanded, onToggle }: { agent: AgentPerfRow; expanded: boolean; onToggle: () => void }) {
+function AgentRow({ id, agent, expanded, onToggle }: { id: string; agent: AgentPerfRow; expanded: boolean; onToggle: () => void }) {
   const t = useTranslations("performance");
-  const dash = t("card.none");
   const name = agent.name ?? t("table.deletedAgent");
   const rate = percent(agent.accept_rate);
   const duration = formatDuration(agent.avg_duration_ms);
-  const TrendIcon = agent.accept_trend === "up" ? Icon.ArrowUp : agent.accept_trend === "down" ? Icon.ArrowDown : agent.accept_trend === "flat" ? Icon.ArrowRight : null;
+  const allFailed = agent.runs > 0 && agent.failed === agent.runs;
+  const panelId = `agent-runs-${id}`;
+  const trend = agent.accept_trend;
+  const TrendIcon = trend === "up" ? Icon.ArrowUp : trend === "down" ? Icon.ArrowDown : trend === "flat" ? Icon.ArrowRight : null;
   return (
-    <div style={s.rowWrap} role="rowgroup">
-      <button type="button" style={s.row} role="row" aria-expanded={expanded} aria-label={t("table.expand", { name })} onClick={onToggle}>
-        <span style={agent.name ? s.name : s.deleted}>{name}</span>
-        <span className="tnum" style={s.num}>
+    <>
+      {/* The whole row toggles for a pointer; keyboard and screen readers use the button. */}
+      <tr style={s.row} onClick={onToggle}>
+        <th scope="row" style={s.cell}>
+          <button
+            type="button"
+            style={s.toggle}
+            aria-expanded={expanded}
+            aria-controls={expanded ? panelId : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+          >
+            <span style={agent.name ? s.name : s.deleted}>{name}</span>
+          </button>
+        </th>
+        <td className="tnum" style={{ ...s.cell, ...s.num }}>
           {agent.runs}
-        </span>
-        <span className="mono tnum" style={s.num} title={agent.avg_cost_usd == null ? t("unknown.cost") : undefined}>
-          {agent.avg_cost_usd == null ? dash : formatCost(agent.avg_cost_usd)}
-        </span>
-        <span className="tnum" style={s.num} title={duration == null ? t("unknown.duration") : undefined}>
-          {duration ?? dash}
-        </span>
-        <span style={s.accept} title={rate == null ? t("unknown.decided") : undefined}>
-          <span className="tnum" style={rate == null ? undefined : agent.accept_rate! >= 0.6 ? s.good : s.weak}>
-            {rate ?? dash}
-          </span>
-          {TrendIcon && agent.accept_trend && (
-            <TrendIcon size={12} role="img" aria-label={t(`table.trend.${agent.accept_trend}`)} style={agent.accept_trend === "down" ? s.weak : s.good} />
-          )}
-          <span style={s.muted}>{t("table.decided", { count: agent.decided })}</span>
-          {agent.low_sample && agent.decided > 0 && (
-            <span style={s.low} title={t("table.lowSampleHint")}>
-              {t("table.lowSample")}
+        </td>
+        <td className="mono tnum" style={{ ...s.cell, ...s.num }}>
+          {agent.avg_cost_usd == null ? <Unknown reason={allFailed ? t("unknown.allFailed") : t("unknown.cost")} /> : formatCost(agent.avg_cost_usd)}
+        </td>
+        <td className="tnum" style={{ ...s.cell, ...s.num }}>
+          {duration ?? <Unknown reason={allFailed ? t("unknown.allFailed") : t("unknown.duration")} />}
+        </td>
+        <td style={s.cell}>
+          <span style={s.accept}>
+            <span className="tnum" style={rate == null ? undefined : agent.accept_rate! >= 0.6 ? s.good : s.weak}>
+              {rate ?? <Unknown reason={t("unknown.decided")} />}
             </span>
-          )}
-        </span>
-        <span style={s.muted}>{t("table.ago", { ago: relativeTime(agent.last_run_at) })}</span>
-        <Icon.ChevronDown size={15} aria-hidden style={s.chevron(expanded)} />
-      </button>
+            {TrendIcon && trend && <TrendIcon size={12} role="img" aria-label={t(`table.trend.${trend}`)} style={s.trend[trend]} />}
+            <span style={s.muted}>{t("table.decided", { count: agent.decided })}</span>
+            {agent.low_sample && agent.decided > 0 && (
+              <span style={s.low} title={t("table.lowSampleHint")}>
+                {t("table.lowSample")}
+              </span>
+            )}
+          </span>
+        </td>
+        <td style={{ ...s.cell, ...s.muted }}>{t("table.ago", { ago: relativeTime(agent.last_run_at) })}</td>
+        <td style={s.cell}>
+          <Icon.ChevronDown size={15} aria-hidden style={s.chevron(expanded)} />
+        </td>
+      </tr>
       {expanded && (
-        <div style={s.recent}>
-          <div style={s.recentTitle}>{t("table.recent")}</div>
-          {agent.recent.map((r) => (
-            <RecentRun key={r.run_id} run={r} />
-          ))}
-        </div>
+        <tr id={panelId}>
+          <td colSpan={COLUMN_WIDTHS.length} style={s.recent}>
+            <div style={s.recentTitle}>{t("table.recent", { name })}</div>
+            <ul style={s.runs}>
+              {agent.recent.map((r) => (
+                <RecentRun key={r.run_id} run={r} />
+              ))}
+            </ul>
+          </td>
+        </tr>
       )}
-    </div>
+    </>
   );
 }
 
 function RecentRun({ run }: { run: AgentPerfRun }) {
   const t = useTranslations("performance");
-  const dash = t("card.none");
   const href = runHref(run);
   const failed = run.status === "failed";
-  const why = failed ? t("unknown.failed") : undefined;
+  // A failed run records none of these; a finished one may still lack one.
+  const missing = failed ? t("unknown.failed") : t("unknown.notRecorded");
   const duration = formatDuration(run.duration_ms);
   return (
-    <div style={s.run} data-testid="recent-run">
+    <li style={s.run} data-testid="recent-run">
       <Badge color={failed ? "var(--crit)" : "var(--ok)"} bg={failed ? "var(--crit-bg)" : "var(--ok-bg)"}>
         {failed ? t("table.failed") : t("table.done")}
       </Badge>
@@ -100,19 +139,11 @@ function RecentRun({ run }: { run: AgentPerfRun }) {
       ) : (
         <span style={s.unlinked}>{t("table.deletedPr")}</span>
       )}
-      <span className="tnum" title={why}>
-        {run.score == null ? dash : t("table.score", { score: run.score })}
-      </span>
-      <span className="tnum" title={why}>
-        {run.findings_count == null ? dash : t("table.findings", { count: run.findings_count })}
-      </span>
-      <span className="tnum" title={why}>
-        {duration ?? dash}
-      </span>
-      <span className="mono tnum" title={why ?? (run.cost_usd == null ? t("unknown.cost") : undefined)}>
-        {run.cost_usd == null ? dash : formatCost(run.cost_usd)}
-      </span>
+      <span className="tnum">{run.score == null ? <Unknown reason={missing} /> : t("table.score", { score: run.score })}</span>
+      <span className="tnum">{run.findings_count == null ? <Unknown reason={missing} /> : t("table.findings", { count: run.findings_count })}</span>
+      <span className="tnum">{duration ?? <Unknown reason={missing} />}</span>
+      <span className="mono tnum">{run.cost_usd == null ? <Unknown reason={failed ? missing : t("unknown.cost")} /> : formatCost(run.cost_usd)}</span>
       <span style={s.muted}>{t("table.ago", { ago: relativeTime(run.ran_at) })}</span>
-    </div>
+    </li>
   );
 }
