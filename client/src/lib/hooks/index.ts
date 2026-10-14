@@ -14,3 +14,4 @@ export * from "./smart-diff";
 export * from "./context";
 export * from "./onboarding";
 export * from "./brief";
+export * from "./performance";

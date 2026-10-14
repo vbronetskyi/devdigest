@@ -35,6 +35,13 @@ export const NAV: NavGroup[] = [
       { key: "conventions", label: "Conventions", icon: "ListChecks", href: "/repos/:repoId/conventions", gKey: "c" },
     ],
   },
+  {
+    section: "GLOBAL",
+    items: [
+      { key: "agent-performance", label: "Agent Performance", icon: "Activity", href: "/agent-performance", gKey: "m" },
+      { key: "digest", label: "Weekly Digest", icon: "Calendar", href: "/digest", gKey: "w" },
+    ],
+  },
 ];
 
 export const SETTINGS_ITEM: NavItemDef = {
@@ -64,6 +71,8 @@ export const SHORTCUTS: ShortcutDef[] = [
   { keys: "g a", label: "Go to Agents", group: "Navigation" },
   { keys: "g s", label: "Go to Skills", group: "Navigation" },
   { keys: "g c", label: "Go to Conventions", group: "Navigation" },
+  { keys: "g m", label: "Go to Agent Performance", group: "Navigation" },
+  { keys: "g w", label: "Go to Weekly Digest", group: "Navigation" },
   { keys: "j / k", label: "Next / previous finding", group: "Findings" },
   { keys: "a", label: "Accept finding", group: "Findings" },
   { keys: "d", label: "Reject finding", group: "Findings" },

@@ -1,0 +1,64 @@
+/* SummaryCards — the four headline numbers of the window (SPEC-05 AC-11). Unknown is "—". */
+"use client";
+
+import React from "react";
+import { useTranslations } from "next-intl";
+import { CircularScore, Sparkline } from "@devdigest/ui";
+import type { AgentPerf } from "@devdigest/shared";
+import { formatCost } from "@/lib/format-cost";
+import { percent, signedCost } from "../../helpers";
+import { s } from "./styles";
+
+export function SummaryCards({ totals, days }: { totals: AgentPerf["totals"]; days: number }) {
+  const t = useTranslations("performance");
+  const dash = t("card.none");
+  const rate = percent(totals.accept_rate);
+  const change = totals.cost_change_usd == null ? null : signedCost(totals.cost_change_usd);
+  const top = totals.most_active;
+  return (
+    <div style={s.row}>
+      <section style={s.card} aria-label={t("card.runs", { days })}>
+        <div style={s.label}>{t("card.runs", { days })}</div>
+        <div className="tnum" style={s.value}>
+          {totals.runs}
+        </div>
+        <div style={s.sub}>{t("card.runsSub", { failed: totals.failed })}</div>
+        <div style={s.spark}>
+          <Sparkline data={totals.runs_per_day} w={200} h={28} />
+        </div>
+      </section>
+
+      <section style={s.card} aria-label={t("card.cost", { days })}>
+        <div style={s.label}>{t("card.cost", { days })}</div>
+        <div className="mono tnum" style={s.value} title={totals.cost_usd == null ? t("unknown.cost") : undefined}>
+          {totals.cost_usd == null ? dash : formatCost(totals.cost_usd)}
+        </div>
+        <div style={s.sub}>
+          {change ? (
+            <span style={totals.cost_change_usd! > 0 ? s.up : s.down}>{t("card.costChange", { sign: change.sign, amount: change.amount, days })}</span>
+          ) : (
+            t("card.costNoChange", { days })
+          )}
+        </div>
+        {totals.runs_without_cost > 0 && <div style={s.sub}>{t("card.withoutCost", { count: totals.runs_without_cost })}</div>}
+      </section>
+
+      <section style={s.card} aria-label={t("card.accept")}>
+        <div style={s.top}>
+          <span style={s.label}>{t("card.accept")}</span>
+          {totals.accept_rate != null && <CircularScore score={Math.round(totals.accept_rate * 100)} size={34} stroke={4} />}
+        </div>
+        <div className="tnum" style={s.value} title={rate == null ? t("unknown.decided") : undefined}>
+          {rate ?? dash}
+        </div>
+        <div style={s.sub}>{t("card.acceptSub", { count: totals.decided })}</div>
+      </section>
+
+      <section style={s.card} aria-label={t("card.mostActive")}>
+        <div style={s.label}>{t("card.mostActive")}</div>
+        <div style={s.name}>{top ? top.name : dash}</div>
+        {top && <div style={s.sub}>{t("card.mostActiveSub", { runs: top.runs, accept: percent(top.accept_rate) ?? dash })}</div>}
+      </section>
+    </div>
+  );
+}
