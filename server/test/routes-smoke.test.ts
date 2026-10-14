@@ -64,4 +64,21 @@ describe('routes (no DB)', () => {
     expect(res.json().error.code).toBe('validation_error');
     await app.close();
   });
+
+  it('a unique-index violation is a 409 conflict, not a 500 (SPEC-07 AC-17)', async () => {
+    const app = await buildApp({ config });
+    app.get('/__unique', async () => {
+      throw Object.assign(new Error('duplicate key value violates unique constraint "skills_workspace_name_uq"'), { code: '23505' });
+    });
+    app.get('/__wrapped', async () => {
+      throw Object.assign(new Error('Failed query'), { cause: { code: '23505' } });
+    });
+    for (const url of ['/__unique', '/__wrapped']) {
+      const res = await app.inject({ method: 'GET', url });
+      expect(res.statusCode).toBe(409);
+      expect(res.json().error.code).toBe('conflict');
+      expect(res.json().error.message).not.toContain('skills_workspace_name_uq'); // no SQL detail leaks
+    }
+    await app.close();
+  });
 });

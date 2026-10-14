@@ -156,6 +156,13 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
       });
       return;
     }
+    // A unique index caught a race the service's own check could not (two skills
+    // created with one name at the same moment): a conflict, not a server fault.
+    const db = err as { code?: string; cause?: { code?: string } };
+    if (db?.code === '23505' || db?.cause?.code === '23505') {
+      reply.status(409).send({ error: { code: 'conflict', message: 'That already exists — refresh and try again.' } });
+      return;
+    }
     app.log.error(err);
     const e = err as { statusCode?: number; message?: string };
     reply.status(e.statusCode ?? 500).send({
