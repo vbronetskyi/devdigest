@@ -49,4 +49,5 @@ pnpm test       # vitest + jsdom, fetch mocked — no API or browser needed
 - The Files changed tab (Smart Diff, finding markers in the diff viewer) → `specs/smart-diff.md`
 - Project Context page, the agent Context tab, the Onboarding Tour page → `specs/pages.md`
 - The PR Overview Brief card, deep links into Files changed, the git-why panel → `specs/pages.md`
+- Agent Performance page, Weekly Digest page, the GLOBAL nav group → `specs/pages.md`
 - Before any task in this package → `insights/INSIGHTS.md`

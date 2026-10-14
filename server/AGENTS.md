@@ -54,6 +54,8 @@ pnpm db:migrate && pnpm db:seed                   # not run on boot
 - Touching the onboarding tour → `specs/onboarding.md`
 - Touching the risk brief or PR history (`reviews/brief/`) → `specs/brief.md`
 - Touching git-why or the git history / blame port methods → `specs/why.md`
+- Touching agent performance (`GET /agents/performance`) → `specs/performance.md`
+- Touching the weekly digest or its highlights → `specs/digest.md`
 - Starting a new feature → write `../specs/<feature>/spec.md` first (`../specs/README.md`)
 - Writing tests → `../TESTING.md` (and the `.it.test.ts` rule)
 - Before any task in this package → `insights/INSIGHTS.md`

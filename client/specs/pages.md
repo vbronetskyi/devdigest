@@ -12,6 +12,8 @@
 | `/repos/:repoId/context` | Project Context: the repo's specs/docs/insights Markdown, read-only (`?doc=`) | `useContextDocs` → `GET /repos/:id/context`; preview → `GET /repos/:id/context/file?path=` |
 | `/repos/:repoId/onboarding` | Onboarding Tour | `useOnboarding` → `GET /repos/:id/onboarding`; Generate / Regenerate → `POST` (one model call) |
 | `/repos/:repoId/conventions` | Conventions extractor | `useConventions` → `GET /repos/:id/conventions`; scan → `POST /repos/:id/conventions/extract`; `POST /conventions/:id/accept`, `DELETE /conventions/:id` |
+| `/agent-performance` | Agent Performance: cards, agents table with recent runs, cost by agent and model (7 / 30 / 90 days) | `useAgentPerformance` → `GET /agents/performance?days=` |
+| `/digest` | Weekly Digest (`?week=YYYY-Www`): the week vs the week before, open criticals, agents, highlights | `useDigest` → `GET /digest?week=`; Write highlights → `POST /digest/highlights` (one model call) |
 | `/settings/:section` | API keys, models | `GET /settings`, `GET /settings/secrets-status`, `PUT /settings`; model lists → `GET /providers/:id/models` |
 
 ## PR list — `/repos/:repoId/pulls`
@@ -97,6 +99,27 @@ line with a focus ring; without `line` it scrolls to the file.
   on GitHub at the indexed commit, numbered reading path) and a footer naming model,
   cost and index commit, or the skeleton's reason.
 
+## Agent Performance and Weekly Digest (HW L08)
+
+Both pages sit in the sidebar's **GLOBAL** group (`g m`, `g w`) and are workspace-wide,
+not under a repository.
+
+- **Agent Performance** — a 7 / 30 / 90 days selector; cards: runs with a daily
+  sparkline and failures, cost with its change against the previous window (or "no cost
+  known"), the pooled accept rate with the decided count, the most active agent. The
+  table (accept rate first, unknown last) shows runs, average cost and duration, the
+  accept rate with a trend arrow (text label) and "low sample" under 5 decisions, the last
+  run; a row expands to its last five runs, each opening the PR's Agent runs tab (a run of
+  a deleted PR is unlinked, a failed run's figures are dashes with the reason). Cost
+  breakdown donuts by agent and by model use the app's cost format.
+- **Weekly Digest** — previous / next week through `?week=` (no next past the current
+  week, which is marked "in progress" and compared with the same elapsed days of last
+  week). Cards: PRs opened, PRs reviewed, runs, cost, new findings by severity, decisions.
+  Highlights are labelled "AI-written, numbers checked", written only on **Write
+  highlights / Rewrite**, with model, cost, time and a "stale" note. Open critical
+  findings ("N of M") open Files changed at their line. **Copy as Markdown** escapes
+  untrusted text for a team channel and links PRs on GitHub.
+
 No page triggers an LLM call by being opened. Model calls happen only from
-**Run Review**, the intent card's **Derive**, the tour's **Generate / Regenerate** and
-the Brief card's **Generate / Regenerate**.
+**Run Review**, the intent card's **Derive**, the tour's **Generate / Regenerate**,
+the Brief card's **Generate / Regenerate** and the digest's **Write highlights**.
