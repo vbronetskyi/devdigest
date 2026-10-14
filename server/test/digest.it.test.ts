@@ -7,6 +7,7 @@ import { loadConfig } from '../src/platform/config.js';
 import { seed } from '../src/db/seed.js';
 import * as t from '../src/db/schema.js';
 import { MockEmbedder, MockGitClient, MockGitHubClient, MockLLMProvider } from '../src/adapters/mocks.js';
+import { weekBounds, weekOf } from '../src/modules/digest/helpers.js';
 
 const hasDocker = await dockerAvailable();
 const d = hasDocker ? describe : describe.skip;
@@ -26,6 +27,10 @@ class GatedLLM extends MockLLMProvider {
 // 2026-W40 is Monday 2026-09-28 to Sunday 2026-10-04 (UTC); W39 the week before.
 const W40 = (day: number, hour = 12) => new Date(Date.UTC(2026, 8, 28 + day, hour));
 const W39 = (day: number) => new Date(Date.UTC(2026, 8, 21 + day, 12));
+// 2026-W37 is Monday 2026-09-07 to Sunday 2026-09-13: the boundary cases.
+const W37_FROM = new Date('2026-09-07T00:00:00.000Z');
+const W37_TO = new Date('2026-09-14T00:00:00.000Z');
+const WEEK = 7 * 86_400_000;
 
 d('HW L08 weekly digest — SPEC-06 (Testcontainers pg)', () => {
   let pg: PgFixture;
@@ -95,6 +100,38 @@ d('HW L08 weekly digest — SPEC-06 (Testcontainers pg)', () => {
     extraRun = async () => {
       await run(gen, p1, W40(6), 'done', 0.001);
     };
+
+    // W37, at its edges: the first and the last millisecond are in, the neighbours' are not.
+    // Its done runs report no cost; one is by a deleted agent; a cancelled run's findings do not count.
+    await run(gen, p1, new Date(W37_FROM.getTime() - 1), 'done', 0.5);
+    const first = await run(gen, p1, W37_FROM, 'done', null);
+    await findings(first, p1, [{ sev: 'WARNING', accepted: W37_FROM }, { sev: 'WARNING', dismissed: W37_TO }]);
+    await run(null, p2, new Date(W37_TO.getTime() - 1), 'done', null);
+    await run(gen, p1, W37_TO, 'done', 0.5);
+    const cancelled = await run(gen, p1, W37_FROM, 'cancelled', 1);
+    await findings(cancelled, p1, [{ sev: 'CRITICAL' }]);
+    // Two deleted agents on one PR in W37: each latest run keeps its own open critical.
+    for (const [hour, line] of [[10, 1], [11, 2]] as const) {
+      const id = await run(null, p2, new Date(W37_FROM.getTime() + hour * 3_600_000), 'done', null);
+      const [rv] = await db.insert(t.reviews).values({ workspaceId, prId: p2, runId: id, agentId: crypto.randomUUID(), kind: 'review' }).returning({ id: t.reviews.id });
+      await db.insert(t.findings).values({ reviewId: rv!.id, file: 'src/ghost.ts', startLine: line, endLine: line, severity: 'CRITICAL', category: 'security', title: `ghost ${line}`, rationale: 'r', confidence: 1 });
+    }
+    // Another workspace: its run, review and decisions in W37 belong to it alone.
+    const [other] = await db.insert(t.workspaces).values({ name: 'other' }).returning({ id: t.workspaces.id });
+    const [foreignRun] = await db.insert(t.agentRuns).values({ workspaceId: other!.id, prId: p1, ranAt: W37_FROM, status: 'done', costUsd: 7 }).returning({ id: t.agentRuns.id });
+    const [foreign] = await db.insert(t.reviews).values({ workspaceId: other!.id, prId: p1, runId: foreignRun!.id, kind: 'review' }).returning({ id: t.reviews.id });
+    await db.insert(t.findings).values(
+      [1, 2].map((line) => ({ reviewId: foreign!.id, file: 'x.ts', startLine: line, endLine: line, severity: 'CRITICAL', category: 'bug', title: 'x', rationale: 'r', confidence: 1, acceptedAt: W37_FROM })),
+    );
+
+    // The week in progress: a run stamped later this week is not counted yet; last week counts
+    // only up to the same elapsed time.
+    const now = Date.now();
+    const { from, to } = weekBounds(weekOf(new Date(now)));
+    const elapsed = now - from.getTime();
+    await run(gen, p1, new Date(now + (to.getTime() - now) / 2), 'done', 0.1);
+    await run(gen, p1, new Date(from.getTime() - WEEK + elapsed / 2), 'done', 0.01);
+    await run(gen, p1, new Date(from.getTime() - WEEK + elapsed + (WEEK - elapsed) / 2), 'done', 0.01);
   }, 120_000);
 
   afterAll(async () => {
@@ -102,11 +139,12 @@ d('HW L08 weekly digest — SPEC-06 (Testcontainers pg)', () => {
     await pg?.stop();
   });
 
-  async function appWith(llm: MockLLMProvider) {
+  /** `null`: no provider at all — no key for the registry default nor the OpenRouter fallback. */
+  async function appWith(llm: MockLLMProvider | null) {
     const app = await buildApp({
       config: config(),
       db: pg.handle.db,
-      overrides: { embedder: new MockEmbedder(), git: new MockGitClient(), github: new MockGitHubClient({ pulls: [] }), llm: { openai: llm } },
+      overrides: { embedder: new MockEmbedder(), git: new MockGitClient(), github: new MockGitHubClient({ pulls: [] }), llm: llm ? { openai: llm } : {} },
     });
     apps.push(app);
     return app;
@@ -152,6 +190,31 @@ d('HW L08 weekly digest — SPEC-06 (Testcontainers pg)', () => {
     expect(dg.open_criticals[0]).toMatchObject({ file: 'src/g.ts', agent_name: null, pr_number: 2, pr_state: 'merged' });
     expect(dg.open_criticals[1]).toMatchObject({ file: 'src/b.ts', line: 7, agent_name: 'Security Reviewer', pr_state: null });
     expect(dg.open_criticals.slice(2).map((c) => c.line)).toEqual([20, 21, 22]);
+  });
+
+  it('AC-1/AC-3/AC-4: week edges, unknown cost, cancelled runs, another workspace, two deleted agents', async () => {
+    const app = await appWith(new MockLLMProvider('openai'));
+    const dg = (await get(app, '2026-W37')).json() as WeeklyDigest;
+    expect(dg.facts.runs).toBe(4); // first and last millisecond, the two deleted agents' runs; not the cancelled one
+    expect(dg.facts.cost_usd).toBeNull(); // no done run reported a cost: unknown, not $0
+    expect(dg.facts.runs_without_cost).toBe(4);
+    expect(dg.facts.findings).toEqual({ CRITICAL: 2, WARNING: 2, SUGGESTION: 0 }); // the cancelled run's critical is not new here
+    expect([dg.facts.accepted, dg.facts.dismissed]).toEqual([1, 0]); // dismissed at the next Monday 00:00; not the other workspace's 2
+    expect(dg.change.cost_usd).toBeNull();
+    expect(dg.agents.map((a) => [a.name, a.runs, a.cost_usd, a.decided])).toEqual([
+      [null, 3, null, 0],
+      ['General Reviewer', 1, null, 1],
+    ]);
+    expect(dg.open_criticals.map((c) => c.title).sort()).toEqual(['ghost 1', 'ghost 2']);
+    expect(dg.open_criticals_total).toBe(2);
+  });
+
+  it('AC-2/AC-5: the week in progress counts up to now and compares with the same elapsed time last week', async () => {
+    const app = await appWith(new MockLLMProvider('openai'));
+    const dg = (await get(app)).json() as WeeklyDigest;
+    expect(dg.in_progress).toBe(true);
+    expect(dg.facts.cost_usd).toBeNull(); // the run stamped later this week is not here yet
+    expect(dg.prev.cost_usd).toBeCloseTo(0.01); // the second run of last week is past the same elapsed time
   });
 
   it('AC-5: the current week by default, in progress; malformed, non-existent and future weeks are 422; no model call', async () => {
@@ -206,6 +269,11 @@ d('HW L08 weekly digest — SPEC-06 (Testcontainers pg)', () => {
     const offSchema = await appWith(new MockLLMProvider('openai', { structuredBySchema: { WeeklyDigestHighlights: { lines: 'nope' } } }));
     const failed = await write(offSchema, '2026-W40');
     expect(failed.statusCode).toBe(502);
+    expect(failed.json().error.message).not.toMatch(/highlights:.*highlights:/i);
+    expect((await write(offSchema, '2026-W40')).statusCode).toBe(502); // the failed request let go of the week: not a 409
+    const noKey = await write(await appWith(null), '2026-W40');
+    expect(noKey.statusCode).toBe(502);
+    expect(noKey.json().error.message).toMatch(/key|configured/i);
     const nothing = await appWith(new MockLLMProvider('openai', { structuredBySchema: { WeeklyDigestHighlights: { highlights: ['Runs grew 400%.'] } } }));
     const dropped = await write(nothing, '2026-W40');
     expect(dropped.statusCode).toBe(502);
@@ -222,5 +290,7 @@ d('HW L08 weekly digest — SPEC-06 (Testcontainers pg)', () => {
     expect((await write(app, '2026-W40')).statusCode).toBe(409);
     gated.release();
     expect((await first).statusCode).toBe(200);
+    // AC-8: asking again replaced the stored lines.
+    expect(((await get(app, '2026-W40')).json() as WeeklyDigest).highlights!.lines).toEqual(['PR #2 is merged.']);
   });
 });

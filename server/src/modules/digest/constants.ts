@@ -14,5 +14,9 @@ export const HIGHLIGHTS_DEADLINE_MS = 60_000;
 export const HIGHLIGHTS_SCHEMA_NAME = 'WeeklyDigestHighlights';
 export const OPENROUTER_FALLBACK_MODEL = 'deepseek/deepseek-v4-flash';
 /** Words a model might use instead of digits — a line with one is dropped (AC-7). */
-export const NUMBER_WORDS =
-  /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|dozen|half|twice|double)\b/i;
+export const NUMBER_WORDS = new RegExp(
+  String.raw`\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty` +
+    String.raw`|dozens?|half|halves|halved|halving|twice|thrice|(?:doubl|tripl|quadrupl)(?:e|ed|es|ing)` +
+    String.raw`|(?:two|three|four|five|six|seven|eight|nine|ten)-?fold|hundreds?|thousands?|millions?)\b`,
+  'i',
+);

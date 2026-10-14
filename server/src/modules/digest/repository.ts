@@ -90,21 +90,24 @@ export class DigestRepository {
     return row ?? { accepted: 0, dismissed: 0 };
   }
 
-  /** AC-3: undecided CRITICAL findings of the latest done run per PR and agent in the week. */
+  /**
+   * AC-3: undecided CRITICAL findings of the latest done run per PR and agent in the
+   * week. A deleted agent leaves `agent_runs.agent_id` null, so the agent its review
+   * recorded tells two deleted agents apart (the run itself when neither is known).
+   */
   openCriticals(ws: string, from: Date, to: Date): Promise<CriticalRow[]> {
     return this.rows<CriticalRow>(sql`
       with latest as (
-        select distinct on (r.pr_id, r.agent_id) r.id, r.pr_id, r.agent_id, r.ran_at
-        from agent_runs r
+        select distinct on (r.pr_id, coalesce(r.agent_id, v.agent_id, r.id)) r.id, r.pr_id, r.agent_id, r.ran_at, v.id as review_id
+        from agent_runs r join reviews v on v.run_id = r.id and v.workspace_id = r.workspace_id
         where r.workspace_id = ${ws} and r.status = 'done' and r.pr_id is not null
           and r.ran_at >= ${ts(from)}::timestamptz and r.ran_at < ${ts(to)}::timestamptz
-        order by r.pr_id, r.agent_id, r.ran_at desc
+        order by r.pr_id, coalesce(r.agent_id, v.agent_id, r.id), r.ran_at desc
       )
       select f.id as finding_id, f.file, f.start_line as line, f.title, l.ran_at, a.name as agent_name, l.agent_id,
         p.number as pr_number, p.title as pr_title, p.status as pr_status, p.repo_id, rp.full_name as repo_full_name
       from latest l
-        join reviews v on v.run_id = l.id and v.workspace_id = ${ws}
-        join findings f on f.review_id = v.id
+        join findings f on f.review_id = l.review_id
         join pull_requests p on p.id = l.pr_id
         join repos rp on rp.id = p.repo_id
         left join agents a on a.id = l.agent_id

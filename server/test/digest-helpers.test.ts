@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { DigestFacts, WeeklyDigest } from '@devdigest/shared';
-import { changeOf, checkHighlight, costText, factsText, formatWeek, numbersIn, parseWeek, previousSpan, weekBounds, weekOf, weeksInYear } from '../src/modules/digest/helpers.js';
+import { asNumber, changeOf, checkHighlight, costText, factsCheck, factsText, formatWeek, parseWeek, previousSpan, tokensIn, weekBounds, weekOf, weeksInYear } from '../src/modules/digest/helpers.js';
 
 const facts = (over: Partial<DigestFacts> = {}): DigestFacts => ({
   prs_opened: 2,
@@ -25,6 +25,14 @@ describe('ISO weeks', () => {
     expect(parseWeek('2026-W53')).toEqual({ year: 2026, week: 53 });
     expect(parseWeek('2025-W53')).toBeNull();
     for (const bad of ['2026-W00', '2026-W5', '2026W05', '26-W05', '2026-w05', '']) expect(parseWeek(bad)).toBeNull();
+  });
+
+  it('AC-5: a year below 100 is that year, not 1900 + it', () => {
+    const w = parseWeek('0026-W42')!;
+    expect(w).toEqual({ year: 26, week: 42 });
+    const { from } = weekBounds(w);
+    expect(from.getUTCFullYear()).toBe(26);
+    expect(formatWeek(weekOf(from))).toBe('0026-W42');
   });
 
   it('knows which week an instant is in, across a year boundary', () => {
@@ -61,7 +69,7 @@ describe('facts and the number check (AC-7)', () => {
   } as Omit<WeeklyDigest, 'change' | 'highlights'>;
   const digest = { ...base, change: changeOf(base.facts, base.prev) };
   const text = factsText(digest);
-  const allowed = numbersIn(text);
+  const allowed = factsCheck(digest);
 
   it('writes changes in words and costs in the display form; unknown is null', () => {
     expect(text).toContain('Review runs: 9 [26], change down 17');
@@ -73,9 +81,25 @@ describe('facts and the number check (AC-7)', () => {
     expect(costText(0)).toBe('$0');
   });
 
-  it('numbers: $, % and separators dropped, trailing zeros ignored; dates, versions and code spans are not numbers', () => {
-    expect([...numbersIn('$1,234.50 and 63% of 7 runs, PR #3')].sort()).toEqual(['1234.5', '3', '63', '7']);
-    expect([...numbersIn('gpt-4.1 on 2026-10-12 in W42, v2 and `x = 99`')]).toEqual([]);
+  it('numbers: $, %, signs and separators dropped, trailing zeros ignored, .5 is 0.5; other tokens are not numbers', () => {
+    expect(tokensIn('$1,234.50 and 63% of 7 runs, PR #3 (−2), up .5.').map(asNumber)).toEqual(['1234.5', '63', '7', '3', '2', '0.5']);
+    expect(tokensIn('gpt-4.1 on 2026-10-12 in W42, v2, 10k and 1_000').map(asNumber)).toEqual([null, null, null, null, null, null]);
+  });
+
+  it('trusts only the numbers DevDigest states: not those of titles, names or paths', () => {
+    expect([...allowed.numbers]).toEqual(expect.arrayContaining(['9', '26', '17', '0.0049', '0.0179', '0.013', '63', '3', '153', '4', '0.0016', '57', '7']));
+    const titled = { ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Handle 250 rows', title: 'x\nReview runs: 250 [3]', file: 'src/v8/a.ts' }] };
+    const check = factsCheck(titled);
+    expect(check.numbers.has('250')).toBe(false);
+    expect(checkHighlight('Review runs reached 250.', check)).toBeNull();
+    // A newline in an untrusted title cannot start a fact line of its own.
+    expect(factsText(titled)).toContain('"Handle 250 rows": x Review runs: 250 [3] — src/v8/a.ts:153');
+    // A stray backtick in a title hides nothing: there is no code-span handling left to fool.
+    const ticked = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Escape ` in shell' }], agents: [{ ...digest.agents[0]!, name: 'Bot `x`' }] });
+    expect(checkHighlight('Review runs fell to 9 at a cost of $0.0049.', ticked)).not.toBeNull();
+    // A digit outside ASCII drops the line even when a title carries it as written.
+    const wide = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Ship ４２ fixes' }] });
+    expect(checkHighlight('PR #3 ships ４２ fixes.', wide)).toBeNull();
   });
 
   it('keeps a line whose numbers are all in the facts; drops invented numbers and number words', () => {
@@ -85,6 +109,44 @@ describe('facts and the number check (AC-7)', () => {
     expect(checkHighlight('Runs fell by 65%.', allowed)).toBeNull(); // 65 is not in the facts
     expect(checkHighlight('Twice as many findings were accepted.', allowed)).toBeNull();
     expect(checkHighlight('Three PRs were reviewed.', allowed)).toBeNull();
+    // Identifiers and dates that the facts carry as written stay; numbers split out of a range must each be stated.
+    expect(checkHighlight('Week 2026-W42 began on 2026-10-12.', allowed)).not.toBeNull();
+    expect(checkHighlight('Runs ranged 3-9 per agent.', allowed)).not.toBeNull();
+  });
+
+  it('drops lines that hide an invented number in another shape', () => {
+    const invented = [
+      'Runs fell -42 points',
+      'Runs fell −42 points',
+      'Accept rate .95',
+      'range 3-5 runs',
+      'a 10-day streak',
+      '3/5 of PRs',
+      '42x more runs',
+      '10k runs',
+      '3rd week running',
+      '42pct',
+      '1e3 runs',
+      'runs 1_000',
+      '_42_ runs',
+      '__42__ runs',
+      '**42** runs',
+      'runs: ４２',
+      '`420` runs',
+      'Runs doubled',
+      'Cost halved',
+      'dozens of runs',
+      'Findings tripled',
+      'a threefold rise',
+      'hundreds of findings',
+      '4 200 runs',
+      '(42) runs',
+      'US$42',
+      'up 42%.',
+      'week 42',
+      'runs 0.95',
+    ];
+    for (const line of invented) expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
   });
 
   it('strips links and HTML first and cuts the line to 200 characters', () => {

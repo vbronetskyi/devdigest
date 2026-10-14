@@ -8,7 +8,7 @@ import { resolveFeatureLlm } from '../_shared/feature-models.js';
 import { withDeadline } from '../_shared/deadline.js';
 import { DigestRepository } from './repository.js';
 import { HIGHLIGHTS_DEADLINE_MS, HIGHLIGHTS_SCHEMA_NAME, MAX_CRITICALS, MAX_HIGHLIGHTS, OPENROUTER_FALLBACK_MODEL } from './constants.js';
-import { changeOf, checkHighlight, factsHash, factsText, formatWeek, numbersIn, parseWeek, previousSpan, weekBounds, weekOf, type IsoWeek } from './helpers.js';
+import { changeOf, checkHighlight, factsCheck, factsHash, factsText, formatWeek, parseWeek, previousSpan, weekBounds, weekOf, type IsoWeek } from './helpers.js';
 
 /** The model's answer; limits applied after parsing (strict JSON schema mode). */
 const HighlightsOutput = z.object({ highlights: z.array(z.string()) });
@@ -77,9 +77,9 @@ export class DigestService {
       ).catch((err: Error) => {
         throw new ExternalServiceError(`Couldn't write highlights: ${err.message}`);
       });
-      const allowed = numbersIn(text);
+      const facts = factsCheck(digest);
       const lines = res.data.highlights
-        .map((l) => checkHighlight(l, allowed))
+        .map((l) => checkHighlight(l, facts))
         .filter((l): l is string => l !== null)
         .slice(0, MAX_HIGHLIGHTS);
       if (lines.length === 0) throw new ExternalServiceError('No highlight passed the number check; the stored highlights are kept.');
