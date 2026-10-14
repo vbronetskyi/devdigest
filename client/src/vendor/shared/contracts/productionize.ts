@@ -135,51 +135,70 @@ export type PluginImportResult = z.infer<typeof PluginImportResult>;
 // Agent Performance  (GET /agents/performance)
 // ---------------------------------------------------------------------------
 
-/** Per-agent performance row (aggregate across agent_runs + findings). */
+// The starter's stub, implemented by SPEC-05 (specs/agent-performance/spec.md).
+
+/** One counted run of an agent (done or failed); run figures are null unless it is done. */
+export const AgentPerfRun = z.object({
+  run_id: z.string(),
+  ran_at: z.string(),
+  status: z.enum(['done', 'failed']),
+  /** Null when the PR was deleted. */
+  repo_id: z.string().nullable(),
+  pr_number: z.number().int().nullable(),
+  pr_title: z.string().nullable(),
+  score: z.number().int().nullable(),
+  findings_count: z.number().int().nullable(),
+  duration_ms: z.number().int().nullable(),
+  cost_usd: z.number().nullable(),
+});
+export type AgentPerfRun = z.infer<typeof AgentPerfRun>;
+
 export const AgentPerfRow = z.object({
-  agent_id: z.string(),
-  agent_name: z.string(),
-  provider: z.string().nullable(),
-  model: z.string().nullable(),
+  /** Null: runs of deleted agents, one row. */
+  agent_id: z.string().nullable(),
+  name: z.string().nullable(),
   runs: z.number().int(),
-  findings_total: z.number().int(),
-  accepted: z.number().int(),
-  dismissed: z.number().int(),
-  /** headline quality signal: accepted / (accepted + dismissed), 0..1 or null. */
-  accept_rate: z.number().nullable(),
-  dismiss_rate: z.number().nullable(),
-  avg_findings_per_run: z.number().nullable(),
-  total_cost_usd: z.number().nullable(),
+  failed: z.number().int(),
+  cost_usd: z.number().nullable(),
   avg_cost_usd: z.number().nullable(),
-  avg_latency_ms: z.number().nullable(),
+  avg_duration_ms: z.number().nullable(),
+  accept_rate: z.number().nullable(),
+  decided: z.number().int(),
+  accept_trend: z.enum(['up', 'down', 'flat']).nullable(),
+  /** Fewer decided findings than a trend needs, in this window or the previous one. */
+  low_sample: z.boolean(),
   last_run_at: z.string().nullable(),
-  findings_by_severity: z.object({
-    CRITICAL: z.number().int(),
-    WARNING: z.number().int(),
-    SUGGESTION: z.number().int(),
-  }),
-  /** recent findings-per-run trend (oldest→newest) for the sparkline. */
-  trend: z.array(z.number()),
+  recent: z.array(AgentPerfRun),
 });
 export type AgentPerfRow = z.infer<typeof AgentPerfRow>;
 
-/** A donut segment {label,value,color}. */
 export const PerfCostSegment = z.object({
   label: z.string(),
-  value: z.number(),
+  /** Agent id or model id; null for deleted agents / unknown model. */
+  key: z.string().nullable(),
+  cost_usd: z.number(),
+  share: z.number().nullable(),
 });
 export type PerfCostSegment = z.infer<typeof PerfCostSegment>;
 
-/** Response of GET /agents/performance. */
+/** Response of GET /agents/performance (SPEC-05). */
 export const AgentPerf = z.object({
-  summary: z.object({
+  window: z.object({ days: z.number().int(), from: z.string(), to: z.string() }),
+  totals: z.object({
     runs: z.number().int(),
-    total_cost_usd: z.number().nullable(),
-    avg_accept_rate: z.number().nullable(),
-    most_active_agent: z.string().nullable(),
+    failed: z.number().int(),
+    cost_usd: z.number().nullable(),
+    runs_without_cost: z.number().int(),
+    prev_cost_usd: z.number().nullable(),
+    cost_change_usd: z.number().nullable(),
+    accept_rate: z.number().nullable(),
+    decided: z.number().int(),
+    runs_per_day: z.array(z.number().int()),
+    most_active: z
+      .object({ agent_id: z.string(), name: z.string(), runs: z.number().int(), accept_rate: z.number().nullable() })
+      .nullable(),
   }),
   agents: z.array(AgentPerfRow),
-  /** cost split by agent and by model (for the two cost-breakdown donuts). */
   cost_by_agent: z.array(PerfCostSegment),
   cost_by_model: z.array(PerfCostSegment),
 });

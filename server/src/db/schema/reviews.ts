@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, uuid, text, integer, jsonb, timestamp, doublePrecision } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, jsonb, timestamp, doublePrecision, index } from 'drizzle-orm/pg-core';
 import { now } from './_shared';
 import { workspaces } from './core';
 import { pullRequests } from './pulls';
@@ -23,7 +23,10 @@ export const reviews = pgTable('reviews', {
   score: integer('score'),
   model: text('model'),
   createdAt: now(),
-});
+}, (t) => ({
+  // Findings are attributed to agents through the run that produced their review (SPEC-05).
+  runIdx: index('reviews_run_id_idx').on(t.runId),
+}));
 
 export const findings = pgTable('findings', {
   id: uuid('id').primaryKey().defaultRandom(),
