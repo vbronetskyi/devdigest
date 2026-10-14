@@ -165,14 +165,78 @@ describe('facts and the number check (AC-7)', () => {
       'zero failures',
       'billions of tokens',
       'a hundredfold rise',
+      // Emphasis between a digit and its multiplier, or around a number word.
+      'Runs grew **3** times.',
+      'Runs fell **3**x.',
+      'Runs hit **9** K.',
+      'Cost rose **3**×.',
+      'Runs grew 3 _times_.',
+      'Runs hit **10**^**3**.',
+      'Runs rose ~~3~~ times.',
+      'Runs rose _twenty_ percent.',
+      'Runs rose __thirty__ percent.',
+      // Enclosing marks, controls and NUL between digits.
+      'Runs reached 4\u20e32\u20e3.',
+      'Runs reached 4\u20dd2\u20dd.',
+      'Runs reached 9\u0085000.',
+      'Runs reached 9\u0007000.',
+      // Numerals that are letters, look-alike apostrophes and multipliers, homoglyphs.
+      'Runs reached 四十二.',
+      'Runs reached 1\uff07000.',
+      'Runs reached 1\u2018000.',
+      'Runs reached 1\u2032000.',
+      'Runs reached 1`000.',
+      'Runs reached 9 0000.',
+      'Runs reached 1 00 000.',
+      'Runs rose 3✕.',
+      'Runs rose 3 ✖.',
+      'Runs rose 3⨯.',
+      'Runs rose 3·.',
+      'Runs rose tw\u0435nty percent.',
+      'Runs rose 3 \u0445.',
+      // N-fold for any N, more abbreviations.
+      'a twelvefold rise',
+      'a seventeenfold rise',
+      'a twentyfold rise',
+      'a ninetyfold rise',
+      'a dozenfold rise',
+      'a millionfold rise',
+      'a 3-fold rise',
+      'a 3 fold rise',
+      'Runs hit 9 m.',
+      'Runs hit 9 b.',
+      'Runs hit 9 bn.',
+      'Runs hit 9 mn.',
+      'Runs hit 9 tn.',
+      'Runs hit 9 mil.',
+      // HTML character references.
+      'Runs rose 3&times;.',
+      'Runs reached 9&nbsp;000.',
+      'Runs reached 1&apos;000.',
     ];
     for (const line of invented) expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
+  });
+
+  it('keeps honest lines through the clean-up: emphasis removed, a quoted title in any language, an X- header', () => {
+    expect(checkHighlight('Review runs fell to **9**, down **17** from **26**.', allowed)).toBe('Review runs fell to 9, down 17 from 26.');
+    expect(checkHighlight('PR #3 X-Forwarded-For header handling is still open.', allowed)).not.toBeNull();
+    expect(checkHighlight('Runs fell to 9\u0000 this week.', allowed)).toBe('Runs fell to 9 this week.');
+    expect(checkHighlight('Runs fell to 9\nthis week.', allowed)).toBe('Runs fell to 9 this week.');
+    expect(checkHighlight('The user_id check in PR #3 is still open.', allowed)).toBe('The user_id check in PR #3 is still open.');
+    const ua = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Додати ліміт запитів' }] });
+    expect(checkHighlight('PR #3 "Додати ліміт запитів" still has an open critical finding.', ua)).not.toBeNull();
+    expect(checkHighlight('PR #3 "Додати ліміт запитів" still has an open critical finding.', allowed)).toBeNull(); // not from the facts
+  });
+
+  it('names the last day of the week, not the next Monday', () => {
+    expect(text).toContain('Week 2026-W42 (2026-10-12 to 2026-10-18, UTC), in progress');
   });
 
   it('a thousands group split by a space is one number — kept when the facts state it', () => {
     const big = factsCheck({ ...digest, facts: { ...digest.facts, runs: 9000 } });
     expect(checkHighlight('Review runs reached 9 000.', big)).toBe('Review runs reached 9 000.');
     expect(checkHighlight('Review runs reached 9,000.', big)).not.toBeNull();
+    expect(checkHighlight('Review runs reached 9\u2019000.', big)).not.toBeNull();
   });
 
   it('states how many criticals it lists, caps agents at 20 and cuts titles at 120', () => {

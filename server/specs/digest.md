@@ -42,14 +42,19 @@ one untrusted block — numbers in display form (costs as the UI shows them, rat
 percents, unknown `null`), changes in words ("down 2"), titles, names and paths collapsed
 to one line (a newline cannot forge a fact line) and cut to 120, ≤ 20 agents.
 
-Each returned line: links/images/HTML stripped, NFC-normalised, invisible and combining
-characters removed (`4\u200b2` would read as 42), whitespace collapsed, cut to 200;
-dropped if it has a numeral outside ASCII (`４`, `④`, `²`, `½`), a number word
-(`NUMBER_WORDS`: zero, two–twenty, the tens, dozen(s), half/halves/halved, twice, thrice,
-doubled/tripled…, N-fold, hundreds… billions) or a multiplier after a digit (`MULTIPLIER`:
-`3×`, `3 x`, `3 times`, `9 K`, `10^3`), or a token with a digit that does not check out
-(`checkHighlight`, `factsCheck`). Thousands groups split by a space or an apostrophe
-(`9 000`, `1'000`) are joined into one number first. The facts text says how many
+Each returned line is cleaned first: links/images/HTML stripped (an HTML character
+reference such as `&times;` drops the line), NFC, whitespace collapsed, every control,
+format and combining character removed (`4\u200b2`, `4⃣2⃣` would read as 42), Markdown
+emphasis removed (`*`, `~`, `_` at a word's edge — `user_id` keeps its underscore), cut to
+200. It is then dropped if it has a non-ASCII character that is neither common typography
+(— – ‘ ’ “ ” … −) nor in the facts text (a title may be Ukrainian; `四十二`, `✕` or a
+Cyrillic `х` cannot come from nowhere), a numeral outside ASCII (`４`, `④`, `²`, `½`), a
+number word (`NUMBER_WORDS`: stems zero … trillion with an optional `-fold`, half,
+twice, thrice, doubled…) or a multiplier after a digit (`MULTIPLIER`: `3×`, `3 x`,
+`3 times`, `3-fold`, `9 K`, `9 bn`, `9 mil`, `10^3`), or a token with a digit that does
+not check out (`checkHighlight`, `factsCheck`). Digit runs split only by a space or an
+apostrophe (`9 000`, `1'000`, `9 0000`) are joined into one number first. The facts text
+names the week's last day (Sunday), not the next Monday. The facts text says how many
 criticals it lists ("4 (1 listed)"), so "1 of 4" checks out.
 
 | Token | Kept when |

@@ -99,6 +99,10 @@ describe("DigestView", () => {
     renderView();
     expect(screen.getByRole("button", { name: "Next week" })).toBeDisabled();
     expect(screen.getByText("in progress")).toBeTruthy();
+    cleanup();
+    h.query = { ...h.query, data: { ...DIGEST, week: "1970-W01", from: "1969-12-29T00:00:00.000Z", to: "1970-01-05T00:00:00.000Z" } };
+    renderView();
+    expect(screen.getByRole("button", { name: "Previous week" })).toBeDisabled(); // nothing before 1970
   });
 
   it("AC-10/AC-13: the agents of the week — a deleted agent by name, unknown cost and rate as dashes", () => {

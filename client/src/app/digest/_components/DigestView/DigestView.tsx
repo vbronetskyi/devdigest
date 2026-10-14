@@ -15,7 +15,7 @@ import { ApiError } from "@/lib/api";
 import { formatCost } from "@/lib/format-cost";
 import { relativeTime } from "@/lib/relative-time";
 import { notify } from "@/lib/toast";
-import { changeText, criticalHref, digestMarkdown, lastDay, neighbourWeeks, shortDate } from "./helpers";
+import { FIRST_WEEK, changeText, criticalHref, digestMarkdown, lastDay, neighbourWeeks, shortDate } from "./helpers";
 import { s } from "./styles";
 
 export function DigestView() {
@@ -70,7 +70,7 @@ function Digest({ digest: d, queryWeek, onWeek }: { digest: WeeklyDigest; queryW
   return (
     <>
       <div style={s.weekBar}>
-        <Button kind="tertiary" size="sm" icon="ChevronLeft" aria-label={t("page.prev")} onClick={() => onWeek(prev)} />
+        <Button kind="tertiary" size="sm" icon="ChevronLeft" aria-label={t("page.prev")} disabled={d.week <= FIRST_WEEK} onClick={() => onWeek(prev)} />
         <span style={s.range} className="tnum">
           {t("page.range", { week: d.week, from: shortDate(d.from), to: shortDate(lastDay(d.to)) })}
         </span>

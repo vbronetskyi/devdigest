@@ -48,6 +48,9 @@ describe("digest helpers (SPEC-06)", () => {
     expect(mdSafe("Details at https://evil.example/login now")).toBe("Details at `https://evil.example/login` now");
     expect(mdSafe("see www.evil.example")).toBe("see `www.evil.example`");
     expect(mdSafe("log in at evil.com/login now")).toBe("log in at `evil.com/login` now");
+    expect(mdSafe("log in at evil.de/login now")).toBe("log in at `evil.de/login` now"); // any TLD with a path
+    expect(mdSafe("see _evil.com_ now")).toBe("see \\_`evil.com`\\_ now");
+    expect(mdSafe("fix server/src/routes.ts")).toBe("fix server/src/routes.ts"); // a path is not a host
     expect(mdSafe("fix routes.ts and deploy.sh")).toBe("fix routes.ts and deploy.sh"); // file names stay text
     expect(mdSafe("see GH-12")).toBe("see GH\u200b-12");
     // The server already put a bare URL in a code span: escaping its backticks must not set it free.

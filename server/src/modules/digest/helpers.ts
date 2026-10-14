@@ -111,7 +111,7 @@ export function factsText(d: Omit<WeeklyDigest, 'highlights'>, redact = false): 
   const p = d.prev;
   const c = d.change;
   const lines = [
-    `Week ${d.week} (${d.from.slice(0, 10)} to ${d.to.slice(0, 10)}, UTC)${d.in_progress ? ', in progress' : ''}`,
+    `Week ${d.week} (${d.from.slice(0, 10)} to ${new Date(Date.parse(d.to) - DAY_MS).toISOString().slice(0, 10)}, UTC)${d.in_progress ? ', in progress' : ''}`,
     `Previous week${d.in_progress ? ' over the same elapsed days' : ''}: shown in brackets.`,
     `PRs opened: ${f.prs_opened} [${p.prs_opened}], change ${signed(c.prs_opened)}`,
     `PRs reviewed: ${f.prs_reviewed} [${p.prs_reviewed}], change ${signed(c.prs_reviewed)}`,
@@ -139,10 +139,16 @@ const TOKEN = /[\p{L}\p{N}_$%.,/+\-\u2212]*\p{Nd}[\p{L}\p{N}_$%.,/+\-\u2212]*/gu
 const NUMBER = /^[+\-\u2212]?\$?(?:(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?|\.(\d+))%?$/;
 /** Any numeral that is not an ASCII digit: `４`, `④`, `²`, `½`. */
 const NON_ASCII_NUMERAL = /[^\P{N}0-9]/u;
-/** Invisible and combining characters: they can hide between digits ("4\u200b2"). */
-const INVISIBLE = /[\p{Cf}\p{Mn}]/gu;
-/** A thousands group split by a space or an apostrophe: "9 000", "1'000". */
-const GROUP_SEPARATOR = /(\d)[ \u00a0\u202f\u2009'\u2019](?=\d{3}(?!\d))/g;
+/** Control, invisible and combining characters: they can hide between digits ("4\u200b2", "4⃣2⃣"). */
+const HIDDEN = /[\p{C}\p{M}]/gu;
+/** Markdown emphasis: `*` and `~` anywhere, `_` at a word's edge (not inside `user_id`). */
+const EMPHASIS = /[*~]+|(?<![\p{L}\p{N}])_+|_+(?![\p{L}\p{N}])/gu;
+/** An HTML character reference renders as something else: `3&times;`, `9&nbsp;000`. */
+const CHAR_REFERENCE = /&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);/i;
+/** Typography a model may use outside ASCII; any other such character must come from the facts. */
+const TYPOGRAPHY = new Set(['—', '–', '‘', '’', '“', '”', '…', '−']);
+/** Digits split only by a space or an apostrophe read as one number: "9 000", "1'000", "9 0000". */
+const GROUP_SEPARATOR = /(\d)[ '‘’′`](?=\d)/g;
 
 /** The tokens of a text that hold a digit, without sentence punctuation around them. */
 export function tokensIn(text: string): string[] {
@@ -164,13 +170,16 @@ export interface FactsCheck {
   numbers: ReadonlySet<string>;
   /** Every token with a digit in the facts text, as written (`2026-W42`, `gpt-4.1`). */
   tokens: ReadonlySet<string>;
+  /** The non-ASCII characters of the facts text — a title may be in any language. */
+  chars: ReadonlySet<string>;
 }
 
 export function factsCheck(d: Omit<WeeklyDigest, 'highlights'>): FactsCheck {
   const numbers = tokensIn(factsText(d, true))
     .map(asNumber)
     .filter((n): n is string => n !== null);
-  return { numbers: new Set(numbers), tokens: new Set(tokensIn(factsText(d))) };
+  const text = factsText(d);
+  return { numbers: new Set(numbers), tokens: new Set(tokensIn(text)), chars: new Set([...text].filter((c) => c > '\x7f')) };
 }
 
 /** AC-7: a token checks out when it is a stated number, appears in the facts as written, or splits into stated numbers. */
@@ -186,15 +195,26 @@ function tokenChecks(token: string, facts: FactsCheck): boolean {
 }
 
 /**
- * AC-7: a highlight survives only if its links, images, HTML and invisible characters
- * are stripped, it is cut to 200 characters, it has no non-ASCII numeral, number word
- * or multiplier, and every token with a digit — thousands groups joined — checks out
- * against the facts. Returns the cleaned line or null.
+ * AC-7: a highlight survives only if, after its links, images, HTML, emphasis and hidden
+ * characters are removed and it is cut to 200 characters, it has no HTML character
+ * reference, no non-ASCII character the facts do not carry, no non-ASCII numeral, number
+ * word or multiplier, and every token with a digit — split digit runs joined — checks
+ * out against the facts. Returns the cleaned line or null.
  */
 export function checkHighlight(raw: string, facts: FactsCheck): string | null {
-  let line = stripLinks(raw).normalize('NFC').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim().replace(/^[-*•]\s+/, '');
+  const stripped = stripLinks(raw);
+  if (CHAR_REFERENCE.test(stripped)) return null;
+  let line = stripped
+    .normalize('NFC')
+    .replace(/\s+/g, ' ') // before removing controls, so a newline still separates words
+    .replace(HIDDEN, '')
+    .replace(/^\s*[-*•]\s+/, '')
+    .replace(EMPHASIS, '')
+    .replace(/ {2,}/g, ' ')
+    .trim();
   if (!line) return null;
   if (line.length > HIGHLIGHT_MAX_CHARS) line = `${line.slice(0, HIGHLIGHT_MAX_CHARS - 1).trimEnd()}…`;
+  if ([...line].some((c) => c > '\x7f' && !TYPOGRAPHY.has(c) && !facts.chars.has(c))) return null;
   if (NON_ASCII_NUMERAL.test(line) || NUMBER_WORDS.test(line) || MULTIPLIER.test(line)) return null;
   return tokensIn(line.replace(GROUP_SEPARATOR, '$1')).every((t) => tokenChecks(t, facts)) ? line : null;
 }

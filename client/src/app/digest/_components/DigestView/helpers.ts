@@ -20,6 +20,9 @@ export function isoWeekOf(at: Date): string {
   return `${String(year).padStart(4, "0")}-W${String(Math.floor((thursday - week1) / (7 * DAY)) + 1).padStart(2, "0")}`;
 }
 
+/** The first week the digest answers for (SPEC-06 AC-5): no "previous" before it. */
+export const FIRST_WEEK = "1970-W01";
+
 /** The weeks around a digest's week, from its Monday. */
 export function neighbourWeeks(fromIso: string): { prev: string; next: string } {
   const from = Date.parse(fromIso);
@@ -48,12 +51,13 @@ export function criticalHref(c: DigestCritical): string {
 export const githubPrUrl = (fullName: string, n: number) => `https://github.com/${fullName}/pull/${n}`;
 
 /**
- * What a channel would turn into a link — a URL, `www.`, or a bare domain on a common
- * TLD (`evil.com/login`; Slack links those) — kept readable, inside a code span. File
- * names (`routes.ts`, `deploy.sh`) are not on the list.
+ * What a channel would turn into a link — a URL, `www.`, any `host.tld/path`, or a bare
+ * domain on a common TLD (`evil.com`; Slack links those) — kept readable, inside a code
+ * span. File names (`routes.ts`, `deploy.sh`) are not on the TLD list and have no host
+ * before a slash.
  */
 const LINKABLE =
-  /((?:[a-z][a-z0-9+.-]*:\/\/|mailto:|www\.)[^\s`<>]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|dev|app|ai|co|xyz|info|me|ly|gg|link|site|online|biz|us|uk|eu|ru|ua)\b(?:\/[^\s`<>]*)?)/gi;
+  /((?:[a-z][a-z0-9+.-]*:\/\/|mailto:|www\.)[^\s`<>]+|(?<![a-z0-9.-])[a-z0-9-]+(?:\.[a-z0-9-]+)+\/[^\s`<>]*|(?<![a-z0-9.-])[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|dev|app|ai|co|xyz|info|me|ly|gg|link|site|online|biz|us|uk|eu|ru|ua)(?![a-z0-9-]))/gi;
 
 /**
  * Untrusted text (PR titles, finding titles, agent names, highlights) made safe for a
