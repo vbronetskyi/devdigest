@@ -85,14 +85,18 @@ Highlights (one model call)
   - a character outside ASCII, Latin letters and common typography (— – ‘ ’ “ ” … − → «
     ») must appear in the facts text — a title may be in any language, but `四十二`, `✕`
     or a Cyrillic `х` cannot come from nowhere — and a numeral outside ASCII (`４２`, `④`,
-    `²`, `½`) drops the line; Cyrillic and Greek letters that look Latin are read as
-    Latin for the number words and multipliers below;
+    `²`, `½`) drops the line, as do LaTeX braces or backslashes (GitHub renders
+    `$9{}000$` as math) and emoji shortcodes (`:heavy_multiplication_x:`); for the number
+    words and multipliers below, Cyrillic and Greek letters that look Latin and
+    compatibility or accented forms (`ｔ`, `é`, `ı`) are read as plain Latin — a quoted
+    Ukrainian title is not a number word;
   - so does a number word — zero, two to twenty, the tens to ninety, dozen(s),
-    hundred(s), thousand(s), million(s), billion(s), trillion(s), each also with `-fold`;
+    hundred(s), thousand(s), million(s), billion(s), trillion(s), also run together
+    (`fortytwo`, `onehundred`) and with `-fold`;
     half / halves / halved, twice, thrice, double / triple / quadruple and their -d / -s /
-    -ing forms — or a multiplier after a digit, with spaces, brackets, quotes or dashes
-    between (`3×`, `3 x`, `(3) times`, `3–fold`, `9 K`, `9 bn`, `9 bln`, `9 mil`, `$9
-    grand`, `10^3`).
+    -ing forms — or a multiplier after a digit, with spaces, brackets, quotes, dashes or
+    an ellipsis between (`3×`, `3 x`, `(3) times`, `«3» times`, `3–fold`, `9 K`, `9 bn`,
+    `9 bln`, `9 MM`, `9 lakh`, `9 mil`, `$9 grand`, `10^3`).
   The facts text states how many open criticals it lists ("5 listed"), so "5 of 12" can
   be checked.
 - **AC-8** The kept highlights shall be stored per workspace and week with the model,
@@ -196,3 +200,8 @@ model id `weekly_digest`.
   abbreviations; HTML comments removed; path underscores kept; Latin letters and arrows
   allowed; look-alike Cyrillic and Greek read as Latin for number words; numbers compared
   as written.
+- 2026-10-15 — after the fifth verification: the fourth pass's look-alike reading turned
+  `з` into 3 and used ASCII word edges, so honest Ukrainian titles ("Виправити…") read as
+  multipliers; `з` is a letter again and word edges are Unicode. LaTeX braces,
+  backslashes and emoji shortcodes drop a line; compatibility and accented Latin forms
+  read as plain Latin; number words run together; more multipliers.
