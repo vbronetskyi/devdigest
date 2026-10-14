@@ -105,20 +105,28 @@ Both pages sit in the sidebar's **GLOBAL** group (`g m`, `g w`) and are workspac
 not under a repository.
 
 - **Agent Performance** — a 7 / 30 / 90 days selector; cards: runs with a daily
-  sparkline and failures, cost with its change against the previous window (or "no cost
-  known"), the pooled accept rate with the decided count, the most active agent. The
-  table (accept rate first, unknown last) shows runs, average cost and duration, the
-  accept rate with a trend arrow (text label) and "low sample" under 5 decisions, the last
-  run; a row expands to its last five runs, each opening the PR's Agent runs tab (a run of
-  a deleted PR is unlinked, a failed run's figures are dashes with the reason). Cost
-  breakdown donuts by agent and by model use the app's cost format.
+  sparkline and failures, cost with its change against the previous window ("no cost
+  known" for this window or the previous one, whichever it is), the pooled accept rate
+  with the decided count, the most active agent. The table is a native `<table>` (accept
+  rate first, unknown last): runs, average cost and duration, the accept rate with a
+  trend arrow (text label) and "low sample" under 5 decisions, the last run. The agent
+  cell's button (`aria-expanded`) opens the last five runs, each linking the PR's Agent
+  runs tab (a deleted PR's run is unlinked). Every unknown is `Unknown` — "—" with its
+  reason in `title` and in visually hidden text. Cost donuts by agent and by model show
+  cost and share in the app's cost format; a slice's colour follows its key
+  (`sliceColors`), so an agent keeps it across windows.
 - **Weekly Digest** — previous / next week through `?week=` (no next past the current
   week, which is marked "in progress" and compared with the same elapsed days of last
-  week). Cards: PRs opened, PRs reviewed, runs, cost, new findings by severity, decisions.
-  Highlights are labelled "AI-written, numbers checked", written only on **Write
-  highlights / Rewrite**, with model, cost, time and a "stale" note. Open critical
-  findings ("N of M") open Files changed at their line. **Copy as Markdown** escapes
-  untrusted text for a team channel and links PRs on GitHub.
+  week). Cards: PRs opened, PRs reviewed, runs, cost, new findings by severity, decisions
+  — each with its change; an unknown change is "— vs last week" with its reason, never
+  "no change". Highlights are labelled "AI-written, numbers checked", written only on
+  **Write highlights / Rewrite**, with model, cost, time and a "stale" note. A request
+  belongs to its week: the mutation key holds the week and the answer goes to the cache of
+  the week it asked for; coming back to a week whose request still runs shows "Writing…"
+  (`useIsMutating`). A failure shows the server's sentence as is. Open critical findings
+  ("N of M") open Files changed at their line. **Copy as Markdown** has each number with
+  last week's and the change, criticals with PR title, file:line and agent; untrusted text
+  is escaped for a team channel and URLs stay inside code spans; PRs link to GitHub.
 
 No page triggers an LLM call by being opened. Model calls happen only from
 **Run Review**, the intent card's **Derive**, the tour's **Generate / Regenerate**,

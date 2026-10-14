@@ -20,9 +20,11 @@ Facts (`repository.ts`, raw SQL, workspace-scoped):
   them (a later click moves a decision, so past weeks can change); their accept rate;
 - the previous week on the same basis — for the week in progress, over the same elapsed
   span (`previousSpan`), not the whole week;
-- open criticals: CRITICAL, undecided findings of the latest `done` run per PR and agent
-  (`distinct on (pr_id, agent_id)`), newest run first, then file and line; 5 listed with
-  the total; PR state shown when merged or closed;
+- open criticals: CRITICAL, undecided findings of the latest `done` run per PR and agent,
+  newest run first, then file and line; 5 listed with the total; PR state shown when
+  merged or closed. A deleted agent leaves `agent_runs.agent_id` null, so runs are grouped
+  by `coalesce(agent_runs.agent_id, reviews.agent_id, run id)` — `reviews.agent_id` has no
+  foreign key and keeps the id after the agent is gone;
 - agents of the week: runs, known cost, accept rate of the week's decisions on their
   findings.
 
@@ -33,20 +35,34 @@ No model call.
 Same validation; an empty week (no runs, no decisions) → 409 without a call; one in
 flight for the workspace and week → 409. One call to the feature model `weekly_digest`
 (Settings → registry default OpenAI `gpt-4.1` → OpenRouter `deepseek/deepseek-v4-flash`),
-template `src/prompts/weekly-digest.system.md`, `maxRetries: 0`, 60 s deadline. Input: the
-facts text (`factsText`) in one untrusted block — numbers in display form (costs as the UI
-shows them, rates whole percents, unknown `null`), changes in words ("down 2": a digit
-glued to a hyphen is not a number to the check), titles cut to 120, ≤ 20 agents.
+template `src/prompts/weekly-digest.system.md`, `maxRetries: 0`, 60 s deadline. No key
+for any candidate provider → 502 with the reason. Input: the facts text (`factsText`) in
+one untrusted block — numbers in display form (costs as the UI shows them, rates whole
+percents, unknown `null`), changes in words ("down 2"), titles, names and paths collapsed
+to one line (a newline cannot forge a fact line) and cut to 120, ≤ 20 agents.
 
 Each returned line: links/images/HTML stripped, whitespace collapsed, cut to 200; dropped
-if it has a number word (two–twenty, dozen, half, twice, double) or any number that is not
-a number of the facts text (`numbersIn` — `$`, `%` and separators removed, trailing zeros
-ignored; digits glued to letters, `-`, `.`, `/`, `_` or inside code spans are not numbers,
-on both sides). At most 5 kept; none → 502 and the stored lines stay. Stored in
+if it has a number word (`NUMBER_WORDS`: two–twenty, dozen(s), half/halves/halved,
+twice, thrice, doubled/tripled…, N-fold, hundreds…) or a token with a digit that does not
+check out (`checkHighlight`, `factsCheck`):
+
+| Token | Kept when |
+|---|---|
+| a number — sign, `$`, separators, decimals, `.5`, `%` (`asNumber`) | it is a number of the **redacted** facts text — `factsText(d, true)` without titles, names and paths, so untrusted text adds no number |
+| anything else with a digit (`gpt-4.1`, `2026-W42`, `10k`, `3rd`, `1_000`) | it appears as written in the facts text, or splits at `-` / `/` into numbers that are each kept (`3-9`; not `10-day`) |
+| a non-ASCII digit (`４２`) | never |
+
+Code spans are not exempt. At most 5 kept; none → 502 and the stored lines stay. A
+failed request releases its week (`finally`), so the next one is not a 409. Stored in
 `digest_highlights` (migration 0017) with the model, cost and a SHA-256 of the facts text;
-`GET` reports `stale` when today's facts text hashes differently.
+`GET` reports `stale` when today's facts text hashes differently — including at the
+close of the week, when the comparison moves from the same elapsed days to the whole
+previous week. Asking again replaces the stored lines.
 
 The starter's `Digest` / `DigestRunRequest` stubs and `digests` table (a *sent* digest)
 are unused — sending is out of scope.
 
-Tests: `test/digest-helpers.test.ts`, `test/digest.it.test.ts`.
+Facts and the agents answer in a 15 ms median with 10,000 runs and 50,000 findings.
+
+Tests: `test/digest-helpers.test.ts`, `test/digest.it.test.ts`,
+`test/performance-digest-load.it.test.ts`.

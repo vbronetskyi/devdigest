@@ -30,9 +30,16 @@ Sorting: accept rate (unknown last), runs, name, id. Most active: most runs amon
 agents (the deleted-agent row never), ties by name then id.
 
 Indexes (migration 0016): `agent_runs (workspace_id, ran_at)`, `reviews (run_id)`. A
-30-day answer on this database: ~3 ms.
+30-day answer on this database: ~3 ms; 90 days over 10,000 runs and 50,000 findings: a
+13 ms median (`test/performance-digest-load.it.test.ts`), so `findings.review_id` needs
+no index of its own.
+
+Findings belong to a run through `reviews.run_id`, which is not unique in the schema: the
+executor writes one review per run. A second review for a run would count its findings
+twice.
 
 The contract keeps the starter's stub names — `AgentPerf`, `AgentPerfRow`, `AgentPerfRun`,
 `PerfCostSegment` in `contracts/productionize.ts`.
 
-Tests: `test/performance-helpers.test.ts`, `test/performance.it.test.ts`.
+Tests: `test/performance-helpers.test.ts`, `test/performance.it.test.ts`,
+`test/performance-digest-load.it.test.ts`.
