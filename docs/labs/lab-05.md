@@ -208,7 +208,7 @@ Tests: `cd server && pnpm exec vitest run context project-context onboarding git
 і в якому PR його востаннє змінив. Спеки, плани й звіти перевірки лежать у
 `specs/risk-brief/` і `specs/git-why/`.
 
-**Відео (76 с):** [hw5-brief-why.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-5/hw5-brief-why.mp4)
+**Відео (78 с):** [hw5-brief-why.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-5/hw5-brief-why.mp4)
 — генерація брифу на PR #9, розгорнутий ризик, перехід у дифф, історія PR #5 і
 git-why на рядку з PR #4.
 
