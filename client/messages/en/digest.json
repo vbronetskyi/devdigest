@@ -1,0 +1,63 @@
+{
+  "page": {
+    "crumb": "Weekly Digest",
+    "title": "Weekly Digest",
+    "subtitle": "One week of code review: what was reviewed, what was found, what still needs someone",
+    "range": "{week} · {from} – {to} (UTC)",
+    "inProgress": "in progress",
+    "prev": "Previous week",
+    "next": "Next week",
+    "copy": "Copy as Markdown",
+    "copied": "Digest copied as Markdown",
+    "copyFailed": "Could not copy: the browser blocked the clipboard.",
+    "loadError": "Could not load the digest.",
+    "empty": "No review activity this week.",
+    "comparedSpan": "vs the same days last week",
+    "comparedWeek": "vs last week"
+  },
+  "facts": {
+    "prsOpened": "PRs OPENED",
+    "prsReviewed": "PRs REVIEWED",
+    "runs": "REVIEW RUNS",
+    "runsSub": "{failed, plural, =0 {none failed} one {# failed} other {# failed}}",
+    "cost": "COST",
+    "costSub": "{count, plural, =0 {every finished run has a cost} one {# finished run without a cost} other {# finished runs without a cost}}",
+    "findings": "NEW FINDINGS",
+    "decisions": "DECISIONS",
+    "decisionsSub": "{accepted} accepted · {dismissed} dismissed",
+    "acceptRate": "accept rate {rate}",
+    "change": "{change} {basis}",
+    "noChange": "no change {basis}",
+    "unknown": "—",
+    "unknownCost": "No finished run reported a cost.",
+    "criticalChange": "critical: {change}"
+  },
+  "highlights": {
+    "title": "Highlights",
+    "label": "AI-written, numbers checked",
+    "write": "Write highlights",
+    "rewrite": "Rewrite",
+    "writing": "Writing…",
+    "meta": "{model} · {cost} · {ago, select, now {just now} other {{ago} ago}}",
+    "stale": "The week's numbers changed since these were written.",
+    "none": "No highlights yet. One model call writes a few lines from the numbers above; a line with a number that is not in them is dropped.",
+    "failed": "Couldn't write highlights: {message}"
+  },
+  "criticals": {
+    "title": "Open critical findings",
+    "count": "{shown} of {total}",
+    "none": "No open critical findings from this week's runs.",
+    "merged": "merged",
+    "closed": "closed",
+    "deletedAgent": "deleted agent"
+  },
+  "agents": {
+    "title": "Agents this week",
+    "agent": "Agent",
+    "runs": "Runs",
+    "cost": "Cost",
+    "accept": "Accept",
+    "decided": "of {count}",
+    "deletedAgent": "deleted agent"
+  }
+}
