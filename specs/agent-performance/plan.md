@@ -7,13 +7,14 @@ runs and findings. **Non-goals** — CI runs, per-repo/author splits, exports.
 
 A `performance` module (`routes`, `service`, `repository`, `helpers`): SQL aggregates in
 the repository, window/trend/shares math as pure helpers, no other module imported.
-Client: a global route `/agent-performance` (not under a repo), hook
+Route `GET /agents/performance`. Client: a global route `/agent-performance` (not under a repo), hook
 `lib/hooks/performance.ts`, components colocated, text in `messages/en/performance.json`,
 a "GLOBAL" nav group.
 
 ## Contract and schema changes
 
-- `AgentPerformance` in `contracts/performance.ts` (both copies).
+- `AgentPerf` / `AgentPerfRow` / `PerfCostSegment` in `contracts/productionize.ts` (both
+  copies): the starter's unused stub, replaced by the SPEC-05 shape.
 - Migration (generated): indexes `agent_runs (workspace_id, ran_at)` and
   `reviews (run_id)` — neither exists, and every query here walks them.
 

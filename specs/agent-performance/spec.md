@@ -65,7 +65,7 @@ Data
 - **AC-9** For each agent the system shall return its last five runs of the window: PR
   (repository id, PR number, title — null fields for a deleted PR), status, and for `done`
   runs score, findings count, duration and cost (null otherwise), and time.
-- **AC-10** `GET /agent-performance?days=` shall answer for the caller's workspace only,
+- **AC-10** `GET /agents/performance?days=` shall answer for the caller's workspace only,
   make no model call, take 30 when `days` is absent, and answer 422 for any value other
   than `7`, `30` or `90`.
 
@@ -110,13 +110,14 @@ text; links are built from ids and numbers only.
 
 ## Contract
 
-New `AgentPerformance` (both copies): `window` (`days`, `from`, `to`), `totals` (`runs`,
+`AgentPerf` in `contracts/productionize.ts` (both copies) — the starter's unimplemented stub
+for this endpoint, replaced by: `window` (`days`, `from`, `to`), `totals` (`runs`,
 `failed`, `cost_usd`, `runs_without_cost`, `prev_cost_usd`, `cost_change_usd`,
 `accept_rate`, `decided`, `runs_per_day[]`, `most_active` | null), `agents[]`
 (`agent_id` | null, `name`, `runs`, `failed`, `cost_usd`, `avg_cost_usd`,
 `avg_duration_ms`, `accept_rate`, `decided`, `accept_trend` | null, `low_sample`,
 `last_run_at`, `recent[]`), `cost_by_agent[]`, `cost_by_model[]` (`label`, `cost_usd`,
-`share`).
+`share`) — `PerfCostSegment`; runs are `AgentPerfRun`.
 
 ## Changelog
 
@@ -127,3 +128,6 @@ New `AgentPerformance` (both copies): `window` (`days`, `from`, `to`), `totals` 
   design averages agents); trend threshold and a minimum sample; most active, cost change,
   shares and model groups defined; `days` validation; CI runs out of scope; sub-cent costs;
   failure state; row rules and tie-breaks.
+- 2026-10-14 — aligned with the starter's stub before code: the endpoint is
+  `GET /agents/performance` and the contract keeps the stub's names (`AgentPerf`,
+  `AgentPerfRow`, `PerfCostSegment`), its fields replaced by this spec's.

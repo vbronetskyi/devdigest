@@ -21,6 +21,8 @@ Non-goals
 - Sending the digest (Slack, e-mail) or scheduling it.
 - Merged-PR counts: DevDigest stores no merge time.
 - Per-author statistics. CI runs (`ci_runs`).
+- The starter's `Digest` / `DigestRunRequest` stubs and the `digests` table describe a
+  digest that is *sent* (`body_md`, `delivered_to`) — they stay unused here.
 
 ## Definitions
 
@@ -135,3 +137,4 @@ model id `weekly_digest`.
   week-year, a 409 for an empty week, a concrete number-check table, staleness by facts
   hash, a 502 with the reason, the registry default, Markdown safe for channels, the UI's
   AI label and request states.
+- 2026-10-14 — before code: the starter's sent-digest stubs named as out of scope.
