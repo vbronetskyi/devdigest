@@ -76,19 +76,23 @@ Highlights (one model call)
     outside titles, names and paths, so untrusted text cannot add numbers;
   - any other token (`gpt-4.1`, `2026-W42`, `10k`, `3rd`, `1_000`, `3-5`) must appear
     as it is in the facts text, or split at `-` and `/` into numbers that each check out;
-  - first, Markdown emphasis (`*`, `~`, `_` at a word's edge) and invisible, control and
-    combining characters are removed, and an HTML character reference (`&times;`) drops
-    the line; code spans are checked like the rest; digits split only by a space or an
-    apostrophe (`9 000`, `1'000`, `9 0000`) are one number;
-  - a character outside ASCII and common typography (— – ‘ ’ “ ” … −) must appear in the
-    facts text — a title may be in any language, but `四十二`, `✕` or a Cyrillic `х`
-    cannot come from nowhere — and a numeral outside ASCII (`４２`, `④`, `²`, `½`) drops
-    the line;
+  - first, Markdown emphasis (`*`, `~`, `_` at a word's edge, not inside a path), HTML
+    comments and invisible, control and combining characters are removed; an HTML
+    character reference (`&times;`) before or after that drops the line; code spans are
+    checked like the rest, and backticks do not separate a digit from its multiplier;
+    digits split only by a space or an apostrophe (`9 000`, `1'000`, `9 0000`) are one
+    number, compared as written (`8.9999999999999999` is not 9);
+  - a character outside ASCII, Latin letters and common typography (— – ‘ ’ “ ” … − → «
+    ») must appear in the facts text — a title may be in any language, but `四十二`, `✕`
+    or a Cyrillic `х` cannot come from nowhere — and a numeral outside ASCII (`４２`, `④`,
+    `²`, `½`) drops the line; Cyrillic and Greek letters that look Latin are read as
+    Latin for the number words and multipliers below;
   - so does a number word — zero, two to twenty, the tens to ninety, dozen(s),
     hundred(s), thousand(s), million(s), billion(s), trillion(s), each also with `-fold`;
     half / halves / halved, twice, thrice, double / triple / quadruple and their -d / -s /
-    -ing forms — or a multiplier after a digit (`3×`, `3 x`, `3 times`, `3-fold`, `9 K`,
-    `9 bn`, `9 mil`, `10^3`).
+    -ing forms — or a multiplier after a digit, with spaces, brackets, quotes or dashes
+    between (`3×`, `3 x`, `(3) times`, `3–fold`, `9 K`, `9 bn`, `9 bln`, `9 mil`, `$9
+    grand`, `10^3`).
   The facts text states how many open criticals it lists ("5 listed"), so "5 of 12" can
   be checked.
 - **AC-8** The kept highlights shall be stored per workspace and week with the model,
@@ -114,7 +118,7 @@ UI
 - **AC-12** "Copy as Markdown" shall put the digest (facts with the previous week and the
   change, open criticals with PR, title, file:line and agent, agents, highlights if any)
   on the clipboard as Markdown: titles, names and paths escaped, whitespace collapsed,
-  `@` mentions, `#N` / `GH-N` references and `<!…>` neutralised; URLs, any `host.tld/path`
+  `&`, `@` mentions, `#N` / `GH-N` references and `<!…>` neutralised; URLs, any `host.tld/path`
   and bare domains on common TLDs (`evil.com`) kept inside code spans so no channel turns
   them into links;
   PR links are GitHub URLs built from owner, name and number.
@@ -186,3 +190,9 @@ model id `weekly_digest`.
   and matches number words by stem with an optional `-fold`; AC-10 stops the previous
   week at 1970-W01; AC-12 wraps any `host.tld/path`. The facts text names the week's last
   day, not the next Monday.
+- 2026-10-15 — after the fourth verification: a character reference is checked after the
+  clean-up too (`3&*times;` rebuilt one) and `&` is escaped in the Markdown; backticks,
+  brackets, quotes and dashes no longer separate a digit from a multiplier; more
+  abbreviations; HTML comments removed; path underscores kept; Latin letters and arrows
+  allowed; look-alike Cyrillic and Greek read as Latin for number words; numbers compared
+  as written.
