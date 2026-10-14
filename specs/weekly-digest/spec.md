@@ -76,13 +76,19 @@ Highlights (one model call)
     outside titles, names and paths, so untrusted text cannot add numbers;
   - any other token (`gpt-4.1`, `2026-W42`, `10k`, `3rd`, `1_000`, `3-5`) must appear
     as it is in the facts text, or split at `-` and `/` into numbers that each check out;
-  - code spans are checked like the rest; invisible and combining characters are removed
-    first; digits grouped by a space or an apostrophe (`9 000`, `1'000`) are one number;
-  - a numeral outside ASCII (`４２`, `④`, `²`, `½`) drops the line, and so does a number
-    word — zero, two to twenty, the tens to ninety, dozen(s), half / halves / halved,
-    twice, thrice, double / triple / quadruple and their -d / -s / -ing forms, N-fold,
-    hundred(s), thousand(s), million(s), billion(s) — or a multiplier after a digit
-    (`3×`, `3 x`, `3 times`, `9 K`, `10^3`).
+  - first, Markdown emphasis (`*`, `~`, `_` at a word's edge) and invisible, control and
+    combining characters are removed, and an HTML character reference (`&times;`) drops
+    the line; code spans are checked like the rest; digits split only by a space or an
+    apostrophe (`9 000`, `1'000`, `9 0000`) are one number;
+  - a character outside ASCII and common typography (— – ‘ ’ “ ” … −) must appear in the
+    facts text — a title may be in any language, but `四十二`, `✕` or a Cyrillic `х`
+    cannot come from nowhere — and a numeral outside ASCII (`４２`, `④`, `²`, `½`) drops
+    the line;
+  - so does a number word — zero, two to twenty, the tens to ninety, dozen(s),
+    hundred(s), thousand(s), million(s), billion(s), trillion(s), each also with `-fold`;
+    half / halves / halved, twice, thrice, double / triple / quadruple and their -d / -s /
+    -ing forms — or a multiplier after a digit (`3×`, `3 x`, `3 times`, `3-fold`, `9 K`,
+    `9 bn`, `9 mil`, `10^3`).
   The facts text states how many open criticals it lists ("5 listed"), so "5 of 12" can
   be checked.
 - **AC-8** The kept highlights shall be stored per workspace and week with the model,
@@ -95,7 +101,8 @@ Highlights (one model call)
 
 UI
 - **AC-10** A "Weekly Digest" page in the sidebar shall show the week (`from`–`to`, UTC)
-  with previous / next navigation (no next past the current week), the facts as cards with
+  with previous / next navigation (no next past the current week, no previous before
+  1970-W01), the facts as cards with
   the change against the previous week (decisions included; an unknown change is "—"
   with its reason, never "no change"), the open critical findings each opening its PR's
   Files changed at that line, and the agents of the week.
@@ -107,8 +114,9 @@ UI
 - **AC-12** "Copy as Markdown" shall put the digest (facts with the previous week and the
   change, open criticals with PR, title, file:line and agent, agents, highlights if any)
   on the clipboard as Markdown: titles, names and paths escaped, whitespace collapsed,
-  `@` mentions, `#N` / `GH-N` references and `<!…>` neutralised, URLs and bare
-  domains (`evil.com/login`) kept inside code spans so no channel turns them into links;
+  `@` mentions, `#N` / `GH-N` references and `<!…>` neutralised; URLs, any `host.tld/path`
+  and bare domains on common TLDs (`evil.com`) kept inside code spans so no channel turns
+  them into links;
   PR links are GitHub URLs built from owner, name and number.
 - **AC-13** Unknown numbers shall show as "—", never 0; an empty week shall say "No review
   activity this week" (PRs opened, if any, still shown).
@@ -172,3 +180,9 @@ model id `weekly_digest`.
   digit, multipliers and more number words, and states the listed criticals' count; AC-5
   rejects weeks before 1970 (year 0 is not a Postgres date); the week in progress ends at
   now for agents and criticals too; AC-12 neutralises `GH-N` and bare domains.
+- 2026-10-15 — after the third verification: AC-7 normalises before checking (emphasis,
+  every control and combining character, HTML character references), takes non-ASCII
+  characters only from the facts, joins any digit run split by a space or an apostrophe,
+  and matches number words by stem with an optional `-fold`; AC-10 stops the previous
+  week at 1970-W01; AC-12 wraps any `host.tld/path`. The facts text names the week's last
+  day, not the next Monday.
