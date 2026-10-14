@@ -49,7 +49,7 @@ N SUGGESTION` і три кнопки-фільтри. Числа рахуютьс
 На сервері — один `COUNT … GROUP BY`, у браузері — підрахунок по завантаженому
 списку.
 
-Відео (73 с): [hw1-findings-by-severity.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-1/hw1-findings-by-severity.mp4).
+Відео (43 с): [hw1-findings-by-severity.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-1/hw1-findings-by-severity.mp4).
 
 ## Insights записуються самі
 
