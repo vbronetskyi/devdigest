@@ -47,18 +47,22 @@ whitespace collapsed, every control, format and combining character removed (`4\
 `4⃣2⃣` would read as 42), Markdown emphasis removed (`*`, `~`, `_` at a word's edge —
 `user_id` and `src/_shared/` keep theirs), cut to 200. An HTML character reference
 before or after the clean-up drops it (`3&*times;` would become `3&times;`). It is then
-dropped if it has a non-ASCII character that is neither a Latin letter, common
-typography (— – ‘ ’ “ ” … − → « ») nor in the facts text (a title may be Ukrainian;
+dropped if it has a non-ASCII character that is neither a Latin letter folding to ASCII
+(`é`, `ｔ` — not `ᴛ`, `ĸ`), common typography (— – ‘ ’ “ ” … − → « ») nor in the facts text (a title may be Ukrainian;
 `四十二`, `✕` or a Cyrillic `х` cannot come from nowhere), a numeral outside ASCII (`４`,
 `④`, `²`, `½`), a number word (`NUMBER_WORDS`: stems zero … trillion, also glued to
 `fold`; half, twice, thrice, doubled…) or a multiplier after a digit with spaces,
-brackets, quotes, dashes or an ellipsis between (`MULTIPLIER`: `3×`, `(3) times`,
-`«3» times`, `3–fold`, `9 K`, `9 bln`, `9 MM`, `$9 grand`, `10^3`); number words may run
-together (`fortytwo`). For those two tests backticks are ignored, compatibility and
-accented forms are folded (NFKD) and Cyrillic, Greek and Latin look-alikes read as Latin
-(`twеnty`, `ｔｗｅｎｔｙ`, `eiɡht`); word edges are Unicode letters, and `з` stays a letter,
-so a quoted Ukrainian title ("Виправити…", "Хліб…") is not a multiplier. LaTeX braces or
-backslashes (`$9{}000$` renders as math in GitHub) and emoji shortcodes drop a line. Last, every token with a digit must check out
+brackets, quotes, dashes or an ellipsis between for a word multiplier (`MULTIPLIER`:
+`3×`, `(3) times`, `«3» times`, `3–fold`, `9 bln`, `9 MM`, `$9 grand`, `10^3`); a
+one-letter multiplier (`LETTER_MULTIPLIER`: x, k, m, b, t; `LOOKALIKE_LETTER_MULTIPLIER`:
+х, к, м, в, т and Greek) counts only right after the digit and its closing marks (`3x`,
+`9 K`, `«9» K`, `3 х.`) — `3 "X API client"`, `3 "В логах…"` and `3 К релізу` start a
+title or a Cyrillic word. Number words may run together (`fortytwo`). For these tests
+backticks are ignored, compatibility and accented forms are folded (NFKD), and
+look-alikes read as Latin only inside a word that mixes them with ASCII letters
+(`twеnty`) or is all Latin variants (`ᴛᴡᴇɴᴛʏ`) — a Cyrillic word stays Cyrillic, and `з`
+is a letter. GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
+emoji shortcode (`:x:`, not `std::sync::` or `ws:pr:sha`) drop a line. Last, every token with a digit must check out
 (`checkHighlight`, `factsCheck`); numbers compare as written, not through `Number()`
 (`8.9999999999999999` is not 9). Digit runs split only by a space or an
 apostrophe (`9 000`, `1'000`, `9 0000`) are joined into one number first. The facts text

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { DigestChange, DigestFacts, WeeklyDigest } from '@devdigest/shared';
 import { stripLinks } from '../_shared/markdown.js';
-import { DAY_MS, HIGHLIGHT_MAX_CHARS, MAX_AGENTS_IN_PROMPT, MULTIPLIER, NUMBER_WORDS, TITLE_MAX_CHARS, WEEK_MS } from './constants.js';
+import { DAY_MS, HIGHLIGHT_MAX_CHARS, LETTER_MULTIPLIER, LOOKALIKE_LETTER_MULTIPLIER, MAX_AGENTS_IN_PROMPT, MULTIPLIER, NUMBER_WORDS, TITLE_MAX_CHARS, WEEK_MS } from './constants.js';
 
 /**
  * SPEC-06 — the pure part: ISO weeks, the facts text the model sees, the
@@ -147,27 +147,38 @@ const EMPHASIS = /[*~]+|(?<![\p{L}\p{N}/._])_+|(?<![/.])_+(?![\p{L}\p{N}/_]|\.[\
 const HTML_COMMENT = /<!--[\s\S]*?(?:-->|$)/g;
 /** An HTML character reference renders as something else: `3&times;`, `9&nbsp;000`. */
 const CHAR_REFERENCE = /&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);/i;
-/** Outside ASCII, Latin letters (`naïve`) and this typography need no source; any other character must come from the facts. */
+/** Outside ASCII, this typography and Latin letters that fold to ASCII (`naïve`) need no source; any other character must come from the facts. */
 const TYPOGRAPHY = new Set(['—', '–', '‘', '’', '“', '”', '…', '−', '→', '«', '»']);
 const LATIN_LETTER = /\p{Script=Latin}/u;
+/** `é`, `ﬁ`, `ｔ` fold to ASCII; `ᴛ`, `ĸ`, `ı` do not, so they must come from the facts. */
+const foldsToAscii = (c: string) => /^[\x00-\x7f]+$/.test(c.normalize('NFKD').replace(/\p{M}/gu, ''));
 /**
- * Letters that look Latin, read as Latin for the number words and multipliers:
- * Cyrillic, Greek and a few Latin variants. Letters only — `з` is not a 3, or every
- * Ukrainian title with "з" would hold a digit.
+ * Letters that look Latin: Cyrillic, Greek and Latin small capitals. Letters only — `з`
+ * is not a 3, or every Ukrainian title with "з" would hold a digit.
  */
 const LOOK_ALIKES: Record<string, string> = {
-  а: 'a', в: 'b', е: 'e', ё: 'e', і: 'i', ї: 'i', ј: 'j', к: 'k', м: 'm', н: 'h', о: 'o', р: 'p', с: 'c', т: 't', у: 'y', х: 'x', ѕ: 's',
-  α: 'a', β: 'b', ε: 'e', ι: 'i', κ: 'k', μ: 'u', ν: 'v', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x',
-  ı: 'i', ɡ: 'g', ɑ: 'a', ᴋ: 'k', ʜ: 'h', ᴛ: 't', ᴡ: 'w', ʏ: 'y', ᴏ: 'o',
+  а: 'a', в: 'b', г: 'r', е: 'e', ё: 'e', і: 'i', ї: 'i', ј: 'j', к: 'k', м: 'm', н: 'h', о: 'o', п: 'n', р: 'p', с: 'c', т: 't', у: 'y', х: 'x', ѕ: 's', ь: 'b',
+  һ: 'h', ԁ: 'd', ӏ: 'l', ԝ: 'w',
+  α: 'a', β: 'b', ε: 'e', η: 'n', ι: 'i', κ: 'k', μ: 'u', ν: 'v', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x',
+  ı: 'i', ɡ: 'g', ɑ: 'a', ɛ: 'e', ŋ: 'n', ĸ: 'k',
+  ᴀ: 'a', ʙ: 'b', ᴄ: 'c', ᴅ: 'd', ᴇ: 'e', ꜰ: 'f', ɢ: 'g', ʜ: 'h', ɪ: 'i', ᴊ: 'j', ᴋ: 'k', ʟ: 'l', ᴍ: 'm', ɴ: 'n', ᴏ: 'o', ᴘ: 'p', ʀ: 'r', ꜱ: 's', ᴛ: 't', ᴜ: 'u', ᴠ: 'v', ᴡ: 'w', ʏ: 'y', ᴢ: 'z',
 };
-/** Compatibility forms (`ｔ`) and accents (`é`) folded, then look-alikes read as Latin. */
+/**
+ * The text the number words and multipliers are matched on: compatibility forms (`ｔ`)
+ * and accents (`é`) folded; inside a word that mixes ASCII letters with look-alikes
+ * (`twеnty`) or is all Latin variants (`ᴛᴡᴇɴᴛʏ`), the look-alikes read as Latin. A
+ * Cyrillic word stays Cyrillic ("В логах" is not "B").
+ */
 const asLatin = (text: string) =>
   text
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
-    .replace(/./gu, (c) => LOOK_ALIKES[c.toLowerCase()] ?? c);
-/** LaTeX braces or backslashes (GitHub renders `$9{}000$` as math) and emoji shortcodes (`:heavy_multiplication_x:`). */
-const MARKUP = /[{}\\]|:[a-z][a-z0-9_+-]*:/i;
+    .replace(/\p{L}+/gu, (w) => (/[^\x00-\x7f]/.test(w) && (/[a-z]/i.test(w) || /^\p{Script=Latin}+$/u.test(w)) ? w.replace(/./gu, (c) => LOOK_ALIKES[c.toLowerCase()] ?? c) : w));
+/**
+ * GitHub inline math (`$9 . 26)$` renders as 9.26), LaTeX braces or backslashes, and a
+ * whole emoji shortcode (`:x:` — not the `::sync::` of a Rust path or `ws:pr:sha`).
+ */
+const MARKUP = /\$(?=\S)[^$]*?[^\s$]\$(?!\d)|[{}\\]|(?<![\p{L}_:]):[a-z][a-z0-9_+-]*:(?![\p{L}\p{N}_:])/iu;
 /** Digits split only by a space or an apostrophe read as one number: "9 000", "1'000", "9 0000". */
 const GROUP_SEPARATOR = /(\d)[ '‘’′`]+(?=\d)/g;
 
@@ -242,9 +253,10 @@ export function checkHighlight(raw: string, facts: FactsCheck): string | null {
   line = line.replace(HTML_COMMENT, '');
   if (CHAR_REFERENCE.test(line) || MARKUP.test(line)) return null;
   if (line.length > HIGHLIGHT_MAX_CHARS) line = `${line.slice(0, HIGHLIGHT_MAX_CHARS - 1).trimEnd()}…`;
-  if ([...line].some((c) => c > '\x7f' && !TYPOGRAPHY.has(c) && !LATIN_LETTER.test(c) && !facts.chars.has(c))) return null;
+  if ([...line].some((c) => c > '\x7f' && !TYPOGRAPHY.has(c) && !(LATIN_LETTER.test(c) && foldsToAscii(c)) && !facts.chars.has(c))) return null;
   // Backticks do not separate a digit from its multiplier; look-alike letters read as Latin.
   const words = asLatin(line.replace(/`/g, ''));
-  if (NON_ASCII_NUMERAL.test(line) || NUMBER_WORDS.test(words) || MULTIPLIER.test(words)) return null;
+  if (NON_ASCII_NUMERAL.test(line) || NUMBER_WORDS.test(words)) return null;
+  if (MULTIPLIER.test(words) || LETTER_MULTIPLIER.test(words) || LOOKALIKE_LETTER_MULTIPLIER.test(words)) return null;
   return tokensIn(line.replace(GROUP_SEPARATOR, '$1')).every((t) => tokenChecks(t, facts)) ? line : null;
 }

@@ -27,11 +27,26 @@ export const NUMBER_WORDS = new RegExp(
   String.raw`(?<!\p{L})(?:(?:one)?(?:${NUMBER_STEMS})+(?:fold)?|half|halves|halved|halving|twice|thrice|(?:doubl|tripl|quadrupl)(?:e|ed|es|ing))(?!\p{L})`,
   'iu',
 );
+/** What may sit between a digit and a word multiplier: spaces, brackets, quotes, dashes, an ellipsis. */
+const BETWEEN = String.raw`[\s()[\]{}<>"'“”‘’«»\-–—−….]*`;
 /**
- * A multiplier after a digit, with spaces, brackets, quotes or dashes between — `3×`,
- * `3 x`, `(3) times`, `3–fold`, `3 x-fold`, `9 K`, `9 bn`, `$9 grand`, `10^3` (AC-7).
+ * A word multiplier after a digit — `(3) times`, `«3» times`, `3–fold`, `3 x-fold`,
+ * `9 bln`, `$9 grand` — or `×` / `^` (`3×`, `10^3`) (AC-7).
  */
-export const MULTIPLIER =
-  /\d[\s()[\]{}<>"'“”‘’«»\-–—−….]*(?:[×^]|x[-–—]?fold(?![\p{L}\p{N}_])|x(?![\p{L}\p{N}_-])|times(?![\p{L}\p{N}_])|fold(?![\p{L}\p{N}_])|(?:[kmbt]|mm|mn|bn|tn|trn|mil|mln|bln|bil|mill|grand|thou|mio|mrd|lakh|crore)(?![\p{L}\p{N}_-]))/iu;
+export const MULTIPLIER = new RegExp(
+  String.raw`\d${BETWEEN}(?:[×^]|(?:x[-–—]?fold|times|fold|mm|mn|bn|tn|trn|mil|mln|bln|bil|mill|grand|thou|mio|mrd|lakh|crore)(?![\p{L}\p{N}_]))`,
+  'iu',
+);
+/**
+ * A one-letter multiplier right after a digit and its closing marks — `3x`, `9 K`,
+ * `«9» K`, `(3) x`. `3 "X API client"` starts a quoted title instead, and `x-axis` is a word.
+ */
+export const LETTER_MULTIPLIER = /\d[)\]}>"'”’»]*\s*[xkmbt](?![\p{L}\p{N}_&-])/iu;
+/**
+ * The same with a Cyrillic or Greek look-alike (`3 х.`, `9 К runs`) — unless a Cyrillic
+ * or Greek word follows, or an apostrophe and a letter: `3 К релізу`, `М’яке`.
+ */
+export const LOOKALIKE_LETTER_MULTIPLIER =
+  /\d[)\]}>"'”’»]*\s*[хкмвтχκμβτ](?![\p{L}\p{N}_-])(?!\s+[\p{Script=Cyrillic}\p{Script=Greek}])(?![’'ʼ]\p{L})/iu;
 /** The first ISO week-year the digest answers for; year 0 is not a Postgres date (AC-5). */
 export const FIRST_YEAR = 1970;
