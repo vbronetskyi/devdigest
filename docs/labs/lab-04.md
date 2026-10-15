@@ -1,108 +1,109 @@
-# L04 - devdigest-mcp
+# L04: devdigest-mcp
 
-До цього уроку рев'ю в DevDigest запускалось лише кнопкою Run на сторінці PR.
-Тепер те саме може зробити агент прямо з терміналу Claude Code: Fastify API
-застосунку відкрито як MCP-сервер (офіційний TypeScript SDK, транспорт stdio).
+Before this lesson a DevDigest review could only be started with the Run button on the
+PR page. Now an agent can do the same right from the Claude Code terminal: the app's
+Fastify API is exposed as an MCP server (the official TypeScript SDK, stdio transport).
 
-## П'ять інструментів
+## Five tools
 
-| Інструмент | Що робить |
+| Tool | What it does |
 |---|---|
-| `list_agents` | які рецензенти налаштовані і що кожен перевіряє; звідси агент бере id |
-| `run_agent_on_pr` | запускає рев'ю, чекає і повертає готові знахідки; єдиний, що щось змінює |
-| `get_findings` | читає вже завершений прогін - за `run_id` або останній на PR |
-| `get_conventions` | правила будинку репозиторію з L02, лише прийняті людиною |
-| `get_blast_radius` | карта впливу PR; поки сервер її не вміє, інструмент чесно це каже (домашка) |
+| `list_agents` | which reviewers are set up and what each one checks; this is where the agent gets ids |
+| `run_agent_on_pr` | starts a review, waits and returns the finished findings; the only one that changes anything |
+| `get_findings` | reads a finished run, by `run_id` or the latest one on a PR |
+| `get_conventions` | the repository's house rules from L02, only the ones a person accepted |
+| `get_blast_radius` | the PR's impact map; while the server cannot build it, the tool says so (homework) |
 
-`list_repos` і `list_prs` немає свідомо: `gh pr list` уже це вміє, а «один
-інструмент на кожен ендпоінт» лише роздуває контекст.
+There is no `list_repos` or `list_prs` on purpose: `gh pr list` already does that, and
+one tool per endpoint only bloats the context.
 
-Як застосовано чотири принципи дизайну з лаби:
+How the four design principles from the lab are applied:
 
-- **Результат, а не операція.** `run_agent_on_pr` сам створює прогін, опитує
-  його статус і збирає знахідки. Якщо рев'ю довше за `wait_seconds` (240 с за
-  замовчуванням), інструмент повертає `run_id` з підказкою викликати
-  `get_findings`, а не висить.
-- **Плоскі аргументи.** `repo` (`owner/name`), `pr` (число), `agent` (ім'я або
-  id). Назву агента можна писати як завгодно: «security-reviewer», «Security
-  Reviewer» або просто «security», якщо збіг однозначний.
-- **Стисла відповідь.** Вердикт, score, лічильники за severity, summary і
-  знахідки від найкритичнішої: `file:line`, чому (до 400 символів), як виправити
-  (до 240). Жодного сирого дампу.
-- **Помилки з наступним кроком.** Не «404», а «агента "perf" немає, виклич
-  `list_agents`» або «PR #9 немає, у DevDigest є #3, #1».
+- **Outcome, not operation.** `run_agent_on_pr` creates the run, polls its status and
+  collects the findings itself. If the review takes longer than `wait_seconds` (240 s by
+  default), the tool returns the `run_id` with a hint to call `get_findings` instead of
+  hanging.
+- **Flat arguments.** `repo` (`owner/name`), `pr` (a number), `agent` (name or id). The
+  agent name can be written any way you like: security-reviewer, Security Reviewer or
+  just security, as long as the match is unambiguous.
+- **Compact answer.** Verdict, score, counts by severity, summary and findings from the
+  most critical down: `file:line`, why (up to 400 characters), how to fix (up to 240).
+  No raw dumps.
+- **Errors with a next step.** Not a bare 404, but "no agent named perf, call
+  `list_agents`" or "there is no PR #9, DevDigest has #3, #1".
 
-![Інструменти в MCP Inspector](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-4/inspector-tools.png)
+![Tools in MCP Inspector](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-4/inspector-tools.png)
 
-## Підключення
+## Setup
 
-Сервер зареєстровано в `.mcp.json` у корені під іменем `devdigest`. Claude Code
-запускає його сам, щойно відкрити сесію в репозиторії. Потрібно лише, щоб API
-був запущений (`./scripts/dev.sh`) і щоб `node` був у PATH.
+The server is registered in `.mcp.json` at the repo root as `devdigest`. Claude Code
+starts it on its own as soon as you open a session in the repository. The API just
+has to be running (`./scripts/dev.sh`) and `node` has to be on PATH.
 
-## Перевірка
+## Checks
 
-MCP Inspector бачить усі п'ять інструментів з описами й анотаціями
-(read-only в усіх, крім `run_agent_on_pr`), а `list_agents` повертає агентів.
+MCP Inspector sees all five tools with their descriptions and annotations (read-only
+everywhere except `run_agent_on_pr`), and `list_agents` returns the agents.
 
-![list_agents в Inspector](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-4/inspector-list-agents.png)
+![list_agents in Inspector](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-4/inspector-list-agents.png)
 
-Той самий ланцюжок, який пройде агент, я прогнав наживо на demo-PR #3:
+I ran the same chain an agent would follow, live, on demo PR #3:
 
 1. `list_agents` -> Security Reviewer;
-2. `run_agent_on_pr(repo, 3, "security", wait_seconds=45)` -> через 45 с
-   `status: running` і `run_id`;
-3. `get_findings(run_id)` -> `request_changes`, score 17: **CRITICAL** SSRF у
-   `server/src/modules/reviews/routes.ts:174-185` і чотири WARNING (79 с, $0.0008).
+2. `run_agent_on_pr(repo, 3, "security", wait_seconds=45)` -> after 45 s,
+   `status: running` and a `run_id`;
+3. `get_findings(run_id)` -> `request_changes`, score 17: a **CRITICAL** SSRF in
+   `server/src/modules/reviews/routes.ts:174-185` and four WARNINGs (79 s, $0.0008).
 
-Тести пакета - справжній MCP-клієнт через in-memory транспорт SDK проти
-фейкового API: 11 тестів на discovery, очікування, прогрес, помилки й
-стислу форму відповіді.
+The package tests use a real MCP client over the SDK's in-memory transport against a
+fake API: 11 tests for discovery, waiting, progress, errors and the compact answer
+shape.
 
-## Аудит токенів
+## Token audit
 
-Скільки місця займають описи інструментів (`tools/list`, токени ≈ символи / 4).
-GitHub MCP - офіційний образ версії 2.0.2:
+How much room the tool descriptions take (`tools/list`, tokens taken as characters / 4).
+GitHub MCP is the official image, version 2.0.2:
 
-| Сервер | Інструментів | ≈ токенів |
+| Server | Tools | Tokens, approx. |
 |---|---|---|
 | GitHub MCP, `GITHUB_TOOLSETS=all` | 91 | 66 600 |
-| GitHub MCP за замовчуванням | 46 | 32 500 |
+| GitHub MCP, default | 46 | 32 500 |
 | GitHub MCP, `pull_requests,repos` + `GITHUB_READ_ONLY=1` | 16 | 10 300 |
 | devdigest-mcp | 5 | 1 000 |
 
-Обрізання через конфіг самого сервера дає в 3-6 разів менше, але так уміє не
-кожен сервер. Tool Search працює для будь-якого: у Claude Code він увімкнений за
-замовчуванням, і на старті в контекст потрапляють лише назви інструментів та
-`instructions` сервера. Тому інструкції devdigest-mcp пояснюють, **коли**
-шукати його інструменти, а не лише що вони роблять. Для інструментів, потрібних
-щоходу, є `alwaysLoad: true` у `.mcp.json`.
+Trimming through the server's own config gives 3-6 times less, but not every server
+supports that. Tool Search works for any server: in Claude Code it is on by default,
+and at startup only the tool names and the server's `instructions` go into the
+context. So the devdigest-mcp instructions explain **when** to look for its tools, not
+just what they do. Tools needed on every turn can use `alwaysLoad: true` in `.mcp.json`.
 
-Цифри `/context` залежать від сесії, тож їх знімаєш сам: базова сесія -> +GitHub
-MCP -> обрізаний -> Tool Search (`ENABLE_TOOL_SEARCH`) -> те саме з devdigest-mcp.
+The `/context` numbers depend on the session, so you take them yourself: base session
+-> +GitHub MCP -> trimmed -> Tool Search (`ENABLE_TOOL_SEARCH`) -> the same with
+devdigest-mcp.
 
-## Що знайшлося по дорозі
+## Found along the way
 
-- **Рев'ю через API дивилося порожній дифф.** Баг з L01 став блокером: агент
-  запускає рев'ю через MCP, сторінку PR ніхто не відкривав, файлів PR у базі
-  немає, а локальний клон не має head-коміту. Модель отримувала нуль змін і
-  ставила approve 100. Тепер `loadDiff` у такому разі тягне файли з GitHub і
-  зберігає їх, а якщо змін немає ніде, прогін падає з поясненням.
-- **MCP Inspector обриває виклик через 60 с.** Claude Code чекає stdio-інструмент
-  до 30 хвилин тиші, тож для нього 240 с нормально. В Inspector варто ставити
-  `wait_seconds=45` і потім `get_findings`.
-- **Той самий агент на тому самому PR:** раз 79 с і CRITICAL SSRF, раз 346 с і
-  нуль знахідок. У другому прогоні модель знайшла SSRF, але послалась на
-  неіснуючий файл, і grounding-гейт її відкинув. Summary при цьому SSRF описує -
-  тому інструменти повертають і summary, щоб агент це бачив.
+- **A review started through the API looked at an empty diff.** The bug from L01
+  became a blocker: an agent starts a review over MCP, nobody has opened the PR page,
+  the PR files are not in the database, and the local clone does not have the head
+  commit. The model got zero changes and approved with 100. Now in that case `loadDiff`
+  fetches the files from GitHub and stores them, and if there are no changes anywhere,
+  the run fails with an explanation.
+- **MCP Inspector cuts a call off after 60 s.** Claude Code waits for a stdio tool for
+  up to 30 minutes of silence, so 240 s is fine there. In Inspector it is better to set
+  `wait_seconds=45` and then call `get_findings`.
+- **Same agent, same PR:** once 79 s and a CRITICAL SSRF, once 346 s and zero findings.
+  In the second run the model found the SSRF but pointed to a file that does not
+  exist, and the grounding gate dropped it. The summary still describes the SSRF, so
+  the tools return the summary too, and the agent can see it.
 
-## Як перевірити самому
+## How to check it yourself
 
-1. `./scripts/dev.sh`, і щоб `node` був у PATH (`export PATH="$HOME/.local/node/bin:$PATH"`).
-2. У репозиторії: `cd mcp && npm ci` (якщо ще не встановлено).
-3. Відкрити Claude Code у корені репозиторію, у `/mcp` підтвердити сервер `devdigest`.
-4. Попросити: «проревʼюй PR #3 у vbronetskyi/devdigest агентом security-reviewer,
-   чи є критичні findings».
-5. Inspector окремо: `cd mcp && npm run inspect`.
+1. `./scripts/dev.sh`, with `node` on PATH (`export PATH="$HOME/.local/node/bin:$PATH"`).
+2. In the repository: `cd mcp && npm ci` (if not installed yet).
+3. Open Claude Code at the repository root and confirm the `devdigest` server in `/mcp`.
+4. Ask: review PR #3 in vbronetskyi/devdigest with the security-reviewer agent, are
+   there any critical findings.
+5. Inspector on its own: `cd mcp && npm run inspect`.
 
-Тести: `cd mcp && npm test`, `cd server && pnpm exec vitest run .it.test`.
+Tests: `cd mcp && npm test`, `cd server && pnpm exec vitest run .it.test`.
