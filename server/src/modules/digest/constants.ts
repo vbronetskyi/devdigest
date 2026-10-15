@@ -27,8 +27,11 @@ export const NUMBER_WORDS = new RegExp(
   String.raw`(?<!\p{L})(?:(?:one)?(?:(?:${NUMBER_STEMS})(?:one)?)+(?:fold)?|half|halves|halved|halving|twice|thrice|(?:doubl|tripl|quadrupl)(?:e|ed|es|ing))(?!\p{L})`,
   'iu',
 );
-/** A number, not the digits of an identifier glued to a letter before it (`B2B`, `Y2K`, `OAuth2`). */
-const NUMBER_START = String.raw`(?<![\p{L}\p{N}_.,])\d+(?:[.,]\d+)*`;
+/**
+ * A number, not the digits of an identifier glued to a letter before it (`B2B`, `Y2K`,
+ * `OAuth2`, `v1.2`). A leading dot is still a number: `$.0049 M` is 0.0049 M.
+ */
+const NUMBER_START = String.raw`(?<![\p{L}\p{N}_])(?<![\p{L}\p{N}_][.,])\d+(?:[.,]\d+)*`;
 /** What may sit between a digit and a word multiplier: spaces, brackets, quotes, dashes, an ellipsis. */
 const BETWEEN = String.raw`[\s()[\]{}<>"'“”‘’«»\-–—−….]*`;
 /**
@@ -36,7 +39,7 @@ const BETWEEN = String.raw`[\s()[\]{}<>"'“”‘’«»\-–—−….]*`;
  * `9 bln`, `$9 grand` — or `×` / `^` (`3×`, `10^3`) (AC-7).
  */
 export const MULTIPLIER = new RegExp(
-  String.raw`${NUMBER_START}${BETWEEN}(?:[×^]|(?:x[-–—]?fold|times|fold|mm|mn|bn|tn|trn|mil|mln|bln|bil|mill|grand|thou|mio|mrd|lakh|crore)(?![\p{L}\p{N}_]))`,
+  String.raw`${NUMBER_START}${BETWEEN}(?:[×^]|(?:x[-–—]?fold|times|fold|mm|mn|bn|tn|trn|mils?|mln|bln|bil|mill|grand|thou|mio|mrd|lakhs?|lacs?|crores?)(?![\p{L}\p{N}_]))`,
   'iu',
 );
 /**

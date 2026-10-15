@@ -6,7 +6,8 @@ file is how it works today. Code: `src/modules/digest/`.
 ## `GET /digest?week=YYYY-Www`
 
 `week` absent → the current ISO week. Malformed, non-existent (`2025-W53`), before 1970
-(year 0 is not a Postgres date) or future → 422 `invalid_week`. ISO weeks by week-year (`helpers.parseWeek` / `weekOf` / `weekBounds`),
+(year 0 is not a Postgres date) or future → 422 `invalid_week`. ISO weeks by week-year
+(`helpers.parseWeek` / `weekOf` / `weekBounds`),
 Monday 00:00 UTC to the next Monday.
 
 Facts (`repository.ts`, raw SQL, workspace-scoped):
@@ -48,7 +49,8 @@ whitespace collapsed, every control, format and combining character removed (`4\
 `user_id` and `src/_shared/` keep theirs), cut to 200. An HTML character reference
 before or after the clean-up drops it (`3&*times;` would become `3&times;`). It is then
 dropped if it has a non-ASCII character that is neither a Latin letter folding to ASCII
-(`é`, `ｔ` — not `ᴛ`, `ĸ`), common typography (— – ‘ ’ “ ” … − → « ») nor in the facts text (a title may be Ukrainian;
+(`é`, `ｔ` — not `ᴛ`, `ĸ`), common typography (— – ‘ ’ “ ” … − → « ») nor in the facts text
+(a title may be Ukrainian;
 `四十二`, `✕` or a Cyrillic `х` cannot come from nowhere), a numeral outside ASCII (`４`,
 `④`, `²`, `½`), a number word (`NUMBER_WORDS`: stems zero … trillion, also glued to
 `fold`; half, twice, thrice, doubled…) or a multiplier after a digit with spaces,
@@ -64,8 +66,11 @@ look-alikes read as Latin only inside a word that mixes them with ASCII letters
 look-alikes (`ММ`, `тімеѕ`); Greek capitals read as the Latin letter they look like (`Ν`
 is N). Other Cyrillic words stay Cyrillic, `з` is a letter, and a lone look-alike letter
 is judged against the next word as written ("В тестах…" is Ukrainian). Digits glued to a
-letter before them are an identifier, not a number with a multiplier (`B2B`, `Y2K`). GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
-emoji shortcode (`:x:`, not `std::sync::` or `ws:pr:sha`) drop a line. Last, every token with a digit must check out
+letter before them are an identifier, not a number with a multiplier (`B2B`, `Y2K`); a
+leading dot (`$.0049 M`) and a code span before the digit (`` `USD`9 M ``) do not make
+one. GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
+emoji shortcode (`:x:`, not `std::sync::` or `ws:pr:sha`) drop a line. Last, every token
+with a digit must check out
 (`checkHighlight`, `factsCheck`); numbers compare as written, not through `Number()`
 (`8.9999999999999999` is not 9). Digit runs split only by a space or an
 apostrophe (`9 000`, `1'000`, `9 0000`) are joined into one number first. The facts text

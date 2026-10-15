@@ -294,6 +294,16 @@ describe('facts and the number check (AC-7)', () => {
       'Runs grew 3 :x: more.',
       'Runs rose to twentyone.',
       'Runs rose to fiftyone.',
+      // A leading dot is a number, and a code span does not glue a letter to the digit.
+      'Cost of finished runs was $.0049 M.',
+      'Cost was $.0049 bn — up from $.0179 bn.',
+      'Cost per run fell to $.0016 K for General Reviewer.',
+      'Cost fell by .013 times.',
+      'Review runs reached `USD`9 M.',
+      'Runs hit 9 lakhs.',
+      'Runs hit 9 crores.',
+      'Runs hit 9 mils.',
+      'Runs hit 9 lac.',
     ];
     for (const line of invented) expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
   });
