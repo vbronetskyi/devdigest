@@ -444,6 +444,13 @@ describe('facts and the number check (AC-7)', () => {
     const voiced = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'ｶﾞｲﾄﾞ ﾟ' }] });
     for (const line of ['Runs doubledﾞthis week.', 'Runs rose by aﾞdozen.'])
       expect([line, checkHighlight(line, voiced)]).toEqual([line, null]);
+    // Superscript letters fold to their letter, they are not spaces.
+    for (const line of ['Spend ʰalved this week.', 'Review runs grew tʷice as fast as last week.', 'Runs rose to tʷenty this week.', 'Review runs grew 3 timeˢ this week.', 'Review runs grew 3 ˣ this week.', 'Cost of finished runs: $9 ᴹ, up from $0.0179.', 'Runs douᵇled this week.', 'Accepted decisions rose teⁿfold.', 'PRs reviewed: 3, triᵖled from last week.'])
+      expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
+    // A look-alike multiplier ends at a run of other-script letters, as the Latin one does.
+    const mixed = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Міграція кешу токенів 统一错误处理 ㅡ ᴍ ѕ Х х' }] });
+    for (const line of ['Cost of finished runs: $9 М一一 up from $0.0179.', 'Review runs: 9 К一一 up from 26.', 'Review runs grew 3 Х一一 the most this quarter.', 'Cost hit $9 Мㅡㅡ up.', 'Cost hit $9 ᴍ一一 up.', 'Review runs grew 3 тімеѕ一一.', 'Review runs rose by ѕіх一一.'])
+      expect([line, checkHighlight(line, mixed)]).toEqual([line, null]);
     const kmax = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Tune K_max for 3 x_scale' }] });
     expect(checkHighlight('PR #3 "Tune K_max for 3 x_scale" still has 4 open critical findings.', kmax)).not.toBeNull();
     // Any lone other-script letter reads as a dash; a bar may stand between a digit and a multiplier.

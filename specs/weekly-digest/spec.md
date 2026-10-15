@@ -281,3 +281,8 @@ model id `weekly_digest`.
 - 2026-10-15 — after the nineteenth verification: the `_` joining rule is for one-letter
   multipliers only; a word multiplier ends at `_` like at anything else (`3 times_this
   week`); modifier letters count as spaces before the compatibility fold too (`ﾞ`).
+- 2026-10-15 — after the twentieth verification: only modifier letters that fold to no
+  letter (`ﾞ`) count as spaces before the fold — superscript letters fold to theirs (`tʷenty`
+  is `twenty`); Latin variants read as Latin anywhere; look-alikes are read within runs of
+  Latin, Cyrillic and Greek letters, and a look-alike multiplier ends at any other letter,
+  as the Latin one does (`$9 М一一 up`).

@@ -156,14 +156,17 @@ const foldsToAscii = (c: string) => /^[\x00-\x7f]+$/.test(c.normalize('NFKD').re
  * Letters that look Latin: Cyrillic, Greek and Latin small capitals. Letters only — `з`
  * is not a 3, or every Ukrainian title with "з" would hold a digit.
  */
+/** Latin variants that look like a plain letter: always read as it, whatever the word. */
+const LATIN_VARIANTS: Record<string, string> = {
+  ı: 'i', ɡ: 'g', ɑ: 'a', ɛ: 'e', ŋ: 'n', ĸ: 'k', ꞏ: '—',
+  ᴀ: 'a', ʙ: 'b', ᴄ: 'c', ᴅ: 'd', ᴇ: 'e', ꜰ: 'f', ɢ: 'g', ʜ: 'h', ɪ: 'i', ᴊ: 'j', ᴋ: 'k', ʟ: 'l', ᴍ: 'm', ɴ: 'n', ᴏ: 'o', ᴘ: 'p', ʀ: 'r', ꜱ: 's', ᴛ: 't', ᴜ: 'u', ᴠ: 'v', ᴡ: 'w', ʏ: 'y', ᴢ: 'z',
+};
 const LOOK_ALIKES: Record<string, string> = {
   а: 'a', в: 'b', г: 'r', е: 'e', ё: 'e', і: 'i', ї: 'i', ј: 'j', к: 'k', м: 'm', н: 'h', о: 'o', п: 'n', р: 'p', с: 'c', т: 't', у: 'y', х: 'x', ѕ: 's', ь: 'b',
   һ: 'h', ԁ: 'd', ӏ: 'l', ԝ: 'w',
   α: 'a', β: 'b', ε: 'e', η: 'n', ι: 'i', κ: 'k', μ: 'u', ν: 'v', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x',
   // Greek capitals that look like a different Latin letter than their small form (Ν is N, ν is v).
   Η: 'h', Μ: 'm', Ν: 'n', Υ: 'y', Ζ: 'z',
-  ı: 'i', ɡ: 'g', ɑ: 'a', ɛ: 'e', ŋ: 'n', ĸ: 'k', ꞏ: '—',
-  ᴀ: 'a', ʙ: 'b', ᴄ: 'c', ᴅ: 'd', ᴇ: 'e', ꜰ: 'f', ɢ: 'g', ʜ: 'h', ɪ: 'i', ᴊ: 'j', ᴋ: 'k', ʟ: 'l', ᴍ: 'm', ɴ: 'n', ᴏ: 'o', ᴘ: 'p', ʀ: 'r', ꜱ: 's', ᴛ: 't', ᴜ: 'u', ᴠ: 'v', ᴡ: 'w', ʏ: 'y', ᴢ: 'z',
 };
 const lookAlike = (c: string): string | undefined => LOOK_ALIKES[c] ?? LOOK_ALIKES[c.toLowerCase()];
 /**
@@ -173,7 +176,7 @@ const lookAlike = (c: string): string | undefined => LOOK_ALIKES[c] ?? LOOK_ALIK
  * "B"); a lone look-alike letter is `LOOKALIKE_LETTER_MULTIPLIER`'s to judge.
  */
 const readsAsLatin = (w: string) =>
-  /[^\x00-\x7f]/.test(w) && (/[a-z]/i.test(w) || /^\p{Script=Latin}+$/u.test(w) || ([...w].length > 1 && [...w].every((c) => lookAlike(c) !== undefined)));
+  /[^\x00-\x7f]/.test(w) && (/[a-z]/i.test(w) || ([...w].length > 1 && [...w].every((c) => lookAlike(c) !== undefined)));
 /**
  * Compatibility forms (`ｔ`) and accents (`é`) folded; letters that look like punctuation —
  * modifier letters (`ʼ ʻ ˈ ꓸ ꓹ`), the clicks (`ǀ ǁ ǂ ǃ`) and the saltillo (`ꞌ Ꞌ`) — read as spaces, so `ʼtwentyʼ`
@@ -181,7 +184,9 @@ const readsAsLatin = (w: string) =>
  */
 const folded = (text: string) =>
   text
-    .replace(/[\p{Lm}ǀǁǂǃꞌꞋ]/gu, ' ') // before the fold too: `ﾞ` would fold to a mark and vanish
+    // Before the fold, a modifier letter that folds to no letter (`ﾞ` becomes a mark and would
+    // vanish); `ʰ`, `ˣ`, `ᴹ` fold to their letter and stay one.
+    .replace(/\p{Lm}/gu, (c) => (/\p{L}/u.test(c.normalize('NFKD').replace(/\p{M}/gu, '')) ? c : ' '))
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .replace(/[\p{Lm}ǀǁǂǃꞌꞋ]/gu, ' ');
@@ -201,7 +206,9 @@ const LONE_OTHER_LETTER = new RegExp(String.raw`(?<!${OTHER_LETTER})${OTHER_LETT
 const asLatin = (text: string) =>
   folded(text)
     .replace(LONE_OTHER_LETTER, '—')
-    .replace(/\p{L}+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
+    .replace(/./gu, (c) => LATIN_VARIANTS[c] ?? c)
+    // Words of the Latin, Cyrillic and Greek scripts; a CJK run beside one does not join it.
+    .replace(/[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}]+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
 /**
  * GitHub inline math (`$9 . 26)$` renders as 9.26), LaTeX braces or backslashes, and a
  * whole emoji shortcode (`:x:` — not the `::sync::` of a Rust path or `ws:pr:sha`).

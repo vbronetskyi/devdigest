@@ -60,7 +60,7 @@ export const LETTER_MULTIPLIER = new RegExp(String.raw`${NUMBER_START}${CLOSING}
  * or Greek word follows, or an apostrophe and a letter: `3 К релізу`, `М’яке`.
  */
 export const LOOKALIKE_LETTER_MULTIPLIER = new RegExp(
-  String.raw`${NUMBER_START}${CLOSING}\s*[хкмвтχκμβτ](?![\p{L}\p{N}]|[-‐‑_][\p{L}\p{N}])(?!\s+[\p{Script=Cyrillic}\p{Script=Greek}])(?![’'ʼ]\p{L})`,
+  String.raw`${NUMBER_START}${CLOSING}\s*[хкмвтχκμβτ](?![\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}\p{N}]|[-‐‑_][\p{L}\p{N}])(?!\s+[\p{Script=Cyrillic}\p{Script=Greek}])(?![’'ʼ]\p{L})`,
   'iu',
 );
 /** The first ISO week-year the digest answers for; year 0 is not a Postgres date (AC-5). */
