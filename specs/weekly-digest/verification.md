@@ -222,6 +222,7 @@ a separator in a title found what the pass-10 list missed.
 | `9ͺ000`: the compatibility fold from pass 10 turned `ͺ` into a space and a mark, splitting what had been one token; likewise `˛ ´ ΄` | regression from `7945706` | marks removed after the fold | `0a2a16e` |
 
 After the change the scan leaves only listed typography and forms that fold to ASCII
-punctuation; honest probes unchanged; 3 more mutations fail a test; three live calls kept
-5 of 5 lines each. Accepted: `𝅙` (no system font draws it, it shows as a box), digit-like
+punctuation; honest probes unchanged; 3 more mutations fail a test. Of four live calls,
+three kept 5 of 5 lines; one hit the 60 s deadline at the provider and answered 502, as
+AC-6 and AC-8 intend. Accepted: `𝅙` (no system font draws it, it shows as a box), digit-like
 letters (`ЗО`, `1∅∅`), CJK numerals from a CJK title, ``9,`000`` (the accepted `9, 000`).
