@@ -266,3 +266,6 @@ model id `weekly_digest`.
   incomplete (`ㅣ` did nothing after NFKD; `ㄧ ⵏ ꓲ ߊ` missing) — any lone other-script letter
   reads as a dash, while runs of them (real CJK, Hangul or Arabic words) stay words; bars
   may stand between a digit and a multiplier.
+- 2026-10-15 — after the sixteenth verification: a one-letter multiplier is part of a
+  hyphenated word only when a hyphen and a letter or digit follow it (`x-axis`) — not
+  before an em dash or a bare hyphen (`$9 M— up`, `3 x-, while`).

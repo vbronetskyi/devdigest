@@ -365,7 +365,7 @@ describe('facts and the number check (AC-7)', () => {
     expect(checkHighlight('PR #3 T&C page copy is still open.', tc)).not.toBeNull();
     // With Cyrillic in the facts, a look-alike still cannot pass for a Latin letter or word.
     const cyrP = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Перевірка хвостів, пошук, Кеш, ММ, тімеѕ' }] });
-    for (const line of ['Runs rose tw\u0435\u043fty percent.', 'Runs grew 3 \u0445.', 'Runs hit 9 \u041a runs.', 'Runs grew 3\u0445 more.', 'Cost hit $9 \u041c\u041c.', 'Runs grew 3 \u0442\u0456\u043c\u0435\u0455.'])
+    for (const line of ['Runs rose tw\u0435\u043fty percent.', 'Runs grew 3 \u0445.', 'Runs hit 9 \u041a runs.', 'Runs grew 3\u0445 more.', 'Cost hit $9 \u041c\u041c.', 'Runs grew 3 \u0442\u0456\u043c\u0435\u0455.', 'Review runs: 9 \u041a\u2014 up from 26.'])
       expect([line, checkHighlight(line, cyrP)]).toEqual([line, null]);
     // Greek capitals in a mixed word read as the Latin letter they look like, not their small form's.
     const greek = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'ΗΜΝΥΖ ΤΕΣΤ' }] });
@@ -419,6 +419,13 @@ describe('facts and the number check (AC-7)', () => {
     const marks2 = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: '„Anführung“ ‚x‘ ›y‹ ⋮ ⋰ ⋱ ᠁ ‵ ‶ ⁓' }] });
     for (const line of ['Review runs: »9« K.', 'Cost of finished runs: »$9« M.', 'Review runs grew »3« x.', 'Review runs: „9“ K.', 'Review runs: ‚9‘ K.', 'Review runs: ›9‹ K.', 'Review runs grew 3⋮ times.', 'Review runs: 9⋮K.', 'Review runs grew 3⋰ times.', 'Review runs grew 3⋱times.', 'Review runs grew 3᠁ times.', 'Review runs: 9᠁K.', 'Review runs grew ‶3‶ times.', 'Review runs grew 3‵fold.', 'Review runs: 9‵K.', 'Review runs grew 3⁓fold.', 'Cost hit $9⁓bn.'])
       expect([line, checkHighlight(line, marks2)]).toEqual([line, null]);
+    // A dash after a one-letter multiplier does not make a hyphenated word unless a word follows.
+    for (const line of ['Cost of finished runs: $9 M— up from $0.0179.', 'Review runs grew 3 x— the most this quarter.', 'Review runs: 9 K—up from 26.', 'Review runs: (9) K—up from 26.', 'Review runs grew 3 x-, while failures stayed at 1.'])
+      expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
+    const rtl = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Use ו and ا in RTL test' }] });
+    for (const line of ['Cost of finished runs: $9 Mו up from $0.0179.', 'Review runs: 9 Kا up from 26.', 'Review runs grew 3 xו this week.'])
+      expect([line, checkHighlight(line, rtl)]).toEqual([line, null]);
+    expect(checkHighlight('PR #3 X-Forwarded-For header handling is still open.', allowed)).not.toBeNull();
     // Any lone other-script letter reads as a dash; a bar may stand between a digit and a multiplier.
     const bars = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: '공지ㅣ로그인 修正ㄧ些問題 ⵏ ꓲ ߊ ا │ ꞏ' }] });
     for (const line of ['Review runs grew 3 ㅣtimesㅣ.', 'Review runs grew 3 ㅣ times.', 'Review runs grew 3 ㅣfold.', 'Cost of finished runs: $9 ㅣbn.', 'Review runs grew 3 ㄧtimesㄧ.', 'Cost of finished runs: $9 ㄧbn.', 'Review runs grew 3 ⵏtimesⵏ.', 'Review runs grew 3 ꓲtimes.', 'Review runs grew 3 ߊtimes.', 'Review runs grew 3 اtimesا.', 'Review runs grew 3 |times|.', 'Review runs grew 3|times.', 'Review runs grew 3 │times.', 'Review runs grew 3 ꞏtimes.'])
