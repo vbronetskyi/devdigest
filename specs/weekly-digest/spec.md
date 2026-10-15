@@ -98,19 +98,22 @@ Highlights (one model call)
     (modifier letters such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`, the saltillo `ꞌ`) count as
     spaces and, inside a word that mixes Latin with Cyrillic or Greek letters (`twеnty`)
     or a word of two letters or more made only of look-alikes (`ММ`, `тімеѕ`), the
-    look-alikes read as Latin — any other Cyrillic word stays Cyrillic; after that, a
-    number word or a multiplier ends at anything that is not an ASCII letter or digit
-    (`ㅡtwentyㅡ`, `twenty一`);
+    look-alikes read as Latin — any other Cyrillic word stays Cyrillic — and letters that
+    look like a dash or a bar (`ㅡ 一 丨 ノ ᐨ ㆍ`) read as a dash; after that, a number word
+    or a multiplier ends at anything that is not an ASCII letter or digit (`ㅡtwentyㅡ`,
+    `twenty一`), while other letters of any script stay letters (`修复3个x轴`, `支持4K视频`
+    and `"認証…" times out` are not multipliers);
   - so does a number word — zero, two to twenty, the tens to ninety, dozen(s),
     hundred(s), thousand(s), million(s), billion(s), trillion(s), also run together
     (`fortytwo`, `twentyone`, `onehundred`) and with `-fold`;
     half / halves / halved, twice, thrice, double / triple / quadruple and their -d / -s /
     -ing forms — or a multiplier after a digit: a word one (`times`, `fold`, `bn`, `bln`,
     `MM`, `lakh(s)`, `mil(s)`, `grand`) or `×` / `^` with spaces, any Unicode dash,
-    bracket or quote, primes or an ellipsis between (`(3) times`, `«3» times`, `【3】
+    bracket or quote, primes (`′ ″ ‵ ‶`), the swung dash `⁓` or an ellipsis (`… ⋯ ⋮ ᠁`) between (`(3) times`, `«3» times`, `【3】
     times`, `3–fold`, `3‑fold`, `$9 grand`, `10^3`); a one-letter one (`x`, `K`, `M`, `B`,
     `T`, or a Cyrillic or Greek look-alike) only right after the digit and any closing
-    brackets, quotes or an ellipsis (`3x`, `9 K`, `«9» K`, `「9」K`, `9⋯K`, `3 х.`) — not when it starts a quoted
+    brackets, quotes (`»9« K` and `„9“ K` included) or an ellipsis (`3x`, `9 K`, `«9» K`,
+    `「9」K`, `9⋯K`, `3 х.`) — not when it starts a quoted
     title (`3 "X API client"`, `3 "В логах…"`), a Cyrillic word (`3 К релізу`) or a
     hyphenated word (`x-axis`, `X-Forwarded-For`, `B-tree`); a digit glued to a letter
     before it is part of an identifier, not a number with a multiplier (`B2B`, `M2M`,
@@ -253,3 +256,7 @@ model id `weekly_digest`.
   digit and a multiplier by Unicode category, not a list (U+2010/U+2011 hyphens, `【】`,
   `「」`, `―`); a number word or multiplier ends at anything but an ASCII letter or digit
   (`ㅡ`, `一`); true hyphens read as `-` for the token rule (`9‑K` like `9-K`).
+- 2026-10-15 — after the fourteenth verification: reading every other-script letter as a
+  space dropped honest CJK titles (`修复3个x轴标签`, `"認証…" times out`) — reverted; only
+  letters that look like a dash or a bar read as a dash. Initial-quote characters closing a
+  number (`»9« K`), more ellipses, reversed primes and the swung dash added.
