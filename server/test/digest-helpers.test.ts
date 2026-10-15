@@ -398,6 +398,13 @@ describe('facts and the number check (AC-7)', () => {
       'Cost hit $9·26.',
     ])
       expect([line, checkHighlight(line, filler)]).toEqual([line, null]);
+    // Any other non-ASCII separator a title supplies joins the digits too.
+    const marks = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'a⋅b ∙ ‧ ・ ¸ ٬ ٫ ، 、 ͺ ˛ ´' }] });
+    for (const line of ['Cost was $9⋅26.', 'Cost was $9∙26.', 'Cost was $9‧26.', 'Cost was $9・26.', 'Cost reached $9¸000.', 'Cost reached $9٬000.', 'Cost reached $9٫26.', 'Cost reached $9،000.', 'Review runs: 26、000 last week.', 'Cost reached $9ͺ000.', 'Cost reached $9˛000.', 'Cost reached $9´000.'])
+      expect([line, checkHighlight(line, marks)]).toEqual([line, null]);
+    // Typography between digits keeps them apart.
+    for (const line of ['Review runs went 26→9.', 'Review runs went 26–9.'])
+      expect([line, checkHighlight(line, allowed)]).toEqual([line, line]);
     const nfd = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Чаи\u0306ник' }] });
     expect(checkHighlight('PR #3 "Чайник" is still open.', nfd)).not.toBeNull();
   });

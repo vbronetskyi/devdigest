@@ -71,7 +71,9 @@ letter before them are an identifier, not a number with a multiplier (`B2B`, `Y2
 leading dot (`$.0049 M`) and a code span before the digit (`` `USD`9 M ``,
 `` `USD`.0049 M ``) do not make one: for these rules a backtick is a space, unless it sits
 inside a word (`` ti`mes `` is "times"). For the token check, compatibility forms are
-folded (`9，000`) and look-alike commas and dots join digits (`9‚000`, `9·26`). GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
+folded (`9，000`) with the marks the fold leaves removed, and digits split only by
+non-ASCII marks that are neither letters, digits, spaces nor listed typography are joined
+(`joinSplitDigits`: `9‚000`, `9·26`, `9・26`, `9٬000`; `26→9` and `4–12` stay apart). GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
 emoji shortcode (`:x:`, not `std::sync::` or `ws:pr:sha`) drop a line. Last, every token
 with a digit must check out
 (`checkHighlight`, `factsCheck`); numbers compare as written, not through `Number()`

@@ -235,6 +235,17 @@ function tokenChecks(token: string, facts: FactsCheck): boolean {
 }
 
 /**
+ * Digits split only by non-ASCII marks that are neither letters, digits, spaces nor listed
+ * typography read as one number: `9⋅26`, `9・26`, `9٬000`, `9¸000`. Such a mark can only
+ * have come from the facts, and it reads as a separator. `4–12` and `26→9` stay apart.
+ */
+function joinSplitDigits(text: string): string {
+  return text.replace(/(\d)([^\x00-\x7f]+)(?=\d)/gu, (whole, digit: string, run: string) =>
+    [...run].every((c) => !/[\p{L}\p{N}\s]/u.test(c) && !TYPOGRAPHY.has(c)) ? digit : whole,
+  );
+}
+
+/**
  * AC-7: a highlight survives only if, after its links, images, HTML, emphasis and hidden
  * characters are removed and it is cut to 200 characters, it has no HTML character
  * reference, no non-ASCII character the facts do not carry, no non-ASCII numeral, number
@@ -267,6 +278,8 @@ export function checkHighlight(raw: string, facts: FactsCheck): string | null {
   if (MULTIPLIER.test(words) || LETTER_MULTIPLIER.test(words)) return null;
   // A lone look-alike letter is judged by what follows it as written: "В тестах" is Ukrainian.
   if (LOOKALIKE_LETTER_MULTIPLIER.test(folded(plain))) return null;
-  // Compatibility forms count as their plain form here too: `9，000` is 9,000.
-  return tokensIn(line.normalize('NFKC').replace(GROUP_SEPARATOR, '$1')).every((t) => tokenChecks(t, facts)) ? line : null;
+  // Compatibility forms count as their plain form here too (`9，000` is 9,000), with the marks
+  // the fold leaves (`ͺ` becomes a space and a mark) removed.
+  const numbers = joinSplitDigits(line.normalize('NFKC').replace(/\p{M}/gu, '').replace(GROUP_SEPARATOR, '$1'));
+  return tokensIn(numbers).every((t) => tokenChecks(t, facts)) ? line : null;
 }

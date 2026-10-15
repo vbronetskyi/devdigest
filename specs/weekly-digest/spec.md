@@ -83,9 +83,10 @@ Highlights (one model call)
     checked like the rest — a backtick between two letters is dropped (`` ti`mes ``), any
     other counts as a space, so it neither separates a digit from its multiplier nor glues
     a word to a number;
-    digits split only by a space, an apostrophe or a look-alike comma or dot (`9 000`,
-    `1'000`, `9‚000`, `9·26`) are one number, and compatibility forms count as their plain
-    form (`9，000`, `9․26`); numbers are compared as written (`8.9999999999999999` is not 9);
+    digits split only by a space, an apostrophe or non-ASCII marks that are neither
+    letters, digits nor listed typography (`9 000`, `1'000`, `9‚000`, `9·26`, `9・26`,
+    `9٬000`) are one number, and compatibility forms count as their plain form (`9，000`,
+    `9․26`); numbers are compared as written (`8.9999999999999999` is not 9);
   - a character outside ASCII, common typography (— – ‐ ‑ ‘ ’ “ ” … − → ← ↑ ↓ ≈ « ») and Latin
     letters that fold to ASCII (`é`, `ﬁ`, `ｔ`) must appear in the facts text — `ᴛ`, `ĸ`, `ı`
     included — a title may be in any language, but `四十二`, `✕`
@@ -238,3 +239,6 @@ model id `weekly_digest`.
 - 2026-10-15 — after the tenth verification: default-ignorable characters (Hangul fillers)
   and the braille blank are invisible too; a backtick inside a word is dropped; look-alike
   commas and dots join digits, and compatibility forms are folded for the number check.
+- 2026-10-15 — after the eleventh verification: any non-ASCII mark between digits that is
+  not a letter, a digit or listed typography joins them (`⋅`, `・`, `¸`, `٬`, `،`, `、`), and
+  marks left by the compatibility fold are removed (`ͺ`).
