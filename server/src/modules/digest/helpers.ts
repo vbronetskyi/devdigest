@@ -194,6 +194,9 @@ const readsAsLatin = (w: string) => {
  */
 const folded = (text: string) =>
   text
+    // Between two letters, an apostrophe-like mark is an apostrophe (`Мʼяке`, `Мʼѕ`), not a space.
+    // (A real letter on each side: `ʼʼК` is two marks, not a word.)
+    .replace(/(?<=(?![\p{Lm}ꞌꞋ])\p{L})[ʼʻʹˈ´ꞌ᾽](?=(?![\p{Lm}ꞌꞋ])\p{L})/gu, '’')
     // Before the fold, a modifier letter that folds to no letter (`ﾞ` becomes a mark and would
     // vanish); `ʰ`, `ˣ`, `ᴹ` fold to their letter and stay one.
     .replace(/\p{Lm}/gu, (c) => (/\p{L}/u.test(c.normalize('NFKD').replace(/\p{M}/gu, '')) ? c : ' '))

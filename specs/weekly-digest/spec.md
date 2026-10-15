@@ -298,3 +298,6 @@ model id `weekly_digest`.
 - 2026-10-15 — after the twenty-third verification: an apostrophe between letters is inside
   the word for the look-alike reading, so `М’ѕ` (only look-alikes) reads as `m’s` and `$9 М’ѕ
   up` drops, while `М’яке` stays Ukrainian.
+- 2026-10-15 — after the twenty-fourth verification (ready): apostrophe-like marks between
+  two letters — `ʼ` (the Ukrainian apostrophe), `ʻ ʹ ˈ ´ ꞌ ᾽` — read as `’` before the
+  fold, so `$9 Мʼѕ up` is read like `$9 М’ѕ up`.

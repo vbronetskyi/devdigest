@@ -463,6 +463,11 @@ describe('facts and the number check (AC-7)', () => {
     const aps = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'М К х κ ѕ а Кеш' }] });
     for (const line of ['Cost of finished runs: $9 М’ѕ up from $0.0179.', "Cost of finished runs: $9 М'ѕ up from $0.0179.", 'Review runs: 9 К’ѕ up from 26.', 'Review runs: 9 κ’ѕ up from 26.', 'Review runs grew 3 х’ѕ.', 'Cost of finished runs: $9 М’ѕ.', 'Cost of finished runs: $9 М’а up from $0.0179.'])
       expect([line, checkHighlight(line, aps)]).toEqual([line, null]);
+    // The same with the Ukrainian apostrophe `ʼ` and other apostrophe-like marks.
+    const modAps = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'М К х ѕ ʼ ´ ʻ ˈ Мʼяке видалення' }] });
+    for (const line of ['Cost of finished runs: $9 Мʼѕ up from $0.0179.', 'Review runs: 9 Кʼѕ up from 26.', 'Review runs grew 3 хʼѕ.', 'Cost of finished runs: $9 М´ѕ up from $0.0179.', 'Review runs: 9 Кʻѕ up from 26.', 'Review runs: 9 Кˈѕ up from 26.', 'Review runs: 9 ʼʼК up from 26.', 'Review runs: 9 ʻʻК up from 26.', 'Review runs: 9 ˈˈК up from 26.'])
+      expect([line, checkHighlight(line, modAps)]).toEqual([line, null]);
+    expect(checkHighlight('PR #3 Мʼяке видалення is still open.', modAps)).not.toBeNull();
     const myake = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'М’яке видалення' }] });
     expect(checkHighlight('PR #3 М’яке видалення is still open.', myake)).not.toBeNull();
     // Capital Latin variants read as their letter too.
