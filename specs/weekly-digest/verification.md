@@ -354,3 +354,17 @@ probe keep nothing new.
 2 more mutations fail a test; three live calls kept 5 of 5 lines each. Accepted: an honest
 title that starts with a multiplier word and `_` right after a digit (`9 mm_per_px`) drops,
 as AC-7 reads; a backtick between letters is removed (`` times`this ``).
+
+## Pass 20 — at `94c7153`
+
+**Verdict: not ready — a regression of mine and an asymmetry.** No honest-line regression
+(nine probes as pass 19).
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| Turning every modifier letter into a space before the fold also blanked superscript Latin letters, which pass the character gate freely: `tʷenty`, `ʰalved`, `3 timeˢ`, `3 ˣ`, `$9 ᴹ`, `teⁿfold` were kept (dropped before `83a3143`) | security (regression from `83a3143`) | before the fold only a modifier that folds to no letter (`ﾞ`) is a space; `ʰ ˣ ᴹ` fold to their letter | `9914a01` |
+| A look-alike multiplier ended only at a non-letter, so a CJK run glued to it hid it: `$9 М一一 up` kept while `$9 M一一 up` dropped; `3 тімеѕ一一`, `ѕіх一一` — the CJK run made the whole run one non-Latin word | security (older) | look-alike words are read within runs of Latin, Cyrillic and Greek letters; a look-alike multiplier ends at any other letter; Latin variants read as their letter anywhere (`$9 ᴍ一一`) | `9914a01` |
+
+4 more mutations fail a test (one first survived — the test's facts lacked a lower-case
+`х` — and was pinned). Three live calls kept 5 of 5 lines each. Accepted: the look-alike
+rule has no `&` exemption (`9 К&C` drops — stricter only).
