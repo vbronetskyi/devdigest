@@ -419,6 +419,13 @@ describe('facts and the number check (AC-7)', () => {
     const marks2 = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: '„Anführung“ ‚x‘ ›y‹ ⋮ ⋰ ⋱ ᠁ ‵ ‶ ⁓' }] });
     for (const line of ['Review runs: »9« K.', 'Cost of finished runs: »$9« M.', 'Review runs grew »3« x.', 'Review runs: „9“ K.', 'Review runs: ‚9‘ K.', 'Review runs: ›9‹ K.', 'Review runs grew 3⋮ times.', 'Review runs: 9⋮K.', 'Review runs grew 3⋰ times.', 'Review runs grew 3⋱times.', 'Review runs grew 3᠁ times.', 'Review runs: 9᠁K.', 'Review runs grew ‶3‶ times.', 'Review runs grew 3‵fold.', 'Review runs: 9‵K.', 'Review runs grew 3⁓fold.', 'Cost hit $9⁓bn.'])
       expect([line, checkHighlight(line, marks2)]).toEqual([line, null]);
+    // Any lone other-script letter reads as a dash; a bar may stand between a digit and a multiplier.
+    const bars = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: '공지ㅣ로그인 修正ㄧ些問題 ⵏ ꓲ ߊ ا │ ꞏ' }] });
+    for (const line of ['Review runs grew 3 ㅣtimesㅣ.', 'Review runs grew 3 ㅣ times.', 'Review runs grew 3 ㅣfold.', 'Cost of finished runs: $9 ㅣbn.', 'Review runs grew 3 ㄧtimesㄧ.', 'Cost of finished runs: $9 ㄧbn.', 'Review runs grew 3 ⵏtimesⵏ.', 'Review runs grew 3 ꓲtimes.', 'Review runs grew 3 ߊtimes.', 'Review runs grew 3 اtimesا.', 'Review runs grew 3 |times|.', 'Review runs grew 3|times.', 'Review runs grew 3 │times.', 'Review runs grew 3 ꞏtimes.'])
+      expect([line, checkHighlight(line, bars)]).toEqual([line, null]);
+    expect(checkHighlight('PR #3 "공지ㅣ로그인 세션 만료 수정" still has 4 open critical findings.', bars)).toBeNull(); // 세션 etc. not in these facts
+    const ko = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: '공지ㅣ로그인 세션 만료 수정' }] });
+    expect(checkHighlight('PR #3 "공지ㅣ로그인 세션 만료 수정" still has 4 open critical findings.', ko)).not.toBeNull();
     // CJK and Hangul titles stay letters: a counter and a lone Latin letter, or a title before "times out", is not a multiplier.
     for (const title of ['修复3个x轴标签', '支持4K视频', '支持1分钟K线', '3つのx軸ラベルを修正', '3개의 x축 라벨 수정', '認証トークンの更新', '修复登录超时', '세션 만료 처리']) {
       const check = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: title }] });

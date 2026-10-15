@@ -37,7 +37,7 @@ const NUMBER_START = String.raw`(?<![\p{L}\p{N}_])(?<![\p{L}\p{N}_][.,])\d+(?:[.
  * What may sit between a digit and a word multiplier: spaces and any Unicode dash, bracket
  * or quote (`3‑fold`, `【3】 times`, `「3」 times`), primes, a dot or an ellipsis.
  */
-const BETWEEN = String.raw`[\s\p{Pd}\p{Ps}\p{Pe}\p{Pi}\p{Pf}"'<>.…⋯⋮⋰⋱᠁′″‴‵‶‷⁓˗⁃─━‧−״׳❛❜❝❞❟❠〃]*`;
+const BETWEEN = String.raw`[\s\p{Pd}\p{Ps}\p{Pe}\p{Pi}\p{Pf}"'<>|│｜∣.…⋯⋮⋰⋱᠁′″‴‵‶‷⁓˗⁃─━‧−״׳❛❜❝❞❟❠〃]*`;
 /** Closing brackets, quotes or an ellipsis that may follow a digit before a one-letter multiplier (`«9» K`, `「9」K`, `9⋯K`). */
 const CLOSING = String.raw`[\p{Pe}\p{Pf}\p{Pi}"'>′″‵‶…⋯⋮⋰⋱᠁״׳❜❞]*`;
 /**

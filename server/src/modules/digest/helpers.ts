@@ -162,7 +162,7 @@ const LOOK_ALIKES: Record<string, string> = {
   α: 'a', β: 'b', ε: 'e', η: 'n', ι: 'i', κ: 'k', μ: 'u', ν: 'v', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x',
   // Greek capitals that look like a different Latin letter than their small form (Ν is N, ν is v).
   Η: 'h', Μ: 'm', Ν: 'n', Υ: 'y', Ζ: 'z',
-  ı: 'i', ɡ: 'g', ɑ: 'a', ɛ: 'e', ŋ: 'n', ĸ: 'k',
+  ı: 'i', ɡ: 'g', ɑ: 'a', ɛ: 'e', ŋ: 'n', ĸ: 'k', ꞏ: '-',
   ᴀ: 'a', ʙ: 'b', ᴄ: 'c', ᴅ: 'd', ᴇ: 'e', ꜰ: 'f', ɢ: 'g', ʜ: 'h', ɪ: 'i', ᴊ: 'j', ᴋ: 'k', ʟ: 'l', ᴍ: 'm', ɴ: 'n', ᴏ: 'o', ᴘ: 'p', ʀ: 'r', ꜱ: 's', ᴛ: 't', ᴜ: 'u', ᴠ: 'v', ᴡ: 'w', ʏ: 'y', ᴢ: 'z',
 };
 const lookAlike = (c: string): string | undefined => LOOK_ALIKES[c] ?? LOOK_ALIKES[c.toLowerCase()];
@@ -184,8 +184,14 @@ const folded = (text: string) =>
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .replace(/[\p{Lm}ǀǁǂǃꞌꞋ]/gu, ' ');
-/** Letters that look like a dash or a bar: `3 ㅡtimesㅡ` reads as `3 -times-`. */
-const DASH_LIKE_LETTERS = /[ㅡᅳ一⼀丨ㅣノᐨㆍᆞᐧᛁᑊᐟᐩꞏ丶丿]/gu;
+/** A letter of a script other than Latin, Cyrillic or Greek. */
+const OTHER_LETTER = String.raw`(?![\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}])\p{L}`;
+/**
+ * A lone such letter, with none beside it, is a separator in an English line — a dash or
+ * a bar (`3 ㅡtimesㅡ`, `一`, `ㅣ`, `ㄧ`, `ⵏ`, `ا`). A run of them is a word (`修复`, `認証`)
+ * and stays one: `修复3个x轴` is a title, not a multiplier.
+ */
+const LONE_OTHER_LETTER = new RegExp(String.raw`(?<!${OTHER_LETTER})${OTHER_LETTER}(?!${OTHER_LETTER})`, 'gu');
 /**
  * The text the number words and multipliers are matched on: folded, dash-like letters read
  * as dashes, look-alikes read as Latin where `readsAsLatin`. Other letters of any script
@@ -193,7 +199,7 @@ const DASH_LIKE_LETTERS = /[ㅡᅳ一⼀丨ㅣノᐨㆍᆞᐧᛁᑊᐟᐩꞏ丶�
  */
 const asLatin = (text: string) =>
   folded(text)
-    .replace(DASH_LIKE_LETTERS, '-')
+    .replace(LONE_OTHER_LETTER, '-')
     .replace(/\p{L}+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
 /**
  * GitHub inline math (`$9 . 26)$` renders as 9.26), LaTeX braces or backslashes, and a

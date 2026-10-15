@@ -56,7 +56,8 @@ dropped if it has a non-ASCII character that is neither a Latin letter folding t
 `④`, `²`, `½`), a number word (`NUMBER_WORDS`: stems zero … trillion, also glued to
 `fold`; half, twice, thrice, doubled…) or a multiplier after a digit with spaces,
 any Unicode dash, bracket or quote (by category: Pd, Ps, Pe, Pi, Pf), primes (`′ ″ ‵ ‶`),
-the swung dash `⁓` or an ellipsis (`… ⋯ ⋮ ᠁`) between for a word multiplier (`MULTIPLIER`: `3×`, `(3) times`, `【3】 times`,
+bars (`| │ ｜`), the swung dash `⁓` or an ellipsis (`… ⋯ ⋮ ᠁`) between for a word
+multiplier (`MULTIPLIER`: `3×`, `(3) times`, `【3】 times`,
 `3‑fold`, `9 bln`, `9 MM`, `$9 grand`, `10^3`); a one-letter multiplier
 (`LETTER_MULTIPLIER`: x, k, m, b, t; `LOOKALIKE_LETTER_MULTIPLIER`: х, к, м, в, т and Greek)
 counts only right after the digit and its closing brackets, quotes — `»9« K` and `„9“ K`
@@ -65,8 +66,9 @@ title or a Cyrillic word. Number words may run together (`fortytwo`), and a numb
 or multiplier ends at anything but an ASCII letter or digit (`жtwentyж`). For these tests
 backticks are ignored, compatibility and accented forms are folded (NFKD), letters that
 look like punctuation (`\p{Lm}` such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`, the saltillo `ꞌ`) read
-as spaces, letters that look like a dash or a bar (`ㅡ 一 丨 ノ ᐨ ㆍ`) read as `-` — other
-letters of any script stay letters, so `修复3个x轴` and `"認証…" times out` are titles — and
+as spaces, a lone letter of a script other than Latin, Cyrillic or Greek — none beside it —
+reads as `-` (`ㅡ 一 ㅣ ㄧ ⵏ ا`), while a run of them is a word, so `修复3个x轴` and
+`"認証…" times out` are titles — and
 look-alikes read as Latin only inside a word that mixes them with ASCII letters
 (`twеnty`), is all Latin variants (`ᴛᴡᴇɴᴛʏ`) or has two letters or more that are all
 look-alikes (`ММ`, `тімеѕ`); Greek capitals read as the Latin letter they look like (`Ν`

@@ -98,8 +98,9 @@ Highlights (one model call)
     (modifier letters such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`, the saltillo `ꞌ`) count as
     spaces and, inside a word that mixes Latin with Cyrillic or Greek letters (`twеnty`)
     or a word of two letters or more made only of look-alikes (`ММ`, `тімеѕ`), the
-    look-alikes read as Latin — any other Cyrillic word stays Cyrillic — and letters that
-    look like a dash or a bar (`ㅡ 一 丨 ノ ᐨ ㆍ`) read as a dash; after that, a number word
+    look-alikes read as Latin — any other Cyrillic word stays Cyrillic — and a lone letter
+    of another script, with no letter of such a script beside it, reads as a dash
+    (`ㅡ 一 丨 ㅣ ㄧ ノ ⵏ ꓲ ا`); after that, a number word
     or a multiplier ends at anything that is not an ASCII letter or digit (`ㅡtwentyㅡ`,
     `twenty一`), while other letters of any script stay letters (`修复3个x轴`, `支持4K视频`
     and `"認証…" times out` are not multipliers);
@@ -109,7 +110,8 @@ Highlights (one model call)
     half / halves / halved, twice, thrice, double / triple / quadruple and their -d / -s /
     -ing forms — or a multiplier after a digit: a word one (`times`, `fold`, `bn`, `bln`,
     `MM`, `lakh(s)`, `mil(s)`, `grand`) or `×` / `^` with spaces, any Unicode dash,
-    bracket or quote, primes (`′ ″ ‵ ‶`), the swung dash `⁓` or an ellipsis (`… ⋯ ⋮ ᠁`) between (`(3) times`, `«3» times`, `【3】
+    bracket or quote, a bar (`| │ ｜`), primes (`′ ″ ‵ ‶`), the swung dash `⁓` or an ellipsis
+    (`… ⋯ ⋮ ᠁`) between (`(3) times`, `«3» times`, `【3】
     times`, `3–fold`, `3‑fold`, `$9 grand`, `10^3`); a one-letter one (`x`, `K`, `M`, `B`,
     `T`, or a Cyrillic or Greek look-alike) only right after the digit and any closing
     brackets, quotes (`»9« K` and `„9“ K` included) or an ellipsis (`3x`, `9 K`, `«9» K`,
@@ -260,3 +262,7 @@ model id `weekly_digest`.
   space dropped honest CJK titles (`修复3个x轴标签`, `"認証…" times out`) — reverted; only
   letters that look like a dash or a bar read as a dash. Initial-quote characters closing a
   number (`»9« K`), more ellipses, reversed primes and the swung dash added.
+- 2026-10-15 — after the fifteenth verification: a list of dash-like letters was again
+  incomplete (`ㅣ` did nothing after NFKD; `ㄧ ⵏ ꓲ ߊ` missing) — any lone other-script letter
+  reads as a dash, while runs of them (real CJK, Hangul or Arabic words) stay words; bars
+  may stand between a digit and a multiplier.
