@@ -402,6 +402,13 @@ describe('facts and the number check (AC-7)', () => {
     const marks = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'a⋅b ∙ ‧ ・ ¸ ٬ ٫ ، 、 ͺ ˛ ´' }] });
     for (const line of ['Cost was $9⋅26.', 'Cost was $9∙26.', 'Cost was $9‧26.', 'Cost was $9・26.', 'Cost reached $9¸000.', 'Cost reached $9٬000.', 'Cost reached $9٫26.', 'Cost reached $9،000.', 'Review runs: 26、000 last week.', 'Cost reached $9ͺ000.', 'Cost reached $9˛000.', 'Cost reached $9´000.'])
       expect([line, checkHighlight(line, marks)]).toEqual([line, null]);
+    for (const line of ['Cost was $9 ⋅000.', 'Cost was $9⋅ 000.', 'Cost reached $9٬ 000.', 'Review runs: 26・ 000 last week.'])
+      expect([line, checkHighlight(line, marks)]).toEqual([line, null]);
+    // Letters that look like punctuation do not hide a number word or a multiplier.
+    const apostrophe = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Виправити обʼєкт конфігурації ʻ ˈ ꓸ ǃ' }] });
+    for (const line of ['Runs rose to ʼtwentyʼ.', 'Review runs grew 3 timesʼ.', 'Review runs grew 3 ʼtimes.', 'Review runs grew (3)ʼ times.', 'Review runs grew «3»ʼ times.', 'Review runs ʼdoubledʼ.', 'Cost of finished runs: $9 bnʼ', 'Review runs grew *3 timesʼ*.', 'Runs rose to ʻtwentyʻ.', 'Runs rose to twentyꓸ', 'Runs rose to twentyǃ', 'Review runs grew 3 timesˈ.'])
+      expect([line, checkHighlight(line, apostrophe)]).toEqual([line, null]);
+    expect(checkHighlight('PR #3 "Виправити обʼєкт конфігурації" still has 4 open critical findings.', apostrophe)).not.toBeNull();
     // Typography between digits keeps them apart.
     for (const line of ['Review runs went 26→9.', 'Review runs went 26–9.'])
       expect([line, checkHighlight(line, allowed)]).toEqual([line, line]);

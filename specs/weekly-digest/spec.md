@@ -83,9 +83,9 @@ Highlights (one model call)
     checked like the rest — a backtick between two letters is dropped (`` ti`mes ``), any
     other counts as a space, so it neither separates a digit from its multiplier nor glues
     a word to a number;
-    digits split only by a space, an apostrophe or non-ASCII marks that are neither
-    letters, digits nor listed typography (`9 000`, `1'000`, `9‚000`, `9·26`, `9・26`,
-    `9٬000`) are one number, and compatibility forms count as their plain form (`9，000`,
+    digits split only by spaces, apostrophes or non-ASCII marks that are neither letters,
+    digits nor listed typography (`9 000`, `1'000`, `9‚000`, `9·26`, `9・26`, `9٬000`,
+    `9 ⋅000`) are one number, and compatibility forms count as their plain form (`9，000`,
     `9․26`); numbers are compared as written (`8.9999999999999999` is not 9);
   - a character outside ASCII, common typography (— – ‐ ‑ ‘ ’ “ ” … − → ← ↑ ↓ ≈ « ») and Latin
     letters that fold to ASCII (`é`, `ﬁ`, `ｔ`) must appear in the facts text — `ᴛ`, `ĸ`, `ı`
@@ -94,7 +94,8 @@ Highlights (one model call)
     `²`, `½`) drops the line, as do inline math, LaTeX braces or backslashes (GitHub
     renders `$9 . 26)$` and `$9{}000$` as math) and a whole emoji shortcode (`:x:`, not
     the `::sync::` of a Rust path); for the number words and multipliers below,
-    compatibility and accented forms are folded and, inside a word that mixes Latin with
+    compatibility and accented forms are folded, letters that look like punctuation
+    (modifier letters such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`) count as spaces and, inside a word that mixes Latin with
     Cyrillic or Greek letters (`twеnty`) or a word of two letters or more made only of
     look-alikes (`ММ`, `тімеѕ`), the look-alikes read as Latin — any other Cyrillic word
     stays Cyrillic;
@@ -242,3 +243,6 @@ model id `weekly_digest`.
 - 2026-10-15 — after the eleventh verification: any non-ASCII mark between digits that is
   not a letter, a digit or listed typography joins them (`⋅`, `・`, `¸`, `٬`, `،`, `、`), and
   marks left by the compatibility fold are removed (`ͺ`).
+- 2026-10-15 — after the twelfth verification: letters that look like punctuation (`ʼ`,
+  `ʻ`, `ˈ`, `ꓸ`, `ǃ`) count as spaces for the number words and multipliers; spaces around a
+  separating mark between digits join them too.

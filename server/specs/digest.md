@@ -61,7 +61,8 @@ one-letter multiplier (`LETTER_MULTIPLIER`: x, k, m, b, t; `LOOKALIKE_LETTER_MUL
 х, к, м, в, т and Greek) counts only right after the digit and its closing marks (`3x`,
 `9 K`, `«9» K`, `3 х.`) — `3 "X API client"`, `3 "В логах…"` and `3 К релізу` start a
 title or a Cyrillic word. Number words may run together (`fortytwo`). For these tests
-backticks are ignored, compatibility and accented forms are folded (NFKD), and
+backticks are ignored, compatibility and accented forms are folded (NFKD), letters that
+look like punctuation (`\p{Lm}` such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`) read as spaces, and
 look-alikes read as Latin only inside a word that mixes them with ASCII letters
 (`twеnty`), is all Latin variants (`ᴛᴡᴇɴᴛʏ`) or has two letters or more that are all
 look-alikes (`ММ`, `тімеѕ`); Greek capitals read as the Latin letter they look like (`Ν`
@@ -73,7 +74,8 @@ leading dot (`$.0049 M`) and a code span before the digit (`` `USD`9 M ``,
 inside a word (`` ti`mes `` is "times"). For the token check, compatibility forms are
 folded (`9，000`) with the marks the fold leaves removed, and digits split only by
 non-ASCII marks that are neither letters, digits, spaces nor listed typography are joined
-(`joinSplitDigits`: `9‚000`, `9·26`, `9・26`, `9٬000`; `26→9` and `4–12` stay apart). GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
+(`joinSplitDigits`: `9‚000`, `9·26`, `9・26`, `9٬000`, `9 ⋅000`; `26→9` and `4–12` stay
+apart). GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
 emoji shortcode (`:x:`, not `std::sync::` or `ws:pr:sha`) drop a line. Last, every token
 with a digit must check out
 (`checkHighlight`, `factsCheck`); numbers compare as written, not through `Number()`

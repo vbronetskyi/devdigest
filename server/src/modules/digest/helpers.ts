@@ -174,8 +174,16 @@ const lookAlike = (c: string): string | undefined => LOOK_ALIKES[c] ?? LOOK_ALIK
  */
 const readsAsLatin = (w: string) =>
   /[^\x00-\x7f]/.test(w) && (/[a-z]/i.test(w) || /^\p{Script=Latin}+$/u.test(w) || ([...w].length > 1 && [...w].every((c) => lookAlike(c) !== undefined)));
-/** Compatibility forms (`ｔ`) and accents (`é`) folded. */
-const folded = (text: string) => text.normalize('NFKD').replace(/\p{M}/gu, '');
+/**
+ * Compatibility forms (`ｔ`) and accents (`é`) folded; letters that look like punctuation —
+ * modifier letters (`ʼ ʻ ˈ ꓸ ꓹ`) and the clicks (`ǀ ǁ ǂ ǃ`) — read as spaces, so `ʼtwentyʼ`
+ * is a word on its own. (Only for matching: the Ukrainian `обʼєкт` stays as written.)
+ */
+const folded = (text: string) =>
+  text
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[\p{Lm}ǀǁǂǃ]/gu, ' ');
 /** The text the number words and multipliers are matched on: folded, look-alikes read as Latin where `readsAsLatin`. */
 const asLatin = (text: string) => folded(text).replace(/\p{L}+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
 /**
@@ -240,9 +248,11 @@ function tokenChecks(token: string, facts: FactsCheck): boolean {
  * have come from the facts, and it reads as a separator. `4–12` and `26→9` stay apart.
  */
 function joinSplitDigits(text: string): string {
-  return text.replace(/(\d)([^\x00-\x7f]+)(?=\d)/gu, (whole, digit: string, run: string) =>
-    [...run].every((c) => !/[\p{L}\p{N}\s]/u.test(c) && !TYPOGRAPHY.has(c)) ? digit : whole,
-  );
+  // Spaces may stand around the mark (`9 ⋅000`), but a mark there must be.
+  return text.replace(/(\d)([^\x00-\x7f]+|\s+[^\x00-\x7f]+\s*|[^\x00-\x7f]+\s+)(?=\d)/gu, (whole, digit: string, run: string) => {
+    const marks = [...run].filter((c) => !/\s/u.test(c));
+    return marks.length > 0 && marks.every((c) => !/[\p{L}\p{N}]/u.test(c) && !TYPOGRAPHY.has(c)) ? digit : whole;
+  });
 }
 
 /**
