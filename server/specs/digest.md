@@ -67,8 +67,8 @@ look-alikes (`ММ`, `тімеѕ`); Greek capitals read as the Latin letter they
 is N). Other Cyrillic words stay Cyrillic, `з` is a letter, and a lone look-alike letter
 is judged against the next word as written ("В тестах…" is Ukrainian). Digits glued to a
 letter before them are an identifier, not a number with a multiplier (`B2B`, `Y2K`); a
-leading dot (`$.0049 M`) and a code span before the digit (`` `USD`9 M ``) do not make
-one. GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
+leading dot (`$.0049 M`) and a code span before the digit (`` `USD`9 M ``,
+`` `USD`.0049 M ``) do not make one: for these rules a backtick is a space. GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
 emoji shortcode (`:x:`, not `std::sync::` or `ws:pr:sha`) drop a line. Last, every token
 with a digit must check out
 (`checkHighlight`, `factsCheck`); numbers compare as written, not through `Number()`

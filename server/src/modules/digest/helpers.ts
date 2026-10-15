@@ -259,8 +259,8 @@ export function checkHighlight(raw: string, facts: FactsCheck): string | null {
   if (line.length > HIGHLIGHT_MAX_CHARS) line = `${line.slice(0, HIGHLIGHT_MAX_CHARS - 1).trimEnd()}…`;
   if ([...line].some((c) => c > '\x7f' && !TYPOGRAPHY.has(c) && !(LATIN_LETTER.test(c) && foldsToAscii(c)) && !facts.chars.has(c))) return null;
   // Backticks do not separate a digit from its multiplier; look-alike letters read as Latin.
-  // A code span ends a word: `` `USD`9 M `` is not the identifier `USD9`.
-  const plain = line.replace(/(?<=\p{L})`+(?=\d)/gu, ' ').replace(/`/g, '');
+  // A backtick is a word boundary: `` `USD`9 M `` and `` `USD`.0049 M `` are not identifiers.
+  const plain = line.replace(/`/g, ' ');
   const words = asLatin(plain);
   if (NON_ASCII_NUMERAL.test(line) || NUMBER_WORDS.test(words)) return null;
   if (MULTIPLIER.test(words) || LETTER_MULTIPLIER.test(words)) return null;
