@@ -338,3 +338,19 @@ keeps nothing new; all nine pass-17 lines drop, `T&C`, `x-axis`, `X-Forwarded-Fo
 3 more mutations fail a test; three live calls kept 5 of 5 lines each. Accepted: `9 Kﾞup`,
 `3✕` with a title supplying it, `9 K™ up`, `9 K&1 up`, `9 K﹣up` (the fold, `&` and hyphen
 rules allow them as written).
+
+## Pass 19 — at `afa75c0`
+
+**Verdict: not ready — one rule applied to the wrong kind of multiplier.** No honest-line
+regression (nine probes byte-identical to pass 18); the 41-shape scan and every attack
+probe keep nothing new.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| After a word multiplier, `_` and a letter still made a word: `3 times_this week`, `3 fold_this week`, `$9 bn_up`, `$9 mln_total` (no title needed), `3 times︳this week` (drawn `3 times|this week`) — the `_` exemption is meant for one-letter multipliers (`K_max`) | security (older than `80fe5a1`) | a word multiplier ends at anything but an ASCII letter or digit, `_` included; number words already did | `83a3143` |
+| `ﾞ` / `ﾟ` folded to a combining mark and vanished before the modifier-letter rule: `doubledﾞthis` | nit | modifier letters count as spaces before the fold too | `83a3143` |
+| The package spec still said a lone other-script letter reads as `-` | nit | "an em dash" | `83a3143` |
+
+2 more mutations fail a test; three live calls kept 5 of 5 lines each. Accepted: an honest
+title that starts with a multiplier word and `_` right after a digit (`9 mm_per_px`) drops,
+as AC-7 reads; a backtick between letters is removed (`` times`this ``).
