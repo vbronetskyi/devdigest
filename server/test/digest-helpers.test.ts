@@ -426,6 +426,12 @@ describe('facts and the number check (AC-7)', () => {
     for (const line of ['Cost of finished runs: $9 Mו up from $0.0179.', 'Review runs: 9 Kا up from 26.', 'Review runs grew 3 xו this week.'])
       expect([line, checkHighlight(line, rtl)]).toEqual([line, null]);
     expect(checkHighlight('PR #3 X-Forwarded-For header handling is still open.', allowed)).not.toBeNull();
+    // A lone other-script letter after a multiplier is a dash, not a hyphen; so is it for the look-alikes; `&` needs a letter after it.
+    const yi = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: '统一日志格式 Кеш κ μ ㅡ ا' }] });
+    for (const line of ['Review runs: 9 K一up from 26.', 'Review runs grew 3 x一the most this quarter.', 'Cost of finished runs: $9 M一up from $0.0179.', 'Review runs: «9» K一up from 26.', 'Review runs: 9 Kㅡup from 26.', 'Review runs: 9 К一 up from 26.', 'Review runs: 9 К一.', 'Review runs: 9 Кㅡ up from 26.', 'Review runs: 9 Кا up from 26.', 'Review runs: 9 κ一 up from 26.'])
+      expect([line, checkHighlight(line, yi)]).toEqual([line, null]);
+    for (const line of ['Review runs: 9 K& up from 26.', 'Review runs grew 3 x&, while failures stayed at 1.', 'Cost of finished runs: $9 M&, up from $0.0179.'])
+      expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
     // Any lone other-script letter reads as a dash; a bar may stand between a digit and a multiplier.
     const bars = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: '공지ㅣ로그인 修正ㄧ些問題 ⵏ ꓲ ߊ ا │ ꞏ' }] });
     for (const line of ['Review runs grew 3 ㅣtimesㅣ.', 'Review runs grew 3 ㅣ times.', 'Review runs grew 3 ㅣfold.', 'Cost of finished runs: $9 ㅣbn.', 'Review runs grew 3 ㄧtimesㄧ.', 'Cost of finished runs: $9 ㄧbn.', 'Review runs grew 3 ⵏtimesⵏ.', 'Review runs grew 3 ꓲtimes.', 'Review runs grew 3 ߊtimes.', 'Review runs grew 3 اtimesا.', 'Review runs grew 3 |times|.', 'Review runs grew 3|times.', 'Review runs grew 3 │times.', 'Review runs grew 3 ꞏtimes.'])

@@ -62,8 +62,9 @@ multiplier (`MULTIPLIER`: `3×`, `(3) times`, `【3】 times`,
 (`LETTER_MULTIPLIER`: x, k, m, b, t; `LOOKALIKE_LETTER_MULTIPLIER`: х, к, м, в, т and Greek)
 counts only right after the digit and its closing brackets, quotes — `»9« K` and `„9“ K`
 too — or ellipsis (`3x`, `9 K`, `«9» K`, `「9」K`, `3 х.`) — `3 "X API client"`, `3 "В логах…"` and `3 К релізу` start a
-title or a Cyrillic word, and `x-axis` a hyphenated word (a hyphen with a letter or digit
-after it — `$9 M— up` is no such word). Number words may run together (`fortytwo`), and a number word
+title or a Cyrillic word, and `x-axis` a hyphenated word (a hyphen, or `&` as in `T&C`, with
+a letter or digit after it — `$9 M— up` and `9 K& up` are no such word). A lone other-script
+letter reads as an em dash here too (`9 K一up`, `9 К一 up`). Number words may run together (`fortytwo`), and a number word
 or multiplier ends at anything but an ASCII letter or digit (`жtwentyж`). For these tests
 backticks are ignored, compatibility and accented forms are folded (NFKD), letters that
 look like punctuation (`\p{Lm}` such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`, the saltillo `ꞌ`) read

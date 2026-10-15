@@ -187,9 +187,9 @@ const folded = (text: string) =>
 /** A letter of a script other than Latin, Cyrillic or Greek. */
 const OTHER_LETTER = String.raw`(?![\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}])\p{L}`;
 /**
- * A lone such letter, with none beside it, is a separator in an English line — a dash or
- * a bar (`3 ㅡtimesㅡ`, `一`, `ㅣ`, `ㄧ`, `ⵏ`, `ا`). A run of them is a word (`修复`, `認証`)
- * and stays one: `修复3个x轴` is a title, not a multiplier.
+ * A lone such letter, with none beside it, is a separator in an English line — read as an
+ * em dash, not a hyphen (`3 ㅡtimesㅡ`, `9 K一up` is `9 K—up`; `一`, `ㅣ`, `ㄧ`, `ⵏ`, `ا`). A
+ * run of them is a word (`修复`, `認証`) and stays one: `修复3个x轴` is a title.
  */
 const LONE_OTHER_LETTER = new RegExp(String.raw`(?<!${OTHER_LETTER})${OTHER_LETTER}(?!${OTHER_LETTER})`, 'gu');
 /**
@@ -199,7 +199,7 @@ const LONE_OTHER_LETTER = new RegExp(String.raw`(?<!${OTHER_LETTER})${OTHER_LETT
  */
 const asLatin = (text: string) =>
   folded(text)
-    .replace(LONE_OTHER_LETTER, '-')
+    .replace(LONE_OTHER_LETTER, '—')
     .replace(/\p{L}+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
 /**
  * GitHub inline math (`$9 . 26)$` renders as 9.26), LaTeX braces or backslashes, and a
@@ -302,7 +302,7 @@ export function checkHighlight(raw: string, facts: FactsCheck): string | null {
   if (NON_ASCII_NUMERAL.test(line) || NUMBER_WORDS.test(words)) return null;
   if (MULTIPLIER.test(words) || LETTER_MULTIPLIER.test(words)) return null;
   // A lone look-alike letter is judged by what follows it as written: "В тестах" is Ukrainian.
-  if (LOOKALIKE_LETTER_MULTIPLIER.test(folded(plain))) return null;
+  if (LOOKALIKE_LETTER_MULTIPLIER.test(folded(plain).replace(LONE_OTHER_LETTER, '—'))) return null;
   // Compatibility forms count as their plain form here too (`9，000` is 9,000), with the marks
   // the fold leaves (`ͺ` becomes a space and a mark) removed.
   // True hyphens (U+2010, U+2011) are `-` here: `9‑K` is checked like `9-K`.

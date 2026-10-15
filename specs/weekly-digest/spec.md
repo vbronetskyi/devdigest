@@ -99,8 +99,9 @@ Highlights (one model call)
     spaces and, inside a word that mixes Latin with Cyrillic or Greek letters (`twеnty`)
     or a word of two letters or more made only of look-alikes (`ММ`, `тімеѕ`), the
     look-alikes read as Latin — any other Cyrillic word stays Cyrillic — and a lone letter
-    of another script, with no letter of such a script beside it, reads as a dash
-    (`ㅡ 一 丨 ㅣ ㄧ ノ ⵏ ꓲ ا`); after that, a number word
+    of another script, with no letter of such a script beside it, reads as a dash, not a
+    hyphen (`ㅡ 一 丨 ㅣ ㄧ ノ ⵏ ꓲ ا`; `9 K一up` is `9 K—up`), for the Latin and the
+    look-alike multipliers alike; after that, a number word
     or a multiplier ends at anything that is not an ASCII letter or digit (`ㅡtwentyㅡ`,
     `twenty一`), while other letters of any script stay letters (`修复3个x轴`, `支持4K视频`
     and `"認証…" times out` are not multipliers);
@@ -269,3 +270,7 @@ model id `weekly_digest`.
 - 2026-10-15 — after the sixteenth verification: a one-letter multiplier is part of a
   hyphenated word only when a hyphen and a letter or digit follow it (`x-axis`) — not
   before an em dash or a bare hyphen (`$9 M— up`, `3 x-, while`).
+- 2026-10-15 — after the seventeenth verification: a lone other-script letter reads as an
+  em dash, not a hyphen, and for the look-alike multipliers too (`9 K一up`, `9 К一 up`);
+  `&` after a one-letter multiplier makes a word only before a letter or digit (`T&C`,
+  not `9 K& up`).

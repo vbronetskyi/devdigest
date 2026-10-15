@@ -51,9 +51,10 @@ export const MULTIPLIER = new RegExp(
 /**
  * A one-letter multiplier right after a digit and its closing marks — `3x`, `9 K`,
  * `«9» K`, `(3) x`. `3 "X API client"` starts a quoted title instead, and `x-axis` is a
- * word — a hyphen with a letter or digit after it, not `$9 M— up` or `3 x-, while`.
+ * word — a hyphen (or `&`, `T&C`) with a letter or digit after it, not `$9 M— up`,
+ * `3 x-, while` or `9 K& up`.
  */
-export const LETTER_MULTIPLIER = new RegExp(String.raw`${NUMBER_START}${CLOSING}\s*[xkmbt](?![a-z0-9_&]|[-‐‑][a-z0-9])`, 'iu');
+export const LETTER_MULTIPLIER = new RegExp(String.raw`${NUMBER_START}${CLOSING}\s*[xkmbt](?![a-z0-9_]|[-‐‑&][a-z0-9])`, 'iu');
 /**
  * The same with a Cyrillic or Greek look-alike (`3 х.`, `9 К runs`) — unless a Cyrillic
  * or Greek word follows, or an apostrophe and a letter: `3 К релізу`, `М’яке`.
