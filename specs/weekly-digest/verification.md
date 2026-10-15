@@ -120,3 +120,23 @@ pass-4 look-alike reading broke honest lines.
 The invented-shape table has 149 lines; 11 more mutations, all fail a test (one first
 survived — no title placed `х` before an unmapped letter — and "Хліб і сіль" now pins it).
 Three live calls after the change kept 5 of 5 lines each.
+
+## Pass 6 — at `e28f1fa`
+
+**Verdict: not ready — AC-7 only.** The pass-5 items held (`з` a letter, Unicode word
+edges, eight titles in the test). The check now ran over 201 lines of 67 realistic
+titles, 12 agent names and 17 everyday lines.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| A one-letter Cyrillic word starting a quoted title read as a multiplier: `PR #3 "В логах…"`, `«В інтерфейсі…»`, `"М’яке видалення"`, `К релизу…`; likewise English `"X API client"`, `"B tree index"` | honest lines dropped | look-alikes read as Latin only inside a word that mixes them with ASCII letters; a one-letter multiplier counts only right after the digit and its closing marks, and a Cyrillic look-alike not before a Cyrillic word or an apostrophe | `8b07cea`, `7009a83` |
+| Rust paths and Redis keys matched the shortcode rule: `std::sync::MutexGuard`, `ws:pr:sha` | honest lines dropped | a shortcode only as a whole word | `8b07cea`, `7009a83` |
+| Latin letters with no ASCII decomposition passed freely: `ᴛᴡᴇɴᴛʏ`, `3 ᴛɪᴍᴇꜱ`, `9 ᴍ`, `9 ĸ`, `twɛnty` | security | a Latin letter needs no source only if it folds to ASCII; small capitals mapped | `8b07cea`, `7009a83` |
+| GitHub inline math collapses spaces: `$9 . 26)$` renders 9.26) | security | inline math drops the line | `8b07cea`, `7009a83` |
+| Cyrillic `п` (looks like n) unmapped: `twепty` with a Ukrainian title in the facts | security | mapped, with `г һ ԁ ӏ ԝ ь η` | `7009a83` |
+
+A probe of 30 real-looking Ukrainian and English titles in four line shapes keeps 120 of
+120 (one unquoted `T&C` first dropped and now passes). The invented-shape table has 163
+lines; 11 more mutations, all fail a test (two first survived — the small-caps attack was
+already caught by the mapping, and the `п` test had only a capital `П` in its facts — and
+were pinned with `ꝁ`, `ʞ` and a lower-case title). Three live calls kept 5 of 5 lines each.
