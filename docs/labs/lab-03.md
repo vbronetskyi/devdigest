@@ -139,61 +139,61 @@ to OpenRouter. Now with `NODE_ENV=test` secrets live in a temporary file and the
 container does not read keys from env. A test that needs a model has to mock the
 provider explicitly.
 
-## Домашка: Smart Diff
+## Homework: Smart Diff
 
-Вкладка Files changed тепер показує файли в тому порядку, в якому їх варто
-читати: спочатку логіка, потім те, що її підключає, наприкінці все механічне.
-GitHub сортує за алфавітом, тож на PR #9 першими стоять сім markdown-файлів
-субагентів, а `intent.ts` загубився десь посередині.
+The Files changed tab now shows files in the order worth reading them: logic first,
+then what wires it in, and everything mechanical at the end. GitHub sorts
+alphabetically, so on PR #9 the seven subagent markdown files come first and
+`intent.ts` is lost somewhere in the middle.
 
-![Smart order на PR #9](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-3/smart-pr9-top.png)
+![Smart order on PR #9](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-3/smart-pr9-top.png)
 
-### Три групи
+### Three groups
 
-| Група | Що туди потрапляє | Як показано |
+| Group | What goes there | How it is shown |
 |---|---|---|
-| Core logic | код, що змінює поведінку | першою, файли відкриті |
-| Wiring | точки входу, реєстрація модулів, конфіг, міграції, CI | другою, з позначкою чому |
-| Boilerplate | lockfile-и, згенероване, тести, документація, переклади, стилі, конфіги інструментів | останньою, згорнуто |
+| Core logic | code that changes behavior | first, files expanded |
+| Wiring | entry points, module registration, config, migrations, CI | second, with the reason |
+| Boilerplate | lockfiles, generated code, tests, docs, translations, styles, tool configs | last, collapsed |
 
-Класифікація працює на правилах, моделі тут немає. Кожен файл отримує причину
-(`lockfile`, `entry point`, `imports and registration`…), і вона видна в
-заголовку файлу. Тому групуванню можна вірити: зрозуміло, чому файл опинився
-саме там. Файл зі звичайною назвою теж іде у wiring, якщо щонайменше 60 %
-його змінених рядків - це імпорти й реєстрація.
+Classification is rule-based, there is no model here. Every file gets a reason
+(`lockfile`, `entry point`, `imports and registration`...), shown in the file header.
+That is what makes the grouping trustworthy: you can see why a file ended up where it
+is. A file with an ordinary name also goes to wiring if at least 60% of its changed
+lines are imports and registration.
 
-Тести я поставив у boilerplate, як у дизайні: на рев'ю їх читають після коду,
-який вони перевіряють. Рішення спірне, тому причина `test` показана явно.
+I put tests in boilerplate, as in the design: in a review they are read after the code
+they test. It is debatable, so the `test` reason is shown explicitly.
 
-![Wiring з причинами](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-3/smart-pr9-wiring.png)
+![Wiring with reasons](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-3/smart-pr9-wiring.png)
 
-### Знахідки прямо в диффі
+### Findings right in the diff
 
-Кольорова смуга позначає рядки, які покриває знахідка, а її назва стоїть у
-кінці першого такого рядка. У заголовку файлу видно, скільки знахідок у ньому.
-Беруться останні рев'ю кожного агента, відхилені знахідки не показуються. Якщо
-після рев'ю в PR з'явились нові коміти, панель попереджає, що рядки могли
-зсунутись. Самі рев'ю коміт не зберігають, але PR пам'ятає `last_reviewed_sha`,
-і для попередження цього досить.
+A colored bar marks the lines a finding covers, and its title sits at the end of the
+first such line. The file header shows how many findings the file has. The latest
+review of each agent is used, and rejected findings are not shown. If the PR got new
+commits after the review, the panel warns that lines may have shifted. Reviews do not
+store a commit themselves, but the PR remembers `last_reviewed_sha`, and that is enough
+for the warning.
 
-![Маркери на PR #3](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-3/smart-pr3-critical.png)
+![Markers on PR #3](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-3/smart-pr3-critical.png)
 
-### Порада розбити PR
+### Suggesting a split
 
-Ліміт у 400 рядків рахується лише за core і wiring: регенерований lockfile
-рецензент не читає. У PR #9 змінено 4789 рядків, а на рев'ю з них припадає 637.
-Розбиття пропонується за пакетами (server / client), а всередині одного пакета
-за фічею (`modules/<x>`, `_components/<X>`). Шматки менші за 10 % приєднуються
-до найбільшого. Якщо чистої межі немає, банер так і пише, а не вигадує поділ.
+The 400-line limit counts only core and wiring: nobody reads a regenerated lockfile in
+a review. PR #9 changes 4789 lines, and 637 of them need review. A split is suggested
+by package (server / client), and inside one package by feature (`modules/<x>`,
+`_components/<X>`). Chunks under 10% are merged into the largest one. If there is no
+clean boundary, the banner says so instead of inventing a split.
 
-### Свідомо не зроблено
+### Left out on purpose
 
-- `pseudocode_summary` з дизайну («що робить цей файл») завжди `null`. Для
-  нього потрібен виклик моделі на кожен core-файл, а вкладка має відкриватись
-  миттєво й безкоштовно, як blast radius. Якщо його додавати, то за кнопкою і з
-  кешем на head-коміт, як intent.
-- Кнопки «Generate split PRs» немає. Безпечно розрізати гілку автоматично не
-  вийде, а кнопка, яка нічого не робить, гірша за її відсутність.
+- `pseudocode_summary` from the design (what this file does) is always `null`. It would
+  need a model call for every core file, and the tab has to open instantly and for
+  free. If it gets added, it should sit behind a button and be
+  cached per head commit, like intent.
+- There is no Generate split PRs button. A branch cannot be cut safely by a machine,
+  and a button that does nothing is worse than no button.
 
 ## How to check it yourself
 
