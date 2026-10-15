@@ -24,9 +24,11 @@ const NUMBER_STEMS =
  * unlike `\b`.
  */
 export const NUMBER_WORDS = new RegExp(
-  String.raw`(?<!\p{L})(?:(?:one)?(?:${NUMBER_STEMS})+(?:fold)?|half|halves|halved|halving|twice|thrice|(?:doubl|tripl|quadrupl)(?:e|ed|es|ing))(?!\p{L})`,
+  String.raw`(?<!\p{L})(?:(?:one)?(?:(?:${NUMBER_STEMS})(?:one)?)+(?:fold)?|half|halves|halved|halving|twice|thrice|(?:doubl|tripl|quadrupl)(?:e|ed|es|ing))(?!\p{L})`,
   'iu',
 );
+/** A number, not the digits of an identifier glued to a letter before it (`B2B`, `Y2K`, `OAuth2`). */
+const NUMBER_START = String.raw`(?<![\p{L}\p{N}_.,])\d+(?:[.,]\d+)*`;
 /** What may sit between a digit and a word multiplier: spaces, brackets, quotes, dashes, an ellipsis. */
 const BETWEEN = String.raw`[\s()[\]{}<>"'“”‘’«»\-–—−….]*`;
 /**
@@ -34,19 +36,21 @@ const BETWEEN = String.raw`[\s()[\]{}<>"'“”‘’«»\-–—−….]*`;
  * `9 bln`, `$9 grand` — or `×` / `^` (`3×`, `10^3`) (AC-7).
  */
 export const MULTIPLIER = new RegExp(
-  String.raw`\d${BETWEEN}(?:[×^]|(?:x[-–—]?fold|times|fold|mm|mn|bn|tn|trn|mil|mln|bln|bil|mill|grand|thou|mio|mrd|lakh|crore)(?![\p{L}\p{N}_]))`,
+  String.raw`${NUMBER_START}${BETWEEN}(?:[×^]|(?:x[-–—]?fold|times|fold|mm|mn|bn|tn|trn|mil|mln|bln|bil|mill|grand|thou|mio|mrd|lakh|crore)(?![\p{L}\p{N}_]))`,
   'iu',
 );
 /**
  * A one-letter multiplier right after a digit and its closing marks — `3x`, `9 K`,
  * `«9» K`, `(3) x`. `3 "X API client"` starts a quoted title instead, and `x-axis` is a word.
  */
-export const LETTER_MULTIPLIER = /\d[)\]}>"'”’»]*\s*[xkmbt](?![\p{L}\p{N}_&-])/iu;
+export const LETTER_MULTIPLIER = new RegExp(String.raw`${NUMBER_START}[)\]}>"'”’»]*\s*[xkmbt](?![\p{L}\p{N}_&-])`, 'iu');
 /**
  * The same with a Cyrillic or Greek look-alike (`3 х.`, `9 К runs`) — unless a Cyrillic
  * or Greek word follows, or an apostrophe and a letter: `3 К релізу`, `М’яке`.
  */
-export const LOOKALIKE_LETTER_MULTIPLIER =
-  /\d[)\]}>"'”’»]*\s*[хкмвтχκμβτ](?![\p{L}\p{N}_-])(?!\s+[\p{Script=Cyrillic}\p{Script=Greek}])(?![’'ʼ]\p{L})/iu;
+export const LOOKALIKE_LETTER_MULTIPLIER = new RegExp(
+  String.raw`${NUMBER_START}[)\]}>"'”’»]*\s*[хкмвтχκμβτ](?![\p{L}\p{N}_-])(?!\s+[\p{Script=Cyrillic}\p{Script=Greek}])(?![’'ʼ]\p{L})`,
+  'iu',
+);
 /** The first ISO week-year the digest answers for; year 0 is not a Postgres date (AC-5). */
 export const FIRST_YEAR = 1970;

@@ -82,7 +82,7 @@ Highlights (one model call)
     checked like the rest, and backticks do not separate a digit from its multiplier;
     digits split only by a space or an apostrophe (`9 000`, `1'000`, `9 0000`) are one
     number, compared as written (`8.9999999999999999` is not 9);
-  - a character outside ASCII, common typography (— – ‐ ‑ ‘ ’ “ ” … − → « ») and Latin
+  - a character outside ASCII, common typography (— – ‐ ‑ ‘ ’ “ ” … − → ← ↑ ↓ ≈ « ») and Latin
     letters that fold to ASCII (`é`, `ﬁ`, `ｔ`) must appear in the facts text — `ᴛ`, `ĸ`, `ı`
     included — a title may be in any language, but `四十二`, `✕`
     or a Cyrillic `х` cannot come from nowhere — and a numeral outside ASCII (`４２`, `④`,
@@ -90,8 +90,9 @@ Highlights (one model call)
     renders `$9 . 26)$` and `$9{}000$` as math) and a whole emoji shortcode (`:x:`, not
     the `::sync::` of a Rust path); for the number words and multipliers below,
     compatibility and accented forms are folded and, inside a word that mixes Latin with
-    Cyrillic or Greek letters (`twеnty`), the look-alikes read as Latin — a Cyrillic
-    word stays Cyrillic;
+    Cyrillic or Greek letters (`twеnty`) or a word of two letters or more made only of
+    look-alikes (`ММ`, `тімеѕ`), the look-alikes read as Latin — any other Cyrillic word
+    stays Cyrillic;
   - so does a number word — zero, two to twenty, the tens to ninety, dozen(s),
     hundred(s), thousand(s), million(s), billion(s), trillion(s), also run together
     (`fortytwo`, `twentyone`, `onehundred`) and with `-fold`;
@@ -221,4 +222,4 @@ model id `weekly_digest`.
 - 2026-10-15 — after the seventh verification: `twentyone`; Greek capitals inside a mixed
   word read as their Latin look-alikes; identifiers like `B2B` and `Y2K` are not
   multipliers; a hyphenated word after a digit is stated as accepted; non-breaking
-  hyphens are typography.
+  hyphens are typography.  Words made only of look-alikes read as Latin (`$9 ММ`); arrows and `≈` are typography.

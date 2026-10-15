@@ -292,6 +292,8 @@ describe('facts and the number check (AC-7)', () => {
       'Runs fell to $9 . 26)$ this week.',
       'Runs reached $9 , 000)$ now.',
       'Runs grew 3 :x: more.',
+      'Runs rose to twentyone.',
+      'Runs rose to fiftyone.',
     ];
     for (const line of invented) expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
   });
@@ -324,6 +326,7 @@ describe('facts and the number check (AC-7)', () => {
     // One-letter words that start a quoted title, Rust paths and Redis keys are not multipliers or shortcodes.
     for (const title of [
       'В логах світиться токен доступу',
+      'В тестах падає таймаут',
       'М’яке видалення агентів',
       "М'яке видалення агентів",
       'К релизу: поправить логи',
@@ -338,12 +341,27 @@ describe('facts and the number check (AC-7)', () => {
     }
     const bare = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'К релизу' }] });
     expect(checkHighlight('PR #3 К релизу is still open.', bare)).not.toBeNull(); // a Cyrillic word follows
+    const tests = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'В тестах падає таймаут' }] });
+    expect(checkHighlight('PR #3 В тестах падає таймаут is still open.', tests)).not.toBeNull(); // "тестах" is all look-alikes, still Ukrainian
     const tc = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'T&C page copy' }] });
     expect(checkHighlight('PR #3 T&C page copy is still open.', tc)).not.toBeNull();
     // With Cyrillic in the facts, a look-alike still cannot pass for a Latin letter or word.
-    const cyrP = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Перевірка хвостів, пошук, Кеш' }] });
-    for (const line of ['Runs rose tw\u0435\u043fty percent.', 'Runs grew 3 \u0445.', 'Runs hit 9 \u041a runs.', 'Runs grew 3\u0445 more.'])
+    const cyrP = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Перевірка хвостів, пошук, Кеш, ММ, тімеѕ' }] });
+    for (const line of ['Runs rose tw\u0435\u043fty percent.', 'Runs grew 3 \u0445.', 'Runs hit 9 \u041a runs.', 'Runs grew 3\u0445 more.', 'Cost hit $9 \u041c\u041c.', 'Runs grew 3 \u0442\u0456\u043c\u0435\u0455.'])
       expect([line, checkHighlight(line, cyrP)]).toEqual([line, null]);
+    // Greek capitals in a mixed word read as the Latin letter they look like, not their small form's.
+    const greek = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'ΗΜΝΥΖ ΤΕΣΤ' }] });
+    for (const line of ['Runs rose to TWE\u039dTY.', 'Runs rose to TWENT\u03a5.', 'Runs reached \u0397UNDRED.', 'Cost hit $9 \u039cM.', 'Failures fell to \u0396ERO.'])
+      expect([line, checkHighlight(line, greek)]).toEqual([line, null]);
+    // Identifiers with a digit inside are not a number with a multiplier; a non-breaking hyphen is typography.
+    for (const title of ['Make B2B invoices exportable', 'B2B SSO', 'OAuth2 M2M', 'Fix Y2K bug in date parser', 'Handle the b2b plan']) {
+      const check = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: title }] });
+      for (const line of [`PR #3 "${title}" still has 4 open critical findings.`, `PR #3 ${title} is open.`])
+        expect([line, checkHighlight(line, check)]).toEqual([line, line]);
+    }
+    expect(checkHighlight('The follow\u2011up on PR #3 is still open.', allowed)).not.toBeNull();
+    for (const line of ['Review runs fell to 9 (↓ 17).', 'Cost ≈ $0.0049.', 'Review runs went 26 → 9 ↓.'])
+      expect([line, checkHighlight(line, allowed)]).toEqual([line, line]);
     const nfd = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Чаи\u0306ник' }] });
     expect(checkHighlight('PR #3 "Чайник" is still open.', nfd)).not.toBeNull();
   });

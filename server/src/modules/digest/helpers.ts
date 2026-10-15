@@ -148,7 +148,7 @@ const HTML_COMMENT = /<!--[\s\S]*?(?:-->|$)/g;
 /** An HTML character reference renders as something else: `3&times;`, `9&nbsp;000`. */
 const CHAR_REFERENCE = /&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);/i;
 /** Outside ASCII, this typography and Latin letters that fold to ASCII (`naïve`) need no source; any other character must come from the facts. */
-const TYPOGRAPHY = new Set(['—', '–', '‘', '’', '“', '”', '…', '−', '→', '«', '»']);
+const TYPOGRAPHY = new Set(['—', '–', '‐', '‑', '‘', '’', '“', '”', '…', '−', '→', '←', '↑', '↓', '≈', '«', '»']);
 const LATIN_LETTER = /\p{Script=Latin}/u;
 /** `é`, `ﬁ`, `ｔ` fold to ASCII; `ᴛ`, `ĸ`, `ı` do not, so they must come from the facts. */
 const foldsToAscii = (c: string) => /^[\x00-\x7f]+$/.test(c.normalize('NFKD').replace(/\p{M}/gu, ''));
@@ -160,20 +160,24 @@ const LOOK_ALIKES: Record<string, string> = {
   а: 'a', в: 'b', г: 'r', е: 'e', ё: 'e', і: 'i', ї: 'i', ј: 'j', к: 'k', м: 'm', н: 'h', о: 'o', п: 'n', р: 'p', с: 'c', т: 't', у: 'y', х: 'x', ѕ: 's', ь: 'b',
   һ: 'h', ԁ: 'd', ӏ: 'l', ԝ: 'w',
   α: 'a', β: 'b', ε: 'e', η: 'n', ι: 'i', κ: 'k', μ: 'u', ν: 'v', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x',
+  // Greek capitals that look like a different Latin letter than their small form (Ν is N, ν is v).
+  Η: 'h', Μ: 'm', Ν: 'n', Υ: 'y', Ζ: 'z',
   ı: 'i', ɡ: 'g', ɑ: 'a', ɛ: 'e', ŋ: 'n', ĸ: 'k',
   ᴀ: 'a', ʙ: 'b', ᴄ: 'c', ᴅ: 'd', ᴇ: 'e', ꜰ: 'f', ɢ: 'g', ʜ: 'h', ɪ: 'i', ᴊ: 'j', ᴋ: 'k', ʟ: 'l', ᴍ: 'm', ɴ: 'n', ᴏ: 'o', ᴘ: 'p', ʀ: 'r', ꜱ: 's', ᴛ: 't', ᴜ: 'u', ᴠ: 'v', ᴡ: 'w', ʏ: 'y', ᴢ: 'z',
 };
+const lookAlike = (c: string): string | undefined => LOOK_ALIKES[c] ?? LOOK_ALIKES[c.toLowerCase()];
 /**
- * The text the number words and multipliers are matched on: compatibility forms (`ｔ`)
- * and accents (`é`) folded; inside a word that mixes ASCII letters with look-alikes
- * (`twеnty`) or is all Latin variants (`ᴛᴡᴇɴᴛʏ`), the look-alikes read as Latin. A
- * Cyrillic word stays Cyrillic ("В логах" is not "B").
+ * A word whose look-alikes read as Latin: one that mixes ASCII letters with them
+ * (`twеnty`), one of Latin variants only (`ᴛᴡᴇɴᴛʏ`), or one of two letters or more made only
+ * of look-alikes (`ММ`, `тімеѕ`). Other Cyrillic words stay Cyrillic ("В логах" is not
+ * "B"); a lone look-alike letter is `LOOKALIKE_LETTER_MULTIPLIER`'s to judge.
  */
-const asLatin = (text: string) =>
-  text
-    .normalize('NFKD')
-    .replace(/\p{M}/gu, '')
-    .replace(/\p{L}+/gu, (w) => (/[^\x00-\x7f]/.test(w) && (/[a-z]/i.test(w) || /^\p{Script=Latin}+$/u.test(w)) ? w.replace(/./gu, (c) => LOOK_ALIKES[c.toLowerCase()] ?? c) : w));
+const readsAsLatin = (w: string) =>
+  /[^\x00-\x7f]/.test(w) && (/[a-z]/i.test(w) || /^\p{Script=Latin}+$/u.test(w) || ([...w].length > 1 && [...w].every((c) => lookAlike(c) !== undefined)));
+/** Compatibility forms (`ｔ`) and accents (`é`) folded. */
+const folded = (text: string) => text.normalize('NFKD').replace(/\p{M}/gu, '');
+/** The text the number words and multipliers are matched on: folded, look-alikes read as Latin where `readsAsLatin`. */
+const asLatin = (text: string) => folded(text).replace(/\p{L}+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
 /**
  * GitHub inline math (`$9 . 26)$` renders as 9.26), LaTeX braces or backslashes, and a
  * whole emoji shortcode (`:x:` — not the `::sync::` of a Rust path or `ws:pr:sha`).
@@ -255,8 +259,11 @@ export function checkHighlight(raw: string, facts: FactsCheck): string | null {
   if (line.length > HIGHLIGHT_MAX_CHARS) line = `${line.slice(0, HIGHLIGHT_MAX_CHARS - 1).trimEnd()}…`;
   if ([...line].some((c) => c > '\x7f' && !TYPOGRAPHY.has(c) && !(LATIN_LETTER.test(c) && foldsToAscii(c)) && !facts.chars.has(c))) return null;
   // Backticks do not separate a digit from its multiplier; look-alike letters read as Latin.
-  const words = asLatin(line.replace(/`/g, ''));
+  const plain = line.replace(/`/g, '');
+  const words = asLatin(plain);
   if (NON_ASCII_NUMERAL.test(line) || NUMBER_WORDS.test(words)) return null;
-  if (MULTIPLIER.test(words) || LETTER_MULTIPLIER.test(words) || LOOKALIKE_LETTER_MULTIPLIER.test(words)) return null;
+  if (MULTIPLIER.test(words) || LETTER_MULTIPLIER.test(words)) return null;
+  // A lone look-alike letter is judged by what follows it as written: "В тестах" is Ukrainian.
+  if (LOOKALIKE_LETTER_MULTIPLIER.test(folded(plain))) return null;
   return tokensIn(line.replace(GROUP_SEPARATOR, '$1')).every((t) => tokenChecks(t, facts)) ? line : null;
 }

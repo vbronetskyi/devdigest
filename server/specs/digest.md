@@ -60,8 +60,11 @@ one-letter multiplier (`LETTER_MULTIPLIER`: x, k, m, b, t; `LOOKALIKE_LETTER_MUL
 title or a Cyrillic word. Number words may run together (`fortytwo`). For these tests
 backticks are ignored, compatibility and accented forms are folded (NFKD), and
 look-alikes read as Latin only inside a word that mixes them with ASCII letters
-(`twеnty`) or is all Latin variants (`ᴛᴡᴇɴᴛʏ`) — a Cyrillic word stays Cyrillic, and `з`
-is a letter. GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
+(`twеnty`), is all Latin variants (`ᴛᴡᴇɴᴛʏ`) or has two letters or more that are all
+look-alikes (`ММ`, `тімеѕ`); Greek capitals read as the Latin letter they look like (`Ν`
+is N). Other Cyrillic words stay Cyrillic, `з` is a letter, and a lone look-alike letter
+is judged against the next word as written ("В тестах…" is Ukrainian). Digits glued to a
+letter before them are an identifier, not a number with a multiplier (`B2B`, `Y2K`). GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
 emoji shortcode (`:x:`, not `std::sync::` or `ws:pr:sha`) drop a line. Last, every token with a digit must check out
 (`checkHighlight`, `factsCheck`); numbers compare as written, not through `Number()`
 (`8.9999999999999999` is not 9). Digit runs split only by a space or an
