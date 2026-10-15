@@ -1,168 +1,168 @@
-# L02 - скіли і конвенції
+# L02: skills and conventions
 
-Скіл - це іменований шматок правил для рев'ю в Markdown. Урок про скіли з двох
-боків: для Claude Code, який працює в цьому репозиторії, і для рецензентів
-усередині самого DevDigest. Друга половина - екстрактор конвенцій: DevDigest сам
-знаходить правила будинку в коді репозиторію і пропонує зробити з них скіли.
+A skill is a named chunk of review rules written in Markdown. The lesson looks at
+skills from two sides: for Claude Code working in this repository, and for the
+reviewers inside DevDigest itself. The second half is the conventions extractor:
+DevDigest finds the house rules in a repository's code and offers to turn them into
+skills.
 
-## Скіли для Claude Code
+## Skills for Claude Code
 
-- `onion-architecture` і `frontend-architecture` - куди класти код на сервері та
-  в клієнті. Правило залежностей для бекенду перевіряє `pnpm depcruise`. Стартовий
-  стан: 0 помилок, 14 попереджень про старий дрейф.
-- `pr-self-review` - що перевірити перед відкриттям PR: гейти всіх зачеплених
-  пакетів, дзеркальні контракти, недоторкані міграції й lock-файли, тести на
-  правильному рівні, інсайти. Цей PR відкрито через нього.
-- `.claude/settings.json` дозволяє без питань запускати перевірки й читати git і
-  забороняє редагувати міграції, lock-файли та `.env`. Шляхові правила працюють
-  лише в синтаксисі `Edit(path)`.
-- Спільний контекст переїхав у `AGENTS.md`, а `CLAUDE.md` тепер лише імпортує його
-  й додає кілька рядків, специфічних для Claude.
+- `onion-architecture` and `frontend-architecture`: where code goes on the server and
+  in the client. The backend dependency rule is checked by `pnpm depcruise`. Starting
+  point: 0 errors, 14 warnings about old drift.
+- `pr-self-review`: what to check before opening a PR. Gates of every touched package,
+  mirrored contracts, untouched migrations and lockfiles, tests at the right level,
+  insights. This PR was opened through it.
+- `.claude/settings.json` lets checks run and git be read without asking, and forbids
+  editing migrations, lockfiles and `.env`. Path rules only work in the `Edit(path)`
+  syntax.
+- The shared context moved to `AGENTS.md`, and `CLAUDE.md` now just imports it and
+  adds a few Claude-specific lines.
 
-## Бібліотека скілів у DevDigest
+## Skills library in DevDigest
 
-Сторінка `/skills`: список ліворуч, редактор праворуч, вкладки Config, Preview,
-Stats і Versions. Вибраний скіл і вкладка живуть в URL, тож на скіл можна дати
-посилання.
+The `/skills` page: list on the left, editor on the right, tabs Config, Preview,
+Stats and Versions. The selected skill and tab live in the URL, so you can link to a
+skill.
 
-![Редактор скіла](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/skill-config.png)
+![Skill editor](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/skill-config.png)
 
-Preview показує блок рівно таким, яким його отримає модель.
+Preview shows the block exactly as the model will get it.
 
 ![Prompt block](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/skill-preview.png)
 
-Кожна зміна тіла - нова версія. Старі версії можна переглянути, порівняти з
-поточною і відновити (відновлення теж стає новою версією, історія не
-переписується).
+Every change to the body is a new version. Old versions can be viewed, compared with
+the current one and restored (a restore is also a new version, history is never
+rewritten).
 
-![Історія версій з диффом](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/skill-versions.png)
+![Version history with a diff](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/skill-versions.png)
 
-У базу засіваються чотири скіли під цей кодбейс: `ssrf-outbound-requests`,
-`query-efficiency`, `fastify-route-contracts`, `null-not-zero`. Вони нікуди не
-прив'язані, поки ви самі цього не зробите.
+The seed adds four skills for this codebase: `ssrf-outbound-requests`,
+`query-efficiency`, `fastify-route-contracts`, `null-not-zero`. They are not attached
+to anything until you do it yourself.
 
-## Імпорт з файлу або за URL
+## Import from a file or a URL
 
-Два шляхи: завантажити `.md` (або просто вставити текст) чи дати посилання на
-`SKILL.md` (сторінку GitHub теж можна). В обох випадках сервер розбирає файл і
-показує прев'ю з попередженнями, а зберігається він лише після другого кліку.
+Two ways in: upload a `.md` (or just paste the text), or give a link to a `SKILL.md`
+(a GitHub page works too). Either way the server parses the file and shows a preview
+with warnings, and nothing is saved until the second click.
 
-![Прев'ю імпорту](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/import-preview.png)
+![Import preview](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/import-preview.png)
 
-Імпорт за URL - це запит, який сервер робить на адресу від користувача, тобто
-класичний SSRF. Тому: лише https і порт 443; кожна IP-адреса перевіряється в
-момент з'єднання, а не перед ним, щоб не допомагав DNS rebinding; кожен редирект
-перевіряється заново; один дедлайн на весь обмін разом із тілом; лише `text/*`
-і не більше 256 KB.
+Import by URL means the server makes a request to an address the user typed, which
+is textbook SSRF. So: https and port 443 only; every IP address is checked at connect
+time, not before, so DNS rebinding does not help; every redirect is checked again;
+one deadline for the whole exchange including the body; only `text/*` and at most
+256 KB.
 
-Імпортований скіл (з файлу теж) з'являється **вимкненим** і з позначкою
-«needs vetting». Чужий текст не потрапить у промпт, навіть якщо агент уже його
-прив'язав. Увімкнути його - це і є перевірка людиною. Звідки б не прийшов файл,
-для DevDigest це однаково чужий текст.
+An imported skill (from a file too) shows up **disabled** and marked **needs
+vetting**. Foreign text does not reach the prompt even if an agent already has the
+skill attached. Turning it on is the human review. Wherever the file came from, for
+DevDigest it is still someone else's text.
 
-![Імпортований скіл чекає перевірки](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/imported-needs-vetting.png)
+![Imported skill waiting for review](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/imported-needs-vetting.png)
 
-## Екстрактор конвенцій
+## Conventions extractor
 
-Skills Lab -> **Conventions**. Кнопка **Run extraction** запускає два виклики
-моделі. Спершу модель обирає до 10 файлів із найважливіших за рангом
-`repo-intel` (не більше двох з однієї теки, щоб одна тека не забрала всю
-вибірку). Потім читає ці файли й повертає правила, кожне з цитатою.
+Skills Lab -> **Conventions**. The **Run extraction** button makes two model calls.
+First the model picks up to 10 files from the top of the `repo-intel` ranking (at
+most two from one folder, so a single folder cannot take the whole sample). Then it
+reads those files and returns rules, each with a quote.
 
-![Конвенції цього репозиторію](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/conventions-scan.png)
+![Conventions of this repository](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/conventions-scan.png)
 
-Головне тут - не вірити моделі на слово:
+The main idea is not to take the model's word for anything:
 
-- **Цитата перевіряється.** Правило лишається, тільки якщо процитовані рядки
-  справді є у файлі (порівняння по рядках, без урахування відступів). Зберігаються
-  рядки з самого файлу з точним діапазоном (`core.ts:7`, `repos.ts:9-11`), а не
-  копія моделі. Вигадані цитати відкидаються, і сторінка показує, скільки таких було.
-- **Впевненість обмежує сервер.** У промпті просив «правило з одного файлу -
-  максимум 0.6». Модель усе одно поставила всім 1.0. Тепер стеля залежить від
-  кількості прочитаних файлів, де правило справді є: 1 -> 0.6, 2 -> 0.8, 3+ -> 1.
-- **Модель не обирає, що читати з диска.** Шлях від моделі приймається лише
-  тоді, коли він є в запропонованому списку.
+- **The quote is checked.** A rule stays only if the quoted lines really are in the
+  file (compared line by line, ignoring indentation). What gets stored are the lines
+  from the file itself with an exact range (`core.ts:7`, `repos.ts:9-11`), not the
+  model's copy. Made-up quotes are dropped, and the page shows how many there were.
+- **The server caps confidence.** The prompt asked for at most 0.6 for a rule seen in
+  one file. The model gave everything 1.0 anyway. Now the ceiling depends on how many
+  of the files it read actually contain the rule: 1 -> 0.6, 2 -> 0.8, 3+ -> 1.
+- **The model does not choose what to read from disk.** A path from the model is
+  accepted only if it is in the proposed list.
 
-Картку можна прийняти як є, спершу відредагувати правило й ім'я або відхилити.
-Прийнята конвенція стає скілом типу `convention` з цитатою як прикладом і
-одразу ввімкненою: це правило з власного коду, і людина його щойно прочитала.
+A card can be accepted as is, edited first (rule and name), or rejected. An accepted
+convention becomes a skill of type `convention` with the quote as its example, and it
+is enabled right away: it is a rule from your own code, and a person has just read it.
 
-![Прийняті конвенції](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/conventions-accepted.png)
+![Accepted conventions](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/conventions-accepted.png)
 
-Сканування цього репозиторію: 8-10 файлів, 7-8 правил, ≈ $0.0009 і 18-20 секунд.
-Сторінка сама модель не викликає, лише кнопка.
+Scanning this repository: 8-10 files, 7-8 rules, about $0.0009 and 18-20 seconds.
+The page never calls the model by itself, only the button does.
 
-## Скіли в агенті
+## Skills in an agent
 
-У редакторі агента з'явилась вкладка Skills: галочкою прив'язати, перетягнути
-або кнопками вгору/вниз змінити порядок. Порядок тут - це порядок у промпті.
-Кожна зміна зберігається одразу, а якщо запит падає, список повертається назад.
+The agent editor has a new Skills tab: tick a skill to attach it, drag or use the
+up/down buttons to reorder. The order here is the order in the prompt. Every change is
+saved right away, and if the request fails, the list goes back.
 
-![Вкладка Skills агента](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/agent-skills-linked.png)
+![Agent Skills tab](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/agent-skills-linked.png)
 
-У промпт скіли йдуть окремою секцією: спершу коротка преамбула (скіл може
-додати, що перевіряти, але не може змінити формат відповіді, severity чи
-правила безпеки і не може сказати «не повідомляй про це»), далі блоки
-`<skill name="…">`. В `<untrusted>` їх не загорнуто свідомо: захист промпту
-каже моделі ігнорувати будь-які інструкції всередині таких блоків, а скіл
-складається лише з інструкцій.
+Skills go into the prompt as a separate section: first a short preamble (a skill can
+add things to check, but cannot change the answer format, severity or safety rules,
+and cannot tell the model to stay quiet about something), then `<skill name="...">`
+blocks. They are deliberately not wrapped in `<untrusted>`: the prompt protection
+tells the model to ignore any instructions inside such blocks, and a skill is nothing
+but instructions.
 
-Трасування прогону показує, які скіли і в яких версіях отримала модель. Тож
-через місяць можна точно прочитати, що їй тоді сказали.
+The run trace shows which skills, and which versions of them, the model got. So a
+month later you can read exactly what it was told.
 
-![Скіли у трасуванні](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/trace-skills.png)
+![Skills in the trace](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-2/trace-skills.png)
 
-Вкладка Stats скіла рахує прогони саме за цим полем трасування.
+The skill's Stats tab counts runs from that trace field.
 
-## Чи допомагає скіл: чесна відповідь
+## Does a skill help?
 
-У L01 Performance Reviewer «пропустив» N+1 у demo-PR #2. Я прив'язав до нього
-`query-efficiency` і `null-not-zero` та прогнав по три рази зі скілами й без них
-(`deepseek-v4-flash`, разом менше цента).
+In L01 Performance Reviewer missed the N+1 in demo PR #2. I attached
+`query-efficiency` and `null-not-zero` to it and ran it three times with the skills
+and three times without (`deepseek-v4-flash`, under a cent in total).
 
-| | N+1 знайдено | «Диффу немає» | Прочитав і пропустив |
+| | N+1 found | Said there was no diff | Read it and missed |
 |---|---|---|---|
-| Зі скілами | 1 з 3 | 2 | 0 |
-| Без скілів | 0 з 3 | 2 | 1 |
+| With skills | 1 of 3 | 2 | 0 |
+| Without skills | 0 of 3 | 2 | 1 |
 
-Головне тут не скіл. У 4 з 6 прогонів модель написала, що диффу в запиті немає,
-хоча збережений промпт ідентичний тому, де вона N+1 знайшла. Збережений
-прогін з L01 теж такий. Тобто в L01 агент не пропустив N+1, він його просто не побачив.
-Коли модель дифф таки читала, зі скілом вона знайшла проблему, без скіла -
-ні. Але це один прогін проти одного, висновку з цього не зробиш. Наступний
-крок - запустити агента на іншій моделі й розібрати його системний промпт.
-Записано в `server/insights/INSIGHTS.md` (Open Questions).
+The skill is not the main story here. In 4 of 6 runs the model wrote that the request
+had no diff, even though the stored prompt is identical to the one where it found the
+N+1. The stored run from L01 looks the same. So in L01 the agent did not miss the N+1,
+it simply never saw it. When the model did read the diff, it found the problem with
+the skill and missed it without. But that is one run against one, not enough for a
+conclusion. The next step is to run the agent on a different model and take its
+system prompt apart. Recorded in `server/insights/INSIGHTS.md` (Open Questions).
 
-## Як перевірити самому
+## How to check it yourself
 
-1. `./scripts/dev.sh` - сід додасть чотири скіли, якщо їх ще немає.
-2. **Skills** у бічному меню: відкрити `query-efficiency`, перемкнути Preview на
-   *Prompt block*.
-3. **Agents -> Performance Reviewer -> Skills**: поставити галочку на
-   `query-efficiency`.
-4. Запустити рев'ю PR цим агентом і відкрити трасування: у Configuration буде
+1. `./scripts/dev.sh`: the seed adds the four skills if they are not there yet.
+2. **Skills** in the sidebar: open `query-efficiency`, switch Preview to *Prompt block*.
+3. **Agents -> Performance Reviewer -> Skills**: tick `query-efficiency`.
+4. Run a PR review with this agent and open the trace: Configuration will show
    `query-efficiency@v1`.
-5. **Add Skill -> Import from file / Import from URL**: будь-який `SKILL.md`.
-6. **Conventions -> Run extraction** (потрібен проіндексований репозиторій, бейдж
-   Indexed), далі **Accept as Skill** на будь-якій картці.
+5. **Add Skill -> Import from file / Import from URL**: any `SKILL.md`.
+6. **Conventions -> Run extraction** (needs an indexed repository, the Indexed badge),
+   then **Accept as Skill** on any card.
 
-Тести: `cd server && pnpm exec vitest run --exclude '**/*.it.test.ts'` і
-`pnpm exec vitest run .it.test` (потрібен Docker), `cd client && pnpm test`,
+Tests: `cd server && pnpm exec vitest run --exclude '**/*.it.test.ts'` and
+`pnpm exec vitest run .it.test` (needs Docker), `cd client && pnpm test`,
 `cd reviewer-core && npm test`.
 
-## Що знайшлося по дорозі
+## Found along the way
 
-- Імпорт zod-схеми як значення з `@devdigest/shared` у клієнті проходить
-  typecheck і тести, але кладе сторінку в `next dev` з 500. Схеми беруться
-  прямо з файлу контракту.
-- `pnpm typecheck` сервера не дивиться в `test/`, а vitest типів не перевіряє,
-  тож тести зі старою формою контракту компілюються «нормально».
-- Скрипт `dev.sh` при зупинці вбиває лише свою підоболонку, тож сервер API
-  лишається сиротою на порту 3001 і роздає старий код.
-- Перше живе сканування конвенцій зависло на виклику моделі. Без власного
-  дедлайну HTTP-запит чекав би ~15 хвилин; тепер це 502 через 120 секунд.
-- next-intl лише логує відсутній ключ перекладу, тож сторінка показує сирий
-  ключ, а тести зелені. Додав тест, який звіряє всі `t("…")` з файлами
-  перекладів, і він одразу знайшов один загублений ключ.
+- Importing a zod schema as a value from `@devdigest/shared` in the client passes
+  typecheck and tests, but takes the page down in `next dev` with a 500. Schemas are
+  imported straight from the contract file.
+- The server's `pnpm typecheck` does not look into `test/`, and vitest does not check
+  types, so tests with an old contract shape compile without complaint.
+- When `dev.sh` stops, it only kills its own subshell, so the API server is left
+  orphaned on port 3001 and keeps serving old code.
+- The first live conventions scan hung on the model call. Without its own deadline the
+  HTTP request would have waited about 15 minutes; now it is a 502 after 120 seconds.
+- next-intl only logs a missing translation key, so the page shows the raw key while
+  the tests stay green. I added a test that checks every `t("...")` against the
+  translation files, and it found one lost key right away.
 
-Подробиці - в `insights/INSIGHTS.md` відповідних пакетів.
+Details are in the `insights/INSIGHTS.md` of each package.
+

@@ -1,13 +1,12 @@
-# Лабораторні та домашні завдання
+# Labs and homework
 
-Мій форк DevDigest для курсу. Кожен урок - два пул-реквести: лабораторна
-вливається в `main`, домашка лишається відкритою і її посилання здається.
+My DevDigest fork for the course. Every lesson has two pull requests: the lab gets
+merged into `main`, the homework stays open and its link is what I hand in.
 
-| Урок | Тема | Лабораторна | Домашка | Звіт |
+| Lesson | Topic | Lab | Homework | Report |
 |---|---|---|---|---|
-| L01 | CLAUDE.md, скіл engineering-insights, вартість прогонів, знахідки за severity | [#4](https://github.com/AgentIvan/dev-digest/pull/4) | [#5](https://github.com/AgentIvan/dev-digest/pull/5) | [lab-01.md](lab-01.md) |
-| L02 | Скіли для Claude Code і в продукті: бібліотека, імпорт, прив'язка до агентів, екстрактор конвенцій | [#6](https://github.com/AgentIvan/dev-digest/pull/6) | - | [lab-02.md](lab-02.md) |
+| L01 | CLAUDE.md, engineering-insights skill, run cost, findings by severity | [#4](https://github.com/AgentIvan/dev-digest/pull/4) | [#5](https://github.com/AgentIvan/dev-digest/pull/5) | [lab-01.md](lab-01.md) |
+| L02 | Skills for Claude Code and in the product: library, import, attaching to agents, conventions extractor | [#6](https://github.com/AgentIvan/dev-digest/pull/6) | - | [lab-02.md](lab-02.md) |
 
-Демо-PR для прогону рецензентів - [#1](https://github.com/AgentIvan/dev-digest/pull/1),
-[#2](https://github.com/AgentIvan/dev-digest/pull/2),
-[#3](https://github.com/AgentIvan/dev-digest/pull/3) (гілки `demo/*` з репозиторію курсу).
+Demo PRs for running the reviewers: [#1](https://github.com/AgentIvan/dev-digest/pull/1), [#2](https://github.com/AgentIvan/dev-digest/pull/2), [#3](https://github.com/AgentIvan/dev-digest/pull/3)
+(the `demo/*` branches from the course repository).
