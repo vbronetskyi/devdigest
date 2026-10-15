@@ -169,6 +169,10 @@ const LOOK_ALIKES: Record<string, string> = {
   Η: 'h', Μ: 'm', Ν: 'n', Υ: 'y', Ζ: 'z',
 };
 const lookAlike = (c: string): string | undefined => LOOK_ALIKES[c] ?? LOOK_ALIKES[c.toLowerCase()];
+/** Latin variants read as their letter, in either case (`ɛ`, `Ɛ`). */
+const withVariants = (text: string) => text.replace(/./gu, (c) => LATIN_VARIANTS[c] ?? LATIN_VARIANTS[c.toLowerCase()] ?? c);
+/** A letter — not a symbol — of the Latin, Cyrillic or Greek script. */
+const LCG_LETTER = String.raw`(?=\p{L})[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}]`;
 /**
  * A word whose look-alikes read as Latin: one that mixes ASCII letters with them
  * (`twеnty`), one of Latin variants only (`ᴛᴡᴇɴᴛʏ`), or one of two letters or more made only
@@ -204,11 +208,10 @@ const LONE_OTHER_LETTER = new RegExp(String.raw`(?<!${OTHER_LETTER})${OTHER_LETT
  * stay letters — `修复3个x轴` and `"認証…" times out` are a title, not a multiplier.
  */
 const asLatin = (text: string) =>
-  folded(text)
+  withVariants(folded(text))
     .replace(LONE_OTHER_LETTER, '—')
-    .replace(/./gu, (c) => LATIN_VARIANTS[c] ?? c)
-    // Words of the Latin, Cyrillic and Greek scripts; a CJK run beside one does not join it.
-    .replace(/[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}]+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
+    // Words of Latin, Cyrillic and Greek letters; a CJK run or a symbol (`͵`) beside one does not join it.
+    .replace(new RegExp(`(?:${LCG_LETTER})+`, 'gu'), (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
 /**
  * GitHub inline math (`$9 . 26)$` renders as 9.26), LaTeX braces or backslashes, and a
  * whole emoji shortcode (`:x:` — not the `::sync::` of a Rust path or `ws:pr:sha`).

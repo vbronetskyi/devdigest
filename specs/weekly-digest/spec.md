@@ -286,3 +286,8 @@ model id `weekly_digest`.
   is `twenty`); Latin variants read as Latin anywhere; look-alikes are read within runs of
   Latin, Cyrillic and Greek letters, and a look-alike multiplier ends at any other letter,
   as the Latin one does (`$9 М一一 up`).
+- 2026-10-15 — after the twenty-first verification: script runs and edges count letters
+  only (a Greek or Cyrillic symbol such as `͵` ends a look-alike word or multiplier, as
+  any non-letter does); Latin variants read as their letter in either case (`TWƐNTY`) and
+  on the look-alike path too; a look-alike multiplier continues only into an ASCII letter
+  or digit or a Cyrillic or Greek letter.

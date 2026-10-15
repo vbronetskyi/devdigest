@@ -451,6 +451,14 @@ describe('facts and the number check (AC-7)', () => {
     const mixed = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Міграція кешу токенів 统一错误处理 ㅡ ᴍ ѕ Х х' }] });
     for (const line of ['Cost of finished runs: $9 М一一 up from $0.0179.', 'Review runs: 9 К一一 up from 26.', 'Review runs grew 3 Х一一 the most this quarter.', 'Cost hit $9 Мㅡㅡ up.', 'Cost hit $9 ᴍ一一 up.', 'Review runs grew 3 тімеѕ一一.', 'Review runs rose by ѕіх一一.'])
       expect([line, checkHighlight(line, mixed)]).toEqual([line, null]);
+    // A Greek or Cyrillic symbol ends a look-alike word or multiplier, as any non-letter does.
+    const sym = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Кеш Міграція тімеѕ ѕіх х ͵ ꙳ ҂ ϶ ꙾ ꞏ ʱ' }] });
+    for (const line of ['Review runs: 9 К͵ up from 26.', 'Cost of finished runs: $9 М͵ up from $0.0179.', 'Review runs grew 3 х͵ the most this quarter.', 'Review runs grew 3 тімеѕ͵ this week.', 'Review runs rose by ѕіх͵ this week.', 'Cost of finished runs: $9 ММ͵ up from $0.0179.', 'Review runs: 9 К꙳ up.', 'Review runs: 9 К҂ up.', 'Review runs: 9 К϶ up.', 'Review runs: 9 К꙾ up.', 'Review runs: 9 Кꞏup from 26.', 'Review runs: 9 Кʱ up from 26.'])
+      expect([line, checkHighlight(line, sym)]).toEqual([line, null]);
+    // Capital Latin variants read as their letter too.
+    const caps = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Ɛ Ŋ Ʀ Ɑ ℇ' }] });
+    for (const line of ['Review runs: TWƐNTY this week.', 'Review runs rose to twƐnty this week.', 'Review runs rose to twℇnty this week.', 'PRs reviewed: SEVEŊ this week.', 'Review runs: THƦEE more.', 'Review runs: NIŊE.', 'Cost HⱭLVED.'])
+      expect([line, checkHighlight(line, caps)]).toEqual([line, null]);
     const kmax = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Tune K_max for 3 x_scale' }] });
     expect(checkHighlight('PR #3 "Tune K_max for 3 x_scale" still has 4 open critical findings.', kmax)).not.toBeNull();
     // Any lone other-script letter reads as a dash; a bar may stand between a digit and a multiplier.
