@@ -162,7 +162,7 @@ const LOOK_ALIKES: Record<string, string> = {
   α: 'a', β: 'b', ε: 'e', η: 'n', ι: 'i', κ: 'k', μ: 'u', ν: 'v', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x',
   // Greek capitals that look like a different Latin letter than their small form (Ν is N, ν is v).
   Η: 'h', Μ: 'm', Ν: 'n', Υ: 'y', Ζ: 'z',
-  ı: 'i', ɡ: 'g', ɑ: 'a', ɛ: 'e', ŋ: 'n', ĸ: 'k', ꞏ: '-',
+  ı: 'i', ɡ: 'g', ɑ: 'a', ɛ: 'e', ŋ: 'n', ĸ: 'k', ꞏ: '—',
   ᴀ: 'a', ʙ: 'b', ᴄ: 'c', ᴅ: 'd', ᴇ: 'e', ꜰ: 'f', ɢ: 'g', ʜ: 'h', ɪ: 'i', ᴊ: 'j', ᴋ: 'k', ʟ: 'l', ᴍ: 'm', ɴ: 'n', ᴏ: 'o', ᴘ: 'p', ʀ: 'r', ꜱ: 's', ᴛ: 't', ᴜ: 'u', ᴠ: 'v', ᴡ: 'w', ʏ: 'y', ᴢ: 'z',
 };
 const lookAlike = (c: string): string | undefined => LOOK_ALIKES[c] ?? LOOK_ALIKES[c.toLowerCase()];

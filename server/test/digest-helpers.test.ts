@@ -432,6 +432,12 @@ describe('facts and the number check (AC-7)', () => {
       expect([line, checkHighlight(line, yi)]).toEqual([line, null]);
     for (const line of ['Review runs: 9 K& up from 26.', 'Review runs grew 3 x&, while failures stayed at 1.', 'Cost of finished runs: $9 M&, up from $0.0179.'])
       expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
+    // A folded low line after a multiplier is no identifier: `_` needs a letter or digit after it too.
+    const low = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'ログイン画面＿修正 ︳ Кеш' }] });
+    for (const line of ['Review runs grew 3 times＿ this week.', 'Review runs grew 3 times＿.', 'Cost of finished runs: $9 M＿, up from $0.0179.', 'Review runs: 9 K＿ up from 26.', 'Review runs grew 3 x＿ this week.', 'Review runs: 9 К＿ up from 26.', 'Review runs: 9 K︳ up from 26.', 'Cost hit $9 bn︳ this week.'])
+      expect([line, checkHighlight(line, low)]).toEqual([line, null]);
+    const kmax = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Tune K_max for 3 x_scale' }] });
+    expect(checkHighlight('PR #3 "Tune K_max for 3 x_scale" still has 4 open critical findings.', kmax)).not.toBeNull();
     // Any lone other-script letter reads as a dash; a bar may stand between a digit and a multiplier.
     const bars = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: '공지ㅣ로그인 修正ㄧ些問題 ⵏ ꓲ ߊ ا │ ꞏ' }] });
     for (const line of ['Review runs grew 3 ㅣtimesㅣ.', 'Review runs grew 3 ㅣ times.', 'Review runs grew 3 ㅣfold.', 'Cost of finished runs: $9 ㅣbn.', 'Review runs grew 3 ㄧtimesㄧ.', 'Cost of finished runs: $9 ㄧbn.', 'Review runs grew 3 ⵏtimesⵏ.', 'Review runs grew 3 ꓲtimes.', 'Review runs grew 3 ߊtimes.', 'Review runs grew 3 اtimesا.', 'Review runs grew 3 |times|.', 'Review runs grew 3|times.', 'Review runs grew 3 │times.', 'Review runs grew 3 ꞏtimes.'])

@@ -45,22 +45,22 @@ const CLOSING = String.raw`[\p{Pe}\p{Pf}\p{Pi}"'>′″‵‶…⋯⋮⋰⋱᠁�
  * `9 bln`, `$9 grand` — or `×` / `^` (`3×`, `10^3`) (AC-7).
  */
 export const MULTIPLIER = new RegExp(
-  String.raw`${NUMBER_START}${BETWEEN}(?:[×^]|(?:x\p{Pd}?fold|times|fold|mm|mn|bn|tn|trn|mils?|mln|bln|bil|mill|grand|thou|mio|mrd|lakhs?|lacs?|crores?)(?![a-z0-9_]))`,
+  String.raw`${NUMBER_START}${BETWEEN}(?:[×^]|(?:x\p{Pd}?fold|times|fold|mm|mn|bn|tn|trn|mils?|mln|bln|bil|mill|grand|thou|mio|mrd|lakhs?|lacs?|crores?)(?![a-z0-9]|_[a-z0-9]))`,
   'iu',
 );
 /**
  * A one-letter multiplier right after a digit and its closing marks — `3x`, `9 K`,
  * `«9» K`, `(3) x`. `3 "X API client"` starts a quoted title instead, and `x-axis` is a
- * word — a hyphen (or `&`, `T&C`) with a letter or digit after it, not `$9 M— up`,
- * `3 x-, while` or `9 K& up`.
+ * word — a hyphen, `&` or `_` (`T&C`, `K_max`) with a letter or digit after it, not
+ * `$9 M— up`, `3 x-, while`, `9 K& up` or a folded `9 K＿ up`.
  */
-export const LETTER_MULTIPLIER = new RegExp(String.raw`${NUMBER_START}${CLOSING}\s*[xkmbt](?![a-z0-9_]|[-‐‑&][a-z0-9])`, 'iu');
+export const LETTER_MULTIPLIER = new RegExp(String.raw`${NUMBER_START}${CLOSING}\s*[xkmbt](?![a-z0-9]|[-‐‑&_][a-z0-9])`, 'iu');
 /**
  * The same with a Cyrillic or Greek look-alike (`3 х.`, `9 К runs`) — unless a Cyrillic
  * or Greek word follows, or an apostrophe and a letter: `3 К релізу`, `М’яке`.
  */
 export const LOOKALIKE_LETTER_MULTIPLIER = new RegExp(
-  String.raw`${NUMBER_START}${CLOSING}\s*[хкмвтχκμβτ](?![\p{L}\p{N}_]|[-‐‑][\p{L}\p{N}])(?!\s+[\p{Script=Cyrillic}\p{Script=Greek}])(?![’'ʼ]\p{L})`,
+  String.raw`${NUMBER_START}${CLOSING}\s*[хкмвтχκμβτ](?![\p{L}\p{N}]|[-‐‑_][\p{L}\p{N}])(?!\s+[\p{Script=Cyrillic}\p{Script=Greek}])(?![’'ʼ]\p{L})`,
   'iu',
 );
 /** The first ISO week-year the digest answers for; year 0 is not a Postgres date (AC-5). */

@@ -118,7 +118,8 @@ Highlights (one model call)
     brackets, quotes (`»9« K` and `„9“ K` included) or an ellipsis (`3x`, `9 K`, `«9» K`,
     `「9」K`, `9⋯K`, `3 х.`) — not when it starts a quoted
     title (`3 "X API client"`, `3 "В логах…"`), a Cyrillic word (`3 К релізу`) or a
-    hyphenated word (`x-axis`, `X-Forwarded-For`, `B-tree`); a digit glued to a letter
+    word joined by a hyphen, `&` or `_` with a letter or digit after it (`x-axis`,
+    `X-Forwarded-For`, `B-tree`, `T&C`, `K_max`); a digit glued to a letter
     before it is part of an identifier, not a number with a multiplier (`B2B`, `M2M`,
     `Y2K`).
   The facts text states how many open criticals it lists ("5 listed"), so "5 of 12" can
@@ -274,3 +275,6 @@ model id `weekly_digest`.
   em dash, not a hyphen, and for the look-alike multipliers too (`9 K一up`, `9 К一 up`);
   `&` after a one-letter multiplier makes a word only before a letter or digit (`T&C`,
   not `9 K& up`).
+- 2026-10-15 — after the eighteenth verification: `_` after a multiplier makes a word only
+  before a letter or digit, as `-` and `&` do — a folded `＿` or `︳` (`3 times＿ this`,
+  `9 K︳ up`) no longer hides one.
