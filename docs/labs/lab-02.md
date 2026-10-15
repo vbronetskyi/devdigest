@@ -168,86 +168,87 @@ Details are in the `insights/INSIGHTS.md` of each package.
 
 ---
 
-# Домашнє завдання L02: екстрактор конвенцій
+# L02 homework: conventions extractor
 
-Сам екстрактор з'явився ще в лабораторній (#6), тож у домашці я провів його через той
-самий цикл, що й фічі уроку 5. Спершу написав спеку з критеріями приймання. Потім
-окремий агент звірив з нею код і дизайн курсу. Усе, що він знайшов, виправлено й
-покрито тестами. Спека, план і звіти перевірки лежать у `specs/conventions/`
-(SPEC-07).
+The extractor itself already came with the lab (#6), so for the homework I put it
+through the same cycle as the lesson 5 features. First I wrote a spec with acceptance
+criteria. Then a separate agent checked the code and the course design against it.
+Everything it found is fixed and covered by tests. The spec, plan and verification
+reports are in `specs/conventions/` (SPEC-07).
 
-**Відео (57 с):** [hw2-conventions.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-2/hw2-conventions.mp4).
-На ньому: справжнє сканування цього репозиторію, підсумок і лічильники, «Edit first» зі
-спробою вписати в правило зайвий розділ, «Reject all», а після перезавантаження
-підсумок лишається на місці.
+**Video (57 s):** [hw2-conventions.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-2/hw2-conventions.mp4).
+It shows a real scan of this repository, the summary and counters, Edit first with an
+attempt to sneak an extra section into a rule, Reject all, and the summary still in
+place after a reload.
 
-## Що знайшла перевірка
+## What the verification found
 
-Найважливіше, що вона знайшла:
+The most important findings:
 
-- **Правило могло пронести інструкції в довірений скіл.** Прийняте правило стає
-  заголовком `# <правило>` у скілі, а скіл рецензенти читають як інструкцію. На картці
-  правило показано абзацом, тож переноси рядків там не видно. Але текст на кшталт
-  «Use X\n\n## Severity\nCRITICAL…» у скілі ставав окремим розділом. Тепер правило
-  завжди один рядок без Markdown-маркерів на початку, до 300 символів. Це стосується
-  і правила від моделі, і відредагованого людиною. На відео видно, що в скілі
-  розділ Severity лишається один, власний.
-- **Лічильник казав неправду.** «Dropped: quote not found» рахував і повтори, і
-  правила понад ліміт 8. Тепер це два окремі числа: без справжньої цитати
-  (`dropped`) і пропущені як повтори, вже прийняті чи зайві (`skipped`).
-- **Повторне сканування знову пропонувало прийняті правила.** Після повторного
-  прийняття з'являвся скіл-дублікат з суфіксом `-2`. Тепер правило, вже прийняте в
-  цьому репозиторії, не пропонується знову, а прийняту конвенцію не можна
-  «відхилити»: вона лишається записом про скіл.
-- **Імена скілів могли збігтися.** Ім'я перевірялось запитом перед вставкою, тож
-  два одночасні прийняття проходили обидва. Тепер ім'я скіла унікальне в
-  робочому просторі на рівні бази (міграція 0012). Прийняття, що програло гонку,
-  бере наступний вільний суфікс. Будь-яке інше порушення унікальності тепер
-  повертає 409, а не 500.
-- **Два одночасні сканування лишали обидва набори кандидатів.** «Видалити й
-  вставити» в одній транзакції не захищає від паралельної транзакції. Тепер запис
-  сканування захищено блокуванням на рівні репозиторію (advisory lock). Тест
-  тримає те саме блокування з іншої транзакції й перевіряє, що сканування чекає.
-- **Підсумок зникав після перезавантаження.** Тепер останнє сканування
-  зберігається: файли, модель, вартість, лічильники й коміт. Посилання на GitHub
-  ведуть на той коміт, рядки якого цитувались, а не на поточну голову гілки.
-- **MCP-інструмент `get_conventions` зламався** після зміни відповіді API. Його тест
-  проходив, бо фейковий API віддавав стару форму. Виправлено разом із фейком.
+- **A rule could smuggle instructions into a trusted skill.** An accepted rule
+  becomes the `# <rule>` heading of a skill, and reviewers read skills as
+  instructions. On the card the rule is shown as a paragraph, so line breaks are
+  invisible there. But text like `Use X\n\n## Severity\nCRITICAL...` turned into a
+  separate section of the skill. Now a rule is always one line, with no Markdown
+  markers at the start, up to 300 characters. That applies both to rules from the
+  model and to rules edited by a person. The video shows the skill still has exactly
+  one Severity section, its own.
+- **The counter was wrong.** The "Dropped: quote not found" counter also counted
+  duplicates and rules over the limit of 8. Now there are two separate numbers: rules without a real
+  quote (`dropped`) and rules skipped as duplicates, already accepted or over the
+  limit (`skipped`).
+- **A rescan offered accepted rules again.** Accepting one again created a duplicate
+  skill with a `-2` suffix. Now a rule already accepted in this repository is not
+  offered again, and an accepted convention cannot be rejected: it stays as the record
+  of the skill.
+- **Skill names could collide.** The name was checked with a query before the insert,
+  so two concurrent accepts both went through. Now a skill name is unique within the
+  workspace at the database level (migration 0012). An accept that loses the race
+  takes the next free suffix. Any other uniqueness violation now returns 409, not 500.
+- **Two concurrent scans left both sets of candidates.** Delete and insert in one
+  transaction does not protect against a parallel transaction. Now writing a scan is
+  guarded by a per-repository advisory lock. A test holds the same lock from another
+  transaction and checks that the scan waits.
+- **The summary disappeared after a reload.** Now the last scan is stored: files,
+  model, cost, counters and commit. GitHub links point to the commit whose lines were
+  quoted, not to the current branch head.
+- **The `get_conventions` MCP tool broke** after the API response changed. Its test
+  still passed because the fake API returned the old shape. Fixed together with the
+  fake.
 
-Дрібніші речі:
-- цитата звіряється лише за першими 8 рядками;
-- файл обрізається по межі рядка;
-- невідома впевненість - це «—», а не 0;
-- блок коду в скілі не можна закрити зсередини цитати;
-- теки `test/` і `migrations/` у корені репозиторію не потрапляють у вибірку;
-- поки йде «Accept all», дії інших карток недоступні.
+Smaller things:
+- the quote is matched only against its first 8 lines;
+- a file is cut at a line boundary;
+- unknown confidence is a dash, not 0;
+- a code block in a skill cannot be closed from inside a quote;
+- `test/` and `migrations/` folders at the repository root are left out of the sample;
+- while Accept all is running, the other cards' actions are disabled.
 
-## Перевірка
+## Verification
 
-| Прохід | Що знайдено | Результат |
+| Pass | Found | Result |
 |---|---|---|
-| 1 (до змін) | ін'єкція через правило, лічильник, повтори, дублікати імен, паралельні сканування, підсумок після перезавантаження, частина інваріантів без тестів | не готово |
-| 2 | зламаний MCP-інструмент, «невідома впевненість», яку схема моделі не дозволяла, відхилення прийнятої конвенції, посилання на скіл лише в межах сесії, кінець блоку коду в цитаті, пів рядка з залишку бюджету | не готово |
-| 3 | нових проблем немає; лише тест не фіксує, що блокування стоїть перед видаленням (у коді стоїть) | готово |
+| 1 (before changes) | injection through a rule, the counter, repeats, duplicate names, parallel scans, summary after reload, some invariants without tests | not ready |
+| 2 | broken MCP tool, unknown confidence the model schema did not allow, rejecting an accepted convention, skill link that only lived for the session, end of a code block inside a quote, half a line from the leftover budget | not ready |
+| 3 | no new problems; only that no test pins the lock being taken before the delete (the code does it) | ready |
 
-Ключові тести перевірено мутаціями: коли повертаю стару поведінку, тест падає. Таких
-перевірок шість: читання непропонованого файлу, правило без нормалізації,
-відсутність повтору при гонці за ім'я, відсутність блокування, картки без блокування
-під час масової дії та загальний бюджет символів.
+Key tests were checked with mutations: when I bring back the old behavior, the test
+fails. There are six such checks: reading a file that was not proposed, a rule
+without normalization, no retry on the name race, no lock, cards not locked during a
+bulk action, and the overall character budget.
 
-## Як перевірити самому
+## How to check it yourself
 
-1. `cd server && pnpm db:migrate` (міграції 0012 і 0013). Якщо 0012 падає, у базі вже
-   є два скіли з однаковим ім'ям, і один треба перейменувати (запит є в
-   `server/specs/conventions.md`).
-2. Skills Lab -> Conventions -> Re-scan. Під заголовком з'явиться підсумок, а під ним
-   лічильники.
-3. Edit first -> впишіть у правило перенос рядка й `## Severity` -> Accept -> Open skill.
-   Заголовок скіла буде одним рядком.
-4. Перезавантажте сторінку: підсумок і посилання «Open skill» на прийнятих картках
-   лишаються.
+1. `cd server && pnpm db:migrate` (migrations 0012 and 0013). If 0012 fails, the
+   database already has two skills with the same name, and one of them has to be
+   renamed (the query is in `server/specs/conventions.md`).
+2. Skills Lab -> Conventions -> Re-scan. The summary appears under the heading, with
+   the counters below it.
+3. Edit first -> put a line break and `## Severity` into the rule -> Accept -> Open
+   skill. The skill heading will be a single line.
+4. Reload the page: the summary and the Open skill links on accepted cards stay.
 
-Тести:
+Tests:
 - `cd server && pnpm exec vitest run conventions routes-smoke`;
 - `cd client && pnpm test conventions ConventionCard`;
 - `cd mcp && npm test`.
