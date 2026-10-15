@@ -1,4 +1,4 @@
-# L03 — Субагенти та Intent Layer
+# L03 - Субагенти та Intent Layer
 
 У цьому уроці дві частини. Перша стосується того, як я сам працюю з Claude Code
 над репозиторієм: набір субагентів, кожен під свою роль і зі своїми правами.
@@ -23,7 +23,7 @@
 Порядок для фічі:
 
 ```
-researcher → planner → implementer → architecture-reviewer ∥ test-writer → plan-verifier → doc-writer
+researcher -> planner -> implementer -> architecture-reviewer ∥ test-writer -> plan-verifier -> doc-writer
 ```
 
 Це звичайний пайплайн субагентів, перша сходинка з лекції. Agent Teams тут нічого
@@ -32,7 +32,7 @@ researcher → planner → implementer → architecture-reviewer ∥ test-writer
 задачу, яку я вже можу розписати на кроки, означав би платити за оркестратор
 без жодної користі.
 
-### Права: інструментами, а де не вистачає — хуком
+### Права: інструментами, а де не вистачає - хуком
 
 Planner, architecture-reviewer і plan-verifier отримали тільки Read, Grep і Glob.
 У них просто немає інструмента, яким можна щось змінити, тож заборона не залежить
@@ -110,8 +110,8 @@ env. Тест, якому потрібна модель, мусить замок
 
 ## Як перевірити самому
 
-1. `./scripts/dev.sh`, відкрити будь-який PR → Overview → Intent → Derive.
-2. Запустити рев'ю, відкрити прогін → Prompt assembly → блок «PR intent».
+1. `./scripts/dev.sh`, відкрити будь-який PR -> Overview -> Intent -> Derive.
+2. Запустити рев'ю, відкрити прогін -> Prompt assembly -> блок «PR intent».
 3. Повторний прогін без нових комітів: у лозі `intent: cached for <sha>`.
 4. Субагенти: у Claude Code в корені репо попросити «use the planner subagent
    to plan …». Planner поверне план текстом, файлів не змінить.
