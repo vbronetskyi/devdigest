@@ -181,3 +181,17 @@ not covered, because `PR #3 (X API client)` must stay; `$9 ь`; typography outsi
 (`·`, `≤`, `÷`, `✓`) drops a line, as written. The probes after the change: 120/120,
 1,289/1,297 (the accepted unquoted prepositions), 458/480 (the same 22 as before, all
 intended). 3 more mutations, all fail a test; three live calls kept 5 of 5 lines each.
+
+## Pass 9 — at `87bd252`
+
+**Verdict: not ready — one combination.** Every pass-8 item held and no honest-line
+regression was found (120/120, 1,289/1,297, 458/480 and 78/90 on the identifier set — the
+drops all intended).
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| A code span before a number with a leading dot still hid a multiplier: `` `USD`.0049 M ``, `` USD`.0049` M ``, `` `x`.5 times `` — pass 8 had fixed each half alone | security | a backtick is a space for the multiplier rules, so a code span is a word boundary whatever follows it | `cdbfa1d`, `8178cf8` |
+
+Accepted, as the spec reads: `9…K`, `9 'K'`, `9 Ks`; Cyrillic multipliers (`9 млн`,
+`$9 тис.`) like the accepted non-English number words. The probes after the change: the
+same counts; one more mutation fails a test; three live calls kept 5 of 5 lines each.
