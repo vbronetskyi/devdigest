@@ -199,136 +199,139 @@ Tests: `cd server && pnpm exec vitest run context project-context onboarding git
 
 ---
 
-# Домашнє завдання L05: Risk Brief і git-why
+# L05 homework: Risk Brief and git-why
 
-Дві фічі, обидві тим самим SDD-конвеєром, що й лабораторна: спека, незалежне рев'ю
-спеки, план, код, перевірка коду на відповідність спеці. **SPEC-03 Risk Brief**
-відповідає на питання «що може зламатися через цей PR, куди дивитися першим і хто
-вже чіпав ці файли». **SPEC-04 git-why** відповідає на «чому цей рядок такий»: хто
-і в якому PR його востаннє змінив. Спеки, плани й звіти перевірки лежать у
-`specs/risk-brief/` і `specs/git-why/`.
+Two features, both through the same SDD pipeline as the lab: spec, independent spec
+review, plan, code, and a check of the code against the spec. **SPEC-03 Risk Brief**
+answers what can break because of this PR, where to look first and who has already
+touched these files. **SPEC-04 git-why** answers why a line is the way it is: who
+changed it last and in which PR. Specs, plans and verification reports are in
+`specs/risk-brief/` and `specs/git-why/`.
 
-**Відео (78 с):** [hw5-brief-why.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-5/hw5-brief-why.mp4) - генерація брифу на PR #9, розгорнутий ризик, перехід у дифф, історія PR #5 і
-git-why на рядку з PR #4.
+**Video (78 s):** [hw5-brief-why.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-5/hw5-brief-why.mp4):
+generating a brief on PR #9, an expanded risk, the jump into the diff, the history of
+PR #5 and git-why on a line from PR #4.
 
 ## Risk Brief (SPEC-03)
 
-Більшу частину брифу рахує код, безкоштовно:
+Most of the brief is computed by code, for free:
 
-- **Сигнали** - таблиця правил над змінами PR. Міграція, схема БД без міграції,
-  маніфест залежностей, lockfile, CI-воркфлоу, шляхи зі словами `auth`, `session`,
-  `token`…, роути й публічні контракти (видалені рядки дають medium, лише додані -
-  low). Тести й Markdown сигналів не дають.
-- **Історія** - інші PR, які вже влилися в default-гілку й чіпали ті самі файли.
-  Береться з `git log --first-parent` клону, без lockfile-ів, Markdown і метаданих
-  міграцій.
+- **Signals:** a table of rules over the PR's changes. A migration, a DB schema change
+  without a migration, a dependency manifest, a lockfile, a CI workflow, paths with
+  words like `auth`, `session`, `token`, routes and public contracts (deleted lines
+  give medium, added-only lines give low). Tests and Markdown give no signals.
+- **History:** other PRs that were already merged into the default branch and touched
+  the same files. Taken from `git log --first-parent` of the clone, without lockfiles,
+  Markdown and migration metadata.
 
-Модель отримує це разом із диффом і робить один виклик: пояснює ризики, ранжує їх,
-вибирає до п'яти місць «читати першим» і пише нотатки до історії. Сервер їй не
-довіряє:
+The model gets this together with the diff and makes one call: it explains the risks,
+ranks them, picks up to five places to read first and writes notes for the history.
+The server does not trust it:
 
-- посилання на файл лишається, тільки якщо файл є в PR, а рядок - серед рядків,
-  які показує дифф (для діапазону - кожен рядок);
-- ризик без жодного живого посилання відкидається;
-- з тексту прибираються посилання, зображення й HTML;
-- сигнал правила лишається, поки модель не накрила його ризиком того ж типу.
+- a file reference stays only if the file is in the PR and the line is among the lines
+  the diff shows (for a range, every line);
+- a risk without a single live reference is dropped;
+- links, images and HTML are stripped from the text;
+- a rule's signal stays until the model covers it with a risk of the same type.
 
-Без моделі (немає ключа, не та схема, 90 с) бриф будується з самих сигналів та
-історії, з поясненням чому. Невдала регенерація не затирає бриф моделі для того
-самого коміту.
+Without the model (no key, wrong schema, 90 s) the brief is built from the signals and
+the history alone, with the reason. A failed regeneration does not overwrite the
+model's brief for the same commit.
 
-![Бриф на demo-PR #3](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-5/brief-pr3.png)
+![Brief on demo PR #3](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-5/brief-pr3.png)
 
-На demo-PR #3 бриф ставить SSRF першим і веде на рядок з `fetch(req.body.url)`.
-Коштує $0.0007-0.0008 на deepseek-v4-flash. Бриф для HW1 (#5, 55 файлів)
-коштує $0.0016-0.0018. Його історія показує Lab 1 (#4), який чіпав ті самі
-`routes.ts`, контракти й `RunHistory`:
+On demo PR #3 the brief puts the SSRF first and points to the line with
+`fetch(req.body.url)`. It costs $0.0007-0.0008 on deepseek-v4-flash. The brief for HW1
+(#5, 55 files) costs $0.0016-0.0018. Its history shows Lab 1 (#4), which touched the
+same `routes.ts`, contracts and `RunHistory`:
 
-![Бриф з історією, PR #5](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-5/brief-pr5-history.png)
+![Brief with history, PR #5](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-5/brief-pr5-history.png)
 
-Відкриття PR моделі не викликає. Поки брифу немає, картка пропонує Generate:
+Opening a PR does not call the model. Until there is a brief, the card offers Generate:
 
-![Порожній стан](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-5/brief-empty.png)
+![Empty state](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-5/brief-empty.png)
 
-Кожне посилання в брифі відкриває Files changed на потрібному файлі й рядку
-(`?tab=diff&file=…&line=…`). Згорнутий файл розгортається, рядок підсвічується.
-Якщо рядка в патчі вкладки немає, сторінка прокручується до самого файлу.
+Every reference in the brief opens Files changed at the right file and line
+(`?tab=diff&file=...&line=...`). A collapsed file expands and the line is highlighted.
+If the tab's patch does not have the line, the page scrolls to the file itself.
 
-![Перехід з брифу в дифф](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-5/deep-link.png)
+![From the brief to the diff](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-5/deep-link.png)
 
 ## git-why (SPEC-04)
 
-У Files changed на видаленому чи контекстному рядку при наведенні з'являється кнопка
-«why». Сервер робить `git blame` цього рядка на merge base PR, бо саме цю ревізію
-показує ліва сторона диффу, а не HEAD default-гілки. Далі він знаходить merge, яким
-коміт потрапив у default-гілку. Моделі тут немає, тільки git:
+In Files changed, hovering a deleted or context line shows a why button. The server
+runs `git blame` on that line at the PR's merge base, because that is the revision the
+left side of the diff shows, not the default branch HEAD. Then it finds the merge that
+brought the commit into the default branch. No model here, only git:
 
-![git-why на рядку з PR #4](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-5/why-panel.png)
+![git-why on a line from PR #4](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-5/why-panel.png)
 
-Шлях від користувача доходить до git тільки після перевірки, що це файл PR, і лише
-після `--`. Перевірок п'ять, і йдуть вони в такому порядку: схема запиту (422), PR
-(404), гілка (409), файл і рядок (404), клон (409). До четвертої git не викликається
-взагалі, і тест це перевіряє шпигунами на всіх методах git.
+A path from the user reaches git only after the check that it is a file of the PR, and
+only after `--`. There are five checks, in this order: request schema (422), PR (404),
+branch (409), file and line (404), clone (409). Before the fourth one git is not called
+at all, and a test checks that with spies on every git method.
 
-## Що знайшли живі прогони
+## What live runs found
 
-- **Форк успадковує номери PR апстріму.** Історія PR #5 показала «#11 chore:
-  cleanup before home tasks». Це squash-коміт з репозиторію курсу, а #11 у моєму
-  форку - відкритий PR лаби 5. Тепер номер із коміту рахується, лише якщо DevDigest
-  знає такий PR у цьому репозиторії як merged. Назва береться з DevDigest, а не з
-  тексту коміту. Спеку змінено спершу, обидві: AC-4 у SPEC-03, AC-7 у SPEC-04.
-- **Кореневий коміт «прийшов» з PR #4.** `rev-list --ancestry-path --merges`
-  знаходить пізніші merge-і і для коміту, який сам лежить на mainline. Такий коміт
-  тепер не має merge-у, через який прийшов.
-- **Модель промахувалась на два рядки.** На PR #3 вона послалась на `routes.ts:175`
-  (`headers:`), хоча `fetch` стоїть на 173. Модель рахує рядки від `@@` і збивається.
-  Grounding це пропускав, бо 175 теж показаний рядок. Тепер кожен рядок нової
-  версії в диффі для моделі має свій номер. Після цього два прогони дали 173 і 14
-  (схема тіла запиту) точно. Рецензенти помиляються так само: SSRF-знахідка теж на
-  175. Але це промпт reviewer-core, тому я записав це в insights як окрему задачу.
-- **Великий PR.** На #5 дифф для моделі обрізано на 12 000 символів, тож для
-  файлів, яких модель не бачила, вона дає `:1`. Для нового файлу це справжній рядок,
-  тому grounding пропускає. Лікується лише більшим бюджетом на дифф або map-reduce,
-  як у рецензентів.
+- **A fork inherits upstream PR numbers.** The history of PR #5 showed "#11 chore:
+  cleanup before home tasks". That is a squash commit from the course repository, while
+  #11 in my fork is the open lab 5 PR. Now a number from a commit counts only if
+  DevDigest knows such a PR in this repository as merged. The title comes from
+  DevDigest, not from the commit message. The specs were changed first, both of them:
+  AC-4 in SPEC-03, AC-7 in SPEC-04.
+- **The root commit seemed to come from PR #4.** `rev-list --ancestry-path --merges` finds
+  later merges even for a commit that sits on the mainline itself. Such a commit now has
+  no merge it came through.
+- **The model was off by two lines.** On PR #3 it pointed to `routes.ts:175`
+  (`headers:`), while `fetch` is on 173. The model counts lines from `@@` and loses
+  track. Grounding let it through, because 175 is also a line the diff shows. Now every
+  line of the new version in the diff the model gets has its own number. After that,
+  two runs gave 173 and 14 (the request body schema) exactly. Reviewers make the same
+  mistake: the SSRF finding is on 175 too. But that is the reviewer-core prompt, so I
+  wrote it into insights as a separate task.
+- **A large PR.** On #5 the diff for the model is cut at 12 000 characters, so for
+  files the model did not see it gives `:1`. For a new file that is a real line, so
+  grounding lets it through. The only cures are a bigger diff budget or map-reduce, as
+  the reviewers do.
 
-## Перевірка
+## Verification
 
-Після коду окремий агент на Opus у ролі plan-verifier звіряв спеку з кодом і тестами
-гілки, а не з повідомленнями комітів. Довелося пройти три кола: кожен прохід
-знаходив реальні речі. Повні звіти лежать у `verification.md` поруч зі спеками.
+After the code, a separate Opus agent in the plan-verifier role checked the spec
+against the branch's code and tests, not against commit messages. It took three rounds:
+every pass found real things. Full reports are in `verification.md` next to the specs.
 
-| Прохід | SPEC-03 | SPEC-04 |
+| Pass | SPEC-03 | SPEC-04 |
 |---|---|---|
-| 1 | не готово: парсер диффу губив видалені файли, міграції Prisma не ловились, діапазон через два ханки проходив, будь-яка помилка завантаження диффу ставала 409 | не готово: 422 спрацьовував раніше за 404/409 всупереч порядку в спеці, фантомний рядок після фінального `\n`, «why» на маркері `\ No newline` |
-| 2 | не готово: тести Go/Python/Ruby давали сигнали, `git diff` віддавав не-ASCII шляхи в лапках з escape-послідовностями, видалені файли коштували зайвий map-виклик у рецензентів | не готово: перевірка існування файлу передавала шлях як `<sha>:<path>`, а не після `--` |
-| 3 | одна регресія з другого кола: тека `spec/` вважалась тестами, тож `spec/openapi.yaml` перестав давати сигнал. Виправлено й покрито тестом | готово |
+| 1 | not ready: the diff parser lost deleted files, Prisma migrations were not detected, a range across two hunks passed, any diff loading error became a 409 | not ready: 422 fired before 404/409, against the order in the spec, a phantom line after the final `\n`, why on the `\ No newline` marker |
+| 2 | not ready: Go/Python/Ruby tests produced signals, `git diff` returned non-ASCII paths quoted with escape sequences, deleted files cost the reviewers an extra map call | not ready: the file existence check passed the path as `<sha>:<path>`, not after `--` |
+| 3 | one regression from the second round: the `spec/` folder counted as tests, so `spec/openapi.yaml` stopped producing a signal. Fixed and covered by a test | ready |
 
-Частина знахідок стосувалась не лише брифу. Парсер диффу з першого дня викидав
-видалені файли, тож рецензенти їх не бачили. `git diff` віддавав не-ASCII шляхи в
-лапках з escape-послідовностями. Маркер закриття `</untrusted>` екранувався лише в
-нижньому регістрі. Усе це виправлено з тестами, а кожна зміна поведінки спершу
-записана в changelog спеки.
+Some of the findings were not only about the brief. The diff parser had dropped deleted
+files since day one, so reviewers never saw them. `git diff` returned non-ASCII paths
+quoted with escape sequences. The closing `</untrusted>` marker was escaped only in
+lower case; that fix sits in #13, where the conventions extractor needs it too. All of
+this is fixed with tests, and every behavior change was written into the spec's
+changelog first.
 
-Свідомо лишилось як є, і це записано в спеках:
+Left as is on purpose, and written down in the specs:
 
-- 90-секундний дедлайн не скасовує сам запит до моделі. Так у всіх фічах з моделлю;
-  щоб скасовувати, треба протягнути AbortSignal через LLM-порт.
-- Дії на рядку диффу доступні лише при наведенні. Так само працює «+» для
-  коментаря, а навігація по диффу з клавіатури - окрема фіча.
-- Правило за словами в шляху ловить і `tokens.ts` дизайн-системи. Так і задумано:
-  правило дивиться лише на слова в шляху.
+- The 90-second deadline does not cancel the model request itself. That is how every
+  model feature works; cancelling would need an AbortSignal passed through the LLM port.
+- Actions on a diff line are only available on hover. The + for a comment works the
+  same way, and keyboard navigation through the diff is a separate feature.
+- The rule based on words in the path also catches the design system's `tokens.ts`.
+  That is expected: the rule only looks at the words in the path.
 
-## Як перевірити самому
+## How to check it yourself
 
-1. `./scripts/dev.sh --no-seed`, у сайдбарі вибрати репозиторій з клоном.
-2. PR -> Overview -> Risk brief -> Generate. Пігулку можна розгорнути стрілкою.
-   Клік по пігулці або по рядку «читати першим» відкриває Files changed на тому
-   рядку.
-3. History у картці показує інші merged-PR на тих самих файлах.
-4. Files changed -> навести на видалений чи контекстний рядок -> why. У PR, що
-   йде не в default-гілку, кнопки немає.
+1. `./scripts/dev.sh --no-seed`, pick a repository with a clone in the sidebar.
+2. PR -> Overview -> Risk brief -> Generate. A pill can be expanded with its arrow.
+   Clicking a pill or a read-first line opens Files changed at that line.
+3. History in the card shows other merged PRs on the same files.
+4. Files changed -> hover a deleted or context line -> why. On a PR that does not
+   target the default branch, the button is not there.
 
-Тести:
+Tests:
 - `cd server && pnpm exec vitest run brief why git-history grounding`;
 - `cd reviewer-core && npm test`;
 - `cd client && pnpm test BriefCard WhyPanel DiffTab helpers`.
