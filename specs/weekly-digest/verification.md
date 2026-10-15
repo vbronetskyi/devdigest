@@ -287,3 +287,20 @@ drops.
 kept 5 of 5 lines each. Accepted: box-drawing and minus symbols that are not dashes
 (`┄ ➖ ⎯`), parenthesised ideographs (`㈀`), a one-character other-script title read as a
 dash.
+
+## Pass 16 — at `f48553f`
+
+**Verdict: not ready — one exemption too wide.** No honest-line regression the spec does
+not intend: the seven earlier probes are byte-identical to `f2d08e4`; a new probe of 510
+lines (51 titles with a lone CJK, Hebrew, Arabic or Devanagari character beside Latin or
+digits) keeps nothing new, and its 29 new drops follow from the lone-letter rule — 22 of
+them drop for the English title too (`用4K视频`, `约3K条` now count `4K`, `3K` as multipliers,
+as English titles do).
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| A one-letter multiplier before any dash counted as a hyphenated word: `$9 M— up from…` (no title needed), `3 x— the most`, `9 K—up`, `3 x-, while`; since `590820e` also before a lone other-script letter (`$9 Mו up`, `9 Kا up`) | security | a hyphenated word needs a hyphen and then a letter or digit (`x-axis`, `X-Forwarded-For` kept) | `822cd56` |
+
+2 more mutations fail a test. Three live calls kept 5 of 5 lines each. Accepted: runs of
+dash-like letters stay words (`3 ㅡㅡtimes`), `3 ꟾtimesꟾ` (as ASCII `3 ltimesl`), a title
+ending in a digit and one counter character before "times out" (`"重试 3 次" times out`).
