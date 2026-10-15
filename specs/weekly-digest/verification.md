@@ -209,3 +209,19 @@ the log); every pass-1 – 9 attack probe and their combinations are dropped.
 
 The probes after the change: 120/120, 1,289/1,297, 458/480, 78/90 — unchanged. 5 more
 mutations, all fail a test; three live calls kept 5 of 5 lines each.
+
+## Pass 11 — at `67eda0b`
+
+**Verdict: not ready — the rest of a class.** No honest-line regression (120/120,
+1,289/1,297, 78/90, 458/480); every recorded attack dropped. A scan of every code point as
+a separator in a title found what the pass-10 list missed.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| Other look-alike separators split a number into two stated ones: `9⋅26`, `9∙26`, `9‧26`, `9・26`, `9¸000`, `9٬000`, `9٫26`, `9،000`, `26、000` | security | any run of non-ASCII marks between digits that are not letters, digits, spaces or listed typography joins them (`joinSplitDigits`) — no per-character list | `0a2a16e` |
+| `9ͺ000`: the compatibility fold from pass 10 turned `ͺ` into a space and a mark, splitting what had been one token; likewise `˛ ´ ΄` | regression from `7945706` | marks removed after the fold | `0a2a16e` |
+
+After the change the scan leaves only listed typography and forms that fold to ASCII
+punctuation; honest probes unchanged; 3 more mutations fail a test; three live calls kept
+5 of 5 lines each. Accepted: `𝅙` (no system font draws it, it shows as a box), digit-like
+letters (`ЗО`, `1∅∅`), CJK numerals from a CJK title, ``9,`000`` (the accepted `9, 000`).
