@@ -1,4 +1,4 @@
-# Spec: Weekly digest | Spec ID: SPEC-06 | Status: approved
+# Spec: Weekly digest | Spec ID: SPEC-06 | Status: implemented
 
 ## Problem and why
 

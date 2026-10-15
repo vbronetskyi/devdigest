@@ -1,4 +1,4 @@
-# Spec: Agent performance dashboard | Spec ID: SPEC-05 | Status: approved
+# Spec: Agent performance dashboard | Spec ID: SPEC-05 | Status: implemented
 
 ## Problem and why
 
