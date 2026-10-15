@@ -45,7 +45,7 @@ const CLOSING = String.raw`[\p{Pe}\p{Pf}\p{Pi}"'>′″‵‶…⋯⋮⋰⋱᠁�
  * `9 bln`, `$9 grand` — or `×` / `^` (`3×`, `10^3`) (AC-7).
  */
 export const MULTIPLIER = new RegExp(
-  String.raw`${NUMBER_START}${BETWEEN}(?:[×^]|(?:x\p{Pd}?fold|times|fold|mm|mn|bn|tn|trn|mils?|mln|bln|bil|mill|grand|thou|mio|mrd|lakhs?|lacs?|crores?)(?![a-z0-9]|_[a-z0-9]))`,
+  String.raw`${NUMBER_START}${BETWEEN}(?:[×^]|(?:x\p{Pd}?fold|times|fold|mm|mn|bn|tn|trn|mils?|mln|bln|bil|mill|grand|thou|mio|mrd|lakhs?|lacs?|crores?)(?![a-z0-9]))`,
   'iu',
 );
 /**

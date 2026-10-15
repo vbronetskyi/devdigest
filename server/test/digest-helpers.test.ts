@@ -436,6 +436,14 @@ describe('facts and the number check (AC-7)', () => {
     const low = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'ログイン画面＿修正 ︳ Кеш' }] });
     for (const line of ['Review runs grew 3 times＿ this week.', 'Review runs grew 3 times＿.', 'Cost of finished runs: $9 M＿, up from $0.0179.', 'Review runs: 9 K＿ up from 26.', 'Review runs grew 3 x＿ this week.', 'Review runs: 9 К＿ up from 26.', 'Review runs: 9 K︳ up from 26.', 'Cost hit $9 bn︳ this week.'])
       expect([line, checkHighlight(line, low)]).toEqual([line, null]);
+    // A word multiplier ends at `_` whatever follows; the joining rule is for one-letter ones.
+    for (const line of ['Review runs grew 3 times_this week.', 'Review runs grew 3 times_over.', 'Review runs grew 3 fold_this week.', 'Cost of finished runs: $9 bn_up from $0.0179.', 'Cost of finished runs: $9 grand_up from $0.0179.', 'Cost of finished runs: $9 mln_total.'])
+      expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
+    for (const line of ['Review runs grew 3 times＿this week.', 'Review runs grew 3 times︳this week.', 'Cost of finished runs: $9 bn︳up from $0.0179.'])
+      expect([line, checkHighlight(line, low)]).toEqual([line, null]);
+    const voiced = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'ｶﾞｲﾄﾞ ﾟ' }] });
+    for (const line of ['Runs doubledﾞthis week.', 'Runs rose by aﾞdozen.'])
+      expect([line, checkHighlight(line, voiced)]).toEqual([line, null]);
     const kmax = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Tune K_max for 3 x_scale' }] });
     expect(checkHighlight('PR #3 "Tune K_max for 3 x_scale" still has 4 open critical findings.', kmax)).not.toBeNull();
     // Any lone other-script letter reads as a dash; a bar may stand between a digit and a multiplier.

@@ -181,6 +181,7 @@ const readsAsLatin = (w: string) =>
  */
 const folded = (text: string) =>
   text
+    .replace(/[\p{Lm}ǀǁǂǃꞌꞋ]/gu, ' ') // before the fold too: `ﾞ` would fold to a mark and vanish
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .replace(/[\p{Lm}ǀǁǂǃꞌꞋ]/gu, ' ');

@@ -278,3 +278,6 @@ model id `weekly_digest`.
 - 2026-10-15 — after the eighteenth verification: `_` after a multiplier makes a word only
   before a letter or digit, as `-` and `&` do — a folded `＿` or `︳` (`3 times＿ this`,
   `9 K︳ up`) no longer hides one.
+- 2026-10-15 — after the nineteenth verification: the `_` joining rule is for one-letter
+  multipliers only; a word multiplier ends at `_` like at anything else (`3 times_this
+  week`); modifier letters count as spaces before the compatibility fold too (`ﾞ`).

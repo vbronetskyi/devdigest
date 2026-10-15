@@ -64,13 +64,14 @@ counts only right after the digit and its closing brackets, quotes — `»9« K`
 too — or ellipsis (`3x`, `9 K`, `«9» K`, `「9」K`, `3 х.`) — `3 "X API client"`, `3 "В логах…"` and `3 К релізу` start a
 title or a Cyrillic word, and `x-axis` a joined word (a hyphen, `&` as in `T&C` or `_` as in
 `K_max`, with a letter or digit after it — `$9 M— up`, `9 K& up` and a folded `9 K＿ up` are
-no such word). A lone other-script
+no such word). A word multiplier ends at anything but an ASCII letter or digit, `_`
+included (`3 times_this week`). A lone other-script
 letter reads as an em dash here too (`9 K一up`, `9 К一 up`). Number words may run together (`fortytwo`), and a number word
 or multiplier ends at anything but an ASCII letter or digit (`жtwentyж`). For these tests
 backticks are ignored, compatibility and accented forms are folded (NFKD), letters that
 look like punctuation (`\p{Lm}` such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`, the saltillo `ꞌ`) read
 as spaces, a lone letter of a script other than Latin, Cyrillic or Greek — none beside it —
-reads as `-` (`ㅡ 一 ㅣ ㄧ ⵏ ا`), while a run of them is a word, so `修复3个x轴` and
+reads as an em dash (`ㅡ 一 ㅣ ㄧ ⵏ ا`), while a run of them is a word, so `修复3个x轴` and
 `"認証…" times out` are titles — and
 look-alikes read as Latin only inside a word that mixes them with ASCII letters
 (`twеnty`), is all Latin variants (`ᴛᴡᴇɴᴛʏ`) or has two letters or more that are all
