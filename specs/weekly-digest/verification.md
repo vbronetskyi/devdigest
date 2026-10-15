@@ -322,3 +322,19 @@ code point after the multiplier found three shapes, all older than `822cd56`.
 multiplier and `&` after a letter, so the likeliest cause is a computed number, which is
 what the check is for. Accepted: true hyphens (`$9 M-plus`), letters folding to ASCII
 after `K` (`9 Kｕｐ`), `_` inside an identifier, a backtick between letters.
+
+## Pass 18 — at `266b732`
+
+**Verdict: not ready — one character.** No honest-line regression: all nine honest probes
+byte-identical to `8097739`. A new scan of 41 shapes over every assigned code point —
+before and after Latin, look-alike and word multipliers, at both edges of number words —
+keeps nothing new; all nine pass-17 lines drop, `T&C`, `x-axis`, `X-Forwarded-For` kept.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| A full-width or vertical low line after a multiplier folds to `_`, which counted as a word character whatever followed: `3 times＿ this week`, `$9 M＿, up`, `9 K︳ up` (drawn as `9 K| up`), `9 К＿ up` | security | `_` makes a word only before a letter or digit, as `-` and `&` do (`K_max` kept) | `8825a8e` |
+| `ꞏ` (mapped to `-`) opened the hyphen exemption | nit | mapped to an em dash | `8825a8e` |
+
+3 more mutations fail a test; three live calls kept 5 of 5 lines each. Accepted: `9 Kﾞup`,
+`3✕` with a title supplying it, `9 K™ up`, `9 K&1 up`, `9 K﹣up` (the fold, `&` and hyphen
+rules allow them as written).
