@@ -77,12 +77,15 @@ Highlights (one model call)
   - any other token (`gpt-4.1`, `2026-W42`, `10k`, `3rd`, `1_000`, `3-5`) must appear
     as it is in the facts text, or split at `-` and `/` into numbers that each check out;
   - first, Markdown emphasis (`*`, `~`, `_` at a word's edge, not inside a path), HTML
-    comments and invisible, control and combining characters are removed; an HTML
+    comments and invisible characters — control, combining, default-ignorable (the
+    Hangul fillers `ㅤ`) and the braille blank — are removed; an HTML
     character reference (`&times;`) before or after that drops the line; code spans are
-    checked like the rest — a backtick counts as a space, so it neither separates a digit
-    from its multiplier nor glues a word to a number;
-    digits split only by a space or an apostrophe (`9 000`, `1'000`, `9 0000`) are one
-    number, compared as written (`8.9999999999999999` is not 9);
+    checked like the rest — a backtick between two letters is dropped (`ti`mes``), any
+    other counts as a space, so it neither separates a digit from its multiplier nor glues
+    a word to a number;
+    digits split only by a space, an apostrophe or a look-alike comma or dot (`9 000`,
+    `1'000`, `9‚000`, `9·26`) are one number, and compatibility forms count as their plain
+    form (`9，000`, `9․26`); numbers are compared as written (`8.9999999999999999` is not 9);
   - a character outside ASCII, common typography (— – ‐ ‑ ‘ ’ “ ” … − → ← ↑ ↓ ≈ « ») and Latin
     letters that fold to ASCII (`é`, `ﬁ`, `ｔ`) must appear in the facts text — `ᴛ`, `ĸ`, `ı`
     included — a title may be in any language, but `四十二`, `✕`
@@ -232,3 +235,6 @@ model id `weekly_digest`.
 - 2026-10-15 — after the ninth verification: a backtick is a word boundary for the
   multiplier rules, so a code span before a number with a leading dot
   (`` `USD`.0049 M ``) does not make an identifier either.
+- 2026-10-15 — after the tenth verification: default-ignorable characters (Hangul fillers)
+  and the braille blank are invisible too; a backtick inside a word is dropped; look-alike
+  commas and dots join digits, and compatibility forms are folded for the number check.
