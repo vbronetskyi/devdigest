@@ -303,6 +303,11 @@ describe('facts and the number check (AC-7)', () => {
       'Cost of finished runs was `USD`.0049 M.',
       'Cost of finished runs was USD`.0049` M.',
       'Cost was `USD`.0049 bn, up from `USD`.0179 bn.',
+      // Backticks inside a word.
+      'Review runs grew 3 ti`mes`.',
+      'Runs rose to twen`ty`.',
+      'Cost reached $9 gr`and`.',
+      'Runs dou`ble`d.',
       'Runs hit 9 lakhs.',
       'Runs hit 9 crores.',
       'Runs hit 9 mils.',
@@ -375,6 +380,24 @@ describe('facts and the number check (AC-7)', () => {
     expect(checkHighlight('The follow\u2011up on PR #3 is still open.', allowed)).not.toBeNull();
     for (const line of ['Review runs fell to 9 (↓ 17).', 'Cost ≈ $0.0049.', 'Review runs went 26 → 9 ↓.'])
       expect([line, checkHighlight(line, allowed)]).toEqual([line, line]);
+    // Invisible letters (Hangul fillers) and look-alike separators from a title change nothing.
+    const filler = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Fix \u3164\uffa0 username ‚ ， · ․ ⠀' }] });
+    for (const line of [
+      'Runs rose to \u3164twenty.',
+      'Review runs grew 3 times\u3164.',
+      'Review runs grew 3 \uffa0times.',
+      'Cost of finished runs: $9 M\u3164.',
+      'Review runs: 9 \u3164K.',
+      'Review runs \u3164doubled.',
+      'Review runs reached 9\u3164000.',
+      'Review runs reached 9⠀000.',
+      'Cost hit $9 ⠀M.',
+      'Cost hit $9‚000.',
+      'Cost hit $9，000.',
+      'Cost hit $9․26.',
+      'Cost hit $9·26.',
+    ])
+      expect([line, checkHighlight(line, filler)]).toEqual([line, null]);
     const nfd = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Чаи\u0306ник' }] });
     expect(checkHighlight('PR #3 "Чайник" is still open.', nfd)).not.toBeNull();
   });

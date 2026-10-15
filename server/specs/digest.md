@@ -44,7 +44,8 @@ percents, unknown `null`), changes in words ("down 2"), titles, names and paths 
 to one line (a newline cannot forge a fact line) and cut to 120, ≤ 20 agents.
 
 Each returned line is cleaned first: links/images/HTML and HTML comments stripped, NFC,
-whitespace collapsed, every control, format and combining character removed (`4\u200b2`,
+whitespace collapsed, every control, format, combining and default-ignorable character
+(Hangul fillers `ㅤ` are letters, yet invisible) and the braille blank removed (`4\u200b2`,
 `4⃣2⃣` would read as 42), Markdown emphasis removed (`*`, `~`, `_` at a word's edge —
 `user_id` and `src/_shared/` keep theirs), cut to 200. An HTML character reference
 before or after the clean-up drops it (`3&*times;` would become `3&times;`). It is then
@@ -68,7 +69,9 @@ is N). Other Cyrillic words stay Cyrillic, `з` is a letter, and a lone look-ali
 is judged against the next word as written ("В тестах…" is Ukrainian). Digits glued to a
 letter before them are an identifier, not a number with a multiplier (`B2B`, `Y2K`); a
 leading dot (`$.0049 M`) and a code span before the digit (`` `USD`9 M ``,
-`` `USD`.0049 M ``) do not make one: for these rules a backtick is a space. GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
+`` `USD`.0049 M ``) do not make one: for these rules a backtick is a space, unless it sits
+inside a word (`` ti`mes `` is "times"). For the token check, compatibility forms are
+folded (`9，000`) and look-alike commas and dots join digits (`9‚000`, `9·26`). GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
 emoji shortcode (`:x:`, not `std::sync::` or `ws:pr:sha`) drop a line. Last, every token
 with a digit must check out
 (`checkHighlight`, `factsCheck`); numbers compare as written, not through `Number()`

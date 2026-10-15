@@ -140,7 +140,7 @@ const NUMBER = /^[+\-\u2212]?\$?(?:(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?|\.(\d+))
 /** Any numeral that is not an ASCII digit: `４`, `④`, `²`, `½`. */
 const NON_ASCII_NUMERAL = /[^\P{N}0-9]/u;
 /** Control, invisible and combining characters: they can hide between digits ("4\u200b2", "4⃣2⃣"). */
-const HIDDEN = /[\p{C}\p{M}]/gu;
+const HIDDEN = /[\p{C}\p{M}\p{Default_Ignorable_Code_Point}\u2800]/gu; // + Hangul fillers (letters, yet invisible) and the braille blank
 /** Markdown emphasis: `*` and `~` anywhere, `_` at a word's edge — not inside `user_id` or a path's `_shared/`. */
 const EMPHASIS = /[*~]+|(?<![\p{L}\p{N}/._])_+|(?<![/.])_+(?![\p{L}\p{N}/_]|\.[\p{L}\p{N}])/gu;
 /** An HTML comment: `4<!-- -->2` reads as 42 once it is gone. */
@@ -183,8 +183,8 @@ const asLatin = (text: string) => folded(text).replace(/\p{L}+/gu, (w) => (reads
  * whole emoji shortcode (`:x:` — not the `::sync::` of a Rust path or `ws:pr:sha`).
  */
 const MARKUP = /\$(?=\S)[^$]*?[^\s$]\$(?!\d)|[{}\\]|(?<![\p{L}_:]):[a-z][a-z0-9_+-]*:(?![\p{L}\p{N}_:])/iu;
-/** Digits split only by a space or an apostrophe read as one number: "9 000", "1'000", "9 0000". */
-const GROUP_SEPARATOR = /(\d)[ '‘’′`]+(?=\d)/g;
+/** Digits split only by a space, an apostrophe or a look-alike comma or dot read as one number: "9 000", "1'000", "9‚000", "9·26". */
+const GROUP_SEPARATOR = /(\d)[ '‘’′`‚·]+(?=\d)/g;
 
 /** The tokens of a text that hold a digit, without sentence punctuation around them. */
 export function tokensIn(text: string): string[] {
@@ -259,12 +259,14 @@ export function checkHighlight(raw: string, facts: FactsCheck): string | null {
   if (line.length > HIGHLIGHT_MAX_CHARS) line = `${line.slice(0, HIGHLIGHT_MAX_CHARS - 1).trimEnd()}…`;
   if ([...line].some((c) => c > '\x7f' && !TYPOGRAPHY.has(c) && !(LATIN_LETTER.test(c) && foldsToAscii(c)) && !facts.chars.has(c))) return null;
   // Backticks do not separate a digit from its multiplier; look-alike letters read as Latin.
-  // A backtick is a word boundary: `` `USD`9 M `` and `` `USD`.0049 M `` are not identifiers.
-  const plain = line.replace(/`/g, ' ');
+  // A backtick inside a word is dropped (`` ti`mes ``); any other is a word boundary, so
+  // `` `USD`9 M `` and `` `USD`.0049 M `` are not identifiers.
+  const plain = line.replace(/(?<=\p{L})`+(?=\p{L})/gu, '').replace(/`/g, ' ');
   const words = asLatin(plain);
   if (NON_ASCII_NUMERAL.test(line) || NUMBER_WORDS.test(words)) return null;
   if (MULTIPLIER.test(words) || LETTER_MULTIPLIER.test(words)) return null;
   // A lone look-alike letter is judged by what follows it as written: "В тестах" is Ukrainian.
   if (LOOKALIKE_LETTER_MULTIPLIER.test(folded(plain))) return null;
-  return tokensIn(line.replace(GROUP_SEPARATOR, '$1')).every((t) => tokenChecks(t, facts)) ? line : null;
+  // Compatibility forms count as their plain form here too: `9，000` is 9,000.
+  return tokensIn(line.normalize('NFKC').replace(GROUP_SEPARATOR, '$1')).every((t) => tokenChecks(t, facts)) ? line : null;
 }

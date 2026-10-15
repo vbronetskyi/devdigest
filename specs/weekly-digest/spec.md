@@ -80,7 +80,7 @@ Highlights (one model call)
     comments and invisible characters — control, combining, default-ignorable (the
     Hangul fillers `ㅤ`) and the braille blank — are removed; an HTML
     character reference (`&times;`) before or after that drops the line; code spans are
-    checked like the rest — a backtick between two letters is dropped (`ti`mes``), any
+    checked like the rest — a backtick between two letters is dropped (`` ti`mes ``), any
     other counts as a space, so it neither separates a digit from its multiplier nor glues
     a word to a number;
     digits split only by a space, an apostrophe or a look-alike comma or dot (`9 000`,
