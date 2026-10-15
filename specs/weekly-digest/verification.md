@@ -384,3 +384,18 @@ mixed run next to each multiplier kind, and inside number words, against `94c715
 the new continuation rule makes redundant — and that call was removed. Of four live calls,
 three kept 5 of 5 lines; one failed on a network reset at the provider (502, as intended).
 Accepted: a superscript at a word's edge folds into the word, as AC-7 reads (`3 timesˢ`).
+
+## Pass 22 — at `fa99f0f`
+
+**Verdict: not ready — two older asymmetries.** `9522e3d` broke nothing: every honest and
+attack probe byte-identical to passes 20 and 21. A twin scan (each code point beside a
+Latin multiplier and its look-alike twin) found two places where the twins differed.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| A look-alike word glued to a non-ASCII Latin letter stayed Cyrillic — "mixes Latin" checked only `[a-z]`: `$9 ММł up`, `ѕіхł`, `3 тімеѕß`; `3 тімеѕᶴ` (`ᶴ` folds to `ʃ`, a regression from `9914a01` that pass 21 missed) — the Latin twins dropped | security | any Latin letter makes a mixed word | `a8b2be4` |
+| The apostrophe exemption after a look-alike multiplier accepted any letter: `$9 М'up`, `9 К'up`, `3 х’the most` — only the start of a Cyrillic word is meant (`М’яке`) | security | an apostrophe and a Cyrillic letter only | `a8b2be4` |
+
+2 more mutations fail a test; three live calls kept 5 of 5 lines each. Accepted: capital
+variants glued after a multiplier (`3 timesŊŊ`, as ASCII `timesnn`), `3 тімеѕλ`
+(Cyrillic+Greek), Latin-side rules that are stricter than AC-7 (`9 K-ж`).
