@@ -304,3 +304,21 @@ as English titles do).
 2 more mutations fail a test. Three live calls kept 5 of 5 lines each. Accepted: runs of
 dash-like letters stay words (`3 ㅡㅡtimes`), `3 ꟾtimesꟾ` (as ASCII `3 ltimesl`), a title
 ending in a digit and one counter character before "times out" (`"重试 3 次" times out`).
+
+## Pass 17 — at `8097739`
+
+**Verdict: not ready — the character after a multiplier.** The pass-16 fix held and changed
+nothing else: every honest probe and both scans byte-identical to pass 16. Scanning every
+code point after the multiplier found three shapes, all older than `822cd56`.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| A lone other-script letter became an ASCII `-`, so it counted as a hyphen and opened the hyphenated-word exemption: `9 K一up`, `3 x一the most`, `$9 M一up` — `一` is drawn like an em dash | security | the letter reads as an em dash, not a hyphen | `eb5f696` |
+| The look-alike multipliers did not see that reading: `9 К一 up`, `9 Кا up`, `9 κ一 up` | security | the same reading before the look-alike test | `eb5f696` |
+| `&` after a one-letter multiplier was exempt whatever followed: `9 K& up`, `3 x&, while` | security | `&` makes a word only before a letter or digit (`T&C` kept) | `eb5f696` |
+
+3 more mutations fail a test. Of seven live calls, six kept 5 of 5 lines and one kept 4
+— the dropped line is not visible through the API; the change touches only what follows a
+multiplier and `&` after a letter, so the likeliest cause is a computed number, which is
+what the check is for. Accepted: true hyphens (`$9 M-plus`), letters folding to ASCII
+after `K` (`9 Kｕｐ`), `_` inside an identifier, a backtick between letters.
