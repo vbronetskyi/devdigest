@@ -416,3 +416,22 @@ Cyrillic words drops nothing honest; its 17 new drops are mis-typed words the sp
 after the mutation run (an earlier run had overlapped with it): 26 tests, three calls 5 of
 5. Accepted: a rare honest word made only of look-alikes with an apostrophe after a digit
 (`3 в'їхав`) now drops.
+
+## Pass 24 — at `96c58dd`
+
+**Verdict: ready.** `24f44b8` broke nothing and closed the pass-23 twin. All 34 probe
+outputs and the scans (twins22, scan11, scan13, scan18, scan18c) byte-identical to pass 23;
+scan21 against `ed1d84b` (2.3M substitutions) and apos23 keep nothing new. A new honest
+probe of 1,810 lines — 41 Ukrainian apostrophe words in three apostrophe forms, after digits
+and in titles, and 32 English contractions near numbers — keeps everything but `в'їхав`
+after a digit, accepted in pass 23.
+
+Nit taken after the verdict: with the Ukrainian apostrophe `ʼ` (U+02BC), `$9 Мʼѕ up` was
+kept, because the fold made `ʼ` a space before the apostrophe rule could see it — the
+same shape pass 23 blocked with `’`. Apostrophe-like marks between two real letters
+(`ʼ ʻ ʹ ˈ ´ ꞌ ᾽`) now read as `’` first (`f02c0d2`). A first version also joined two marks in
+a row (`9 ʼʼК up` kept); the rerun of the verifier's whole suite caught it, and the rule
+now wants a real letter, not a modifier, on each side. After that, every probe and scan of
+this pass was rerun and diffed against the pass-24 outputs: identical, except that
+`вʼїхав` with `ʼ` now drops after a digit like the accepted `в'їхав`. 2 more mutations
+fail a test.
