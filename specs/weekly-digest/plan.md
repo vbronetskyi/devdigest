@@ -52,7 +52,7 @@ Tests: **H** `server/test/digest-helpers.test.ts`, **I** `server/test/digest.it.
 | AC-4 | T2 | I "AC-1/AC-2/AC-4…", I "AC-1/AC-3/AC-4…" | bef32b3, 23f8267 |
 | AC-5 | T1, T2 | H "AC-5: week-year rules…", H "AC-5: a year below 100…", I "AC-5: the current week by default…", I "AC-2/AC-5…" | bef32b3, 23f8267 |
 | AC-6 | T3 | I "AC-6 – AC-8: one call…", I "AC-6/AC-8: an empty week is a 409…" (with no key: a 502), I "AC-6: at most 5 lines are kept…" | bef32b3, 23f8267, e2cd1b6 |
-| AC-7 | T3 | H "writes changes in words…", H "numbers: $, %, signs…", H "trusts only the numbers DevDigest states…", H "keeps a line whose numbers are all in the facts…", H "drops lines that hide an invented number in another shape" (181 shapes), H "keeps honest lines through the clean-up…", H "names the last day of the week…", H "a thousands group split by a space is one number…", H "states how many criticals it lists, caps agents at 20 and cuts titles at 120", H "strips links and HTML first…" | bef32b3, 23f8267, e2cd1b6, 365d182, 911eb1e, 3d3206d, 7009a83, b8c2a45, 9a6cfe0, 8178cf8, 7945706, 0a2a16e, 9f2864c |
+| AC-7 | T3 | H "writes changes in words…", H "numbers: $, %, signs…", H "trusts only the numbers DevDigest states…", H "keeps a line whose numbers are all in the facts…", H "drops lines that hide an invented number in another shape" (181 shapes), H "keeps honest lines through the clean-up…", H "names the last day of the week…", H "a thousands group split by a space is one number…", H "states how many criticals it lists, caps agents at 20 and cuts titles at 120", H "strips links and HTML first…" | bef32b3, 23f8267, e2cd1b6, 365d182, 911eb1e, 3d3206d, 7009a83, b8c2a45, 9a6cfe0, 8178cf8, 7945706, 0a2a16e, 9f2864c, 57881e0, 80fe5a1 |
 | AC-8 | T3 | I "AC-6 – AC-8…" (stored, stale), I "AC-6/AC-8…" (502 keeps the lines), I "AC-9…" (asking again replaces) | bef32b3, 23f8267 |
 | AC-9 | T3 | I "AC-9: a second request for the same week while one runs is a 409"; I "AC-6/AC-8…" (a failed request lets go of the week) | bef32b3, 23f8267 |
 | AC-10 | T4 | V "AC-10/AC-13: the week's cards with their change…", V "AC-10: previous / next week…", V "AC-10: an open critical opens Files changed…", C "AC-10/AC-13: … changes are signed…" | 2e81d47, b489c4b |
@@ -61,7 +61,7 @@ Tests: **H** `server/test/digest-helpers.test.ts`, **I** `server/test/digest.it.
 | AC-13 | T4 | V "AC-10/AC-13…", V "AC-12/AC-13…", C "AC-12/AC-13…" | 2e81d47, b489c4b |
 | NFR | T2 | L "SPEC-06: GET /digest for the current week answers in under 1 s" | fff186b |
 
-Spec amendments: e558585, dbb4000, fd60e1e, 71b8e76, 47e793f, 1d6d0a7, 8b07cea, 2120c4f, c9198d8, cdbfa1d, 8e9d94f, 0a2a16e (spec and code together). Second-check fixes and tests: e2cd1b6.
+Spec amendments: e558585, dbb4000, fd60e1e, 71b8e76, 47e793f, 1d6d0a7, 8b07cea, 2120c4f, c9198d8, cdbfa1d, 8e9d94f, 0a2a16e (spec and code together), 9f2864c (likewise), 7b6c06d. Second-check fixes and tests: e2cd1b6.
 
 ## Risks
 

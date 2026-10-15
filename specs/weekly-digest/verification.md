@@ -239,3 +239,20 @@ scan unchanged from pass 11's post-fix result.
 | Spaces around a separating mark kept digits apart: `$9 ⋅000`, `$9٬ 000` | nit | joined, as long as a mark is there | `9f2864c` |
 
 3 more mutations fail a test; three live calls kept 5 of 5 lines each.
+
+## Pass 13 — at `57881e0`
+
+**Verdict: not ready — the multiplier rules still used lists.** No honest-line regression
+(all probes as logged; 74 of 75 new titles with Japanese `ー々`, Korean `ㅡㆍ`, `ʼ`, `ʻ` —
+the one drop, an unquoted `PR #3 Kʼs`, drops with an ASCII apostrophe too).
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| U+2010 / U+2011 hyphens between a digit and a word multiplier — no title needed, and models write U+2011 on their own: `3‑fold`, `10‑fold`, `$9‑bn`, `3‑times` | security | what may sit between is now any Unicode dash, bracket or quote by category, primes and ellipses | `7b6c06d`, `80fe5a1` |
+| Other brackets and quotes a title supplies: `【3】 times`, `「9」K`, `‹9› K`, `3―fold`, `3⸺fold`, `3⋯times`, `״3״`, `❝3❞` | security | the same category classes; closing ones (and ellipses) before a one-letter multiplier | `7b6c06d`, `80fe5a1` |
+| Letters that look like punctuation beyond the modifier letters: `ㅡtwentyㅡ`, `ㆍ`, `一`, `丨`, `ノ`, `ᐨ` | security | letters of scripts other than Latin, Cyrillic and Greek read as spaces for these tests; a number word or multiplier ends at anything but an ASCII letter or digit (`жtwentyж`) | `7b6c06d`, `80fe5a1` |
+| `9‑K` kept while `9-K` dropped | nit | true hyphens read as `-` for the token rule | `80fe5a1` |
+
+6 more mutations fail a test (two first survived — the `жtwenty` test had only a capital
+`Ж` in its facts — and were pinned). Three live calls kept 5 of 5 lines each. Accepted:
+`9 ‐ K` and `9 ㅡ 000` with spaces around a dash (they read as a dash, as `9 - K` does).
