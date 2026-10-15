@@ -98,7 +98,7 @@ Highlights (one model call)
     (`fortytwo`, `twentyone`, `onehundred`) and with `-fold`;
     half / halves / halved, twice, thrice, double / triple / quadruple and their -d / -s /
     -ing forms — or a multiplier after a digit: a word one (`times`, `fold`, `bn`, `bln`,
-    `MM`, `lakh`, `mil`, `grand`) or `×` / `^` with spaces, brackets, quotes, dashes or an
+    `MM`, `lakh(s)`, `mil(s)`, `grand`) or `×` / `^` with spaces, brackets, quotes, dashes or an
     ellipsis between (`(3) times`, `«3» times`, `3–fold`, `$9 grand`, `10^3`); a one-letter
     one (`x`, `K`, `M`, `B`, `T`, or a Cyrillic or Greek look-alike) only right after the
     digit and its closing marks (`3x`, `9 K`, `«9» K`, `3 х.`) — not when it starts a quoted
@@ -222,4 +222,9 @@ model id `weekly_digest`.
 - 2026-10-15 — after the seventh verification: `twentyone`; Greek capitals inside a mixed
   word read as their Latin look-alikes; identifiers like `B2B` and `Y2K` are not
   multipliers; a hyphenated word after a digit is stated as accepted; non-breaking
-  hyphens are typography.  Words made only of look-alikes read as Latin (`$9 ММ`); arrows and `≈` are typography.
+  hyphens are typography; words made only of look-alikes read as Latin (`$9 ММ`); arrows
+  and `≈` are typography.
+- 2026-10-15 — after the eighth verification: a number with a leading dot (`$.0049 M`) and
+  a digit after a code span (`` `USD`9 M ``) are numbers for the multiplier rules too —
+  only a letter glued in the text as written makes an identifier; plural multipliers
+  (`lakhs`, `crores`, `mils`).
