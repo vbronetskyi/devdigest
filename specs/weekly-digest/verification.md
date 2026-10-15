@@ -399,3 +399,20 @@ Latin multiplier and its look-alike twin) found two places where the twins diffe
 2 more mutations fail a test; three live calls kept 5 of 5 lines each. Accepted: capital
 variants glued after a multiplier (`3 timesŊŊ`, as ASCII `timesnn`), `3 тімеѕλ`
 (Cyrillic+Greek), Latin-side rules that are stricter than AC-7 (`9 K-ж`).
+
+## Pass 23 — at `ed1d84b`
+
+**Verdict: not ready — one twin.** `a8b2be4` broke nothing: 34 probe outputs byte-identical
+to pass 22; scan21 against `fa99f0f` (2.3M substitutions) keeps nothing new. A new probe of
+728 lines mixing Polish, Czech, Turkish, Vietnamese and other Latin-diacritic titles with
+Cyrillic words drops nothing honest; its 17 new drops are mis-typed words the spec drops
+(`Мөхəммəт` with a Latin `ə`, `в'ïзд` with a Latin `ï`).
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| `$9 М’ѕ up` (renders as "$9 M’s up") kept while its Latin twin dropped: the apostrophe exemption saw a Cyrillic `ѕ`, and the look-alike reading split the word at the apostrophe | security (older) | an apostrophe between letters is inside the word for the look-alike reading: `М’ѕ`, only look-alikes, reads as `m’s`; `М’яке` stays Ukrainian | `24f44b8` |
+
+2 more mutations fail a test. The digest suite and three live calls were re-run cleanly
+after the mutation run (an earlier run had overlapped with it): 26 tests, three calls 5 of
+5. Accepted: a rare honest word made only of look-alikes with an apostrophe after a digit
+(`3 в'їхав`) now drops.
