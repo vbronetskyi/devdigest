@@ -256,3 +256,18 @@ the one drop, an unquoted `PR #3 Kʼs`, drops with an ASCII apostrophe too).
 6 more mutations fail a test (two first survived — the `жtwenty` test had only a capital
 `Ж` in its facts — and were pinned). Three live calls kept 5 of 5 lines each. Accepted:
 `9 ‐ K` and `9 ㅡ 000` with spaces around a dash (they read as a dash, as `9 - K` does).
+
+## Pass 14 — at `dedfcbb`
+
+**Verdict: not ready — a regression of mine and two mark classes.**
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| Reading every other-script letter as a space made them skippable between a digit and a multiplier, dropping honest CJK and Hangul titles: `"修复3个x轴标签"`, `"支持4K视频"`, `"3つのx軸ラベルを修正"`, `"認証トークンの更新" times out` — 59 new drops over 230 lines | honest lines dropped (regression from `80fe5a1`) | reverted: other letters stay letters (word edges are ASCII already); only letters that look like a dash or a bar (`ㅡ 一 丨 ノ ᐨ ㆍ`…) read as a dash; the probe's new drops vs `57881e0`: 0 | `c927226`, `d96ad07` |
+| A closing quote Unicode files as initial: `»9« K` (no title needed), `„9“ K`, `›9‹ K` | security | initial-quote characters may close a number too | `c927226`, `d96ad07` |
+| Ellipses other than `… ⋯` (`⋮ ⋰ ⋱ ᠁`), reversed primes (`‵ ‶`), the swung dash `⁓` between a digit and a multiplier | security | added, with `˗ ⁃ ─ ━ ‧` that read as hyphens | `c927226`, `d96ad07` |
+
+4 more mutations fail a test, including re-adding the reverted rule. Three live calls kept
+5 of 5 lines each. Accepted: an unquoted title that starts with a digit right after
+`PR #3` (`PR #3 3つの…`) joins into `33`, as in English (`PR #3 3 x-axis…`); `՚3՚`, `⸲ ⹁`,
+`🙶3🙷` (a box in most fonts), `9 …K` with a space before the ellipsis.
