@@ -95,19 +95,22 @@ Highlights (one model call)
     renders `$9 . 26)$` and `$9{}000$` as math) and a whole emoji shortcode (`:x:`, not
     the `::sync::` of a Rust path); for the number words and multipliers below,
     compatibility and accented forms are folded, letters that look like punctuation
-    (modifier letters such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`, the saltillo `ꞌ`) count as spaces and, inside a word that mixes Latin with
-    Cyrillic or Greek letters (`twеnty`) or a word of two letters or more made only of
-    look-alikes (`ММ`, `тімеѕ`), the look-alikes read as Latin — any other Cyrillic word
-    stays Cyrillic;
+    (modifier letters such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`, the saltillo `ꞌ`) count as
+    spaces and, inside a word that mixes Latin with Cyrillic or Greek letters (`twеnty`)
+    or a word of two letters or more made only of look-alikes (`ММ`, `тімеѕ`), the
+    look-alikes read as Latin — any other Cyrillic word stays Cyrillic; after that, a
+    number word or a multiplier ends at anything that is not an ASCII letter or digit
+    (`ㅡtwentyㅡ`, `twenty一`);
   - so does a number word — zero, two to twenty, the tens to ninety, dozen(s),
     hundred(s), thousand(s), million(s), billion(s), trillion(s), also run together
     (`fortytwo`, `twentyone`, `onehundred`) and with `-fold`;
     half / halves / halved, twice, thrice, double / triple / quadruple and their -d / -s /
     -ing forms — or a multiplier after a digit: a word one (`times`, `fold`, `bn`, `bln`,
-    `MM`, `lakh(s)`, `mil(s)`, `grand`) or `×` / `^` with spaces, brackets, quotes, dashes or an
-    ellipsis between (`(3) times`, `«3» times`, `3–fold`, `$9 grand`, `10^3`); a one-letter
-    one (`x`, `K`, `M`, `B`, `T`, or a Cyrillic or Greek look-alike) only right after the
-    digit and its closing marks (`3x`, `9 K`, `«9» K`, `3 х.`) — not when it starts a quoted
+    `MM`, `lakh(s)`, `mil(s)`, `grand`) or `×` / `^` with spaces, any Unicode dash,
+    bracket or quote, primes or an ellipsis between (`(3) times`, `«3» times`, `【3】
+    times`, `3–fold`, `3‑fold`, `$9 grand`, `10^3`); a one-letter one (`x`, `K`, `M`, `B`,
+    `T`, or a Cyrillic or Greek look-alike) only right after the digit and any closing
+    brackets or quotes (`3x`, `9 K`, `«9» K`, `「9」K`, `3 х.`) — not when it starts a quoted
     title (`3 "X API client"`, `3 "В логах…"`), a Cyrillic word (`3 К релізу`) or a
     hyphenated word (`x-axis`, `X-Forwarded-For`, `B-tree`); a digit glued to a letter
     before it is part of an identifier, not a number with a multiplier (`B2B`, `M2M`,
@@ -246,3 +249,7 @@ model id `weekly_digest`.
 - 2026-10-15 — after the twelfth verification: letters that look like punctuation (`ʼ`,
   `ʻ`, `ˈ`, `ꓸ`, `ǃ`) count as spaces for the number words and multipliers; spaces around a
   separating mark between digits join them too.
+- 2026-10-15 — after the thirteenth verification: dashes, brackets and quotes between a
+  digit and a multiplier by Unicode category, not a list (U+2010/U+2011 hyphens, `【】`,
+  `「」`, `―`); a number word or multiplier ends at anything but an ASCII letter or digit
+  (`ㅡ`, `一`); true hyphens read as `-` for the token rule (`9‑K` like `9-K`).
