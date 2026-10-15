@@ -95,7 +95,7 @@ Highlights (one model call)
     renders `$9 . 26)$` and `$9{}000$` as math) and a whole emoji shortcode (`:x:`, not
     the `::sync::` of a Rust path); for the number words and multipliers below,
     compatibility and accented forms are folded, letters that look like punctuation
-    (modifier letters such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`) count as spaces and, inside a word that mixes Latin with
+    (modifier letters such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`, the saltillo `ꞌ`) count as spaces and, inside a word that mixes Latin with
     Cyrillic or Greek letters (`twеnty`) or a word of two letters or more made only of
     look-alikes (`ММ`, `тімеѕ`), the look-alikes read as Latin — any other Cyrillic word
     stays Cyrillic;

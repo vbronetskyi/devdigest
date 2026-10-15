@@ -176,14 +176,14 @@ const readsAsLatin = (w: string) =>
   /[^\x00-\x7f]/.test(w) && (/[a-z]/i.test(w) || /^\p{Script=Latin}+$/u.test(w) || ([...w].length > 1 && [...w].every((c) => lookAlike(c) !== undefined)));
 /**
  * Compatibility forms (`ｔ`) and accents (`é`) folded; letters that look like punctuation —
- * modifier letters (`ʼ ʻ ˈ ꓸ ꓹ`) and the clicks (`ǀ ǁ ǂ ǃ`) — read as spaces, so `ʼtwentyʼ`
+ * modifier letters (`ʼ ʻ ˈ ꓸ ꓹ`), the clicks (`ǀ ǁ ǂ ǃ`) and the saltillo (`ꞌ Ꞌ`) — read as spaces, so `ʼtwentyʼ`
  * is a word on its own. (Only for matching: the Ukrainian `обʼєкт` stays as written.)
  */
 const folded = (text: string) =>
   text
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
-    .replace(/[\p{Lm}ǀǁǂǃ]/gu, ' ');
+    .replace(/[\p{Lm}ǀǁǂǃꞌꞋ]/gu, ' ');
 /** The text the number words and multipliers are matched on: folded, look-alikes read as Latin where `readsAsLatin`. */
 const asLatin = (text: string) => folded(text).replace(/\p{L}+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
 /**

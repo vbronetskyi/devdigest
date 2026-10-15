@@ -62,7 +62,7 @@ one-letter multiplier (`LETTER_MULTIPLIER`: x, k, m, b, t; `LOOKALIKE_LETTER_MUL
 `9 K`, `«9» K`, `3 х.`) — `3 "X API client"`, `3 "В логах…"` and `3 К релізу` start a
 title or a Cyrillic word. Number words may run together (`fortytwo`). For these tests
 backticks are ignored, compatibility and accented forms are folded (NFKD), letters that
-look like punctuation (`\p{Lm}` such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`) read as spaces, and
+look like punctuation (`\p{Lm}` such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`, the saltillo `ꞌ`) read as spaces, and
 look-alikes read as Latin only inside a word that mixes them with ASCII letters
 (`twеnty`), is all Latin variants (`ᴛᴡᴇɴᴛʏ`) or has two letters or more that are all
 look-alikes (`ММ`, `тімеѕ`); Greek capitals read as the Latin letter they look like (`Ν`
