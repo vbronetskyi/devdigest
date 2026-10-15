@@ -295,3 +295,6 @@ model id `weekly_digest`.
   when it has any Latin letter, not only an ASCII one (`ММł`, `тімеѕᶴ`); the apostrophe
   exemption after a look-alike multiplier is for a Cyrillic word only (`3 М’яке`, not
   `$9 М'up`).
+- 2026-10-15 — after the twenty-third verification: an apostrophe between letters is inside
+  the word for the look-alike reading, so `М’ѕ` (only look-alikes) reads as `m’s` and `$9 М’ѕ
+  up` drops, while `М’яке` stays Ukrainian.

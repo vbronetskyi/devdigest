@@ -173,14 +173,20 @@ const lookAlike = (c: string): string | undefined => LOOK_ALIKES[c] ?? LOOK_ALIK
 const withVariants = (text: string) => text.replace(/./gu, (c) => LATIN_VARIANTS[c] ?? LATIN_VARIANTS[c.toLowerCase()] ?? c);
 /** A letter — not a symbol — of the Latin, Cyrillic or Greek script. */
 const LCG_LETTER = String.raw`(?=\p{L})[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}]`;
+/** Apostrophes that sit inside a word (`М’яке`, `don't`). */
+const APOSTROPHES = "’'ʼ";
+/** A word of Latin, Cyrillic and Greek letters, apostrophes between them included: `М’ѕ` is one word. */
+const LCG_WORD = new RegExp(String.raw`(?:${LCG_LETTER})+(?:[${APOSTROPHES}](?:${LCG_LETTER})+)*`, 'gu');
 /**
  * A word whose look-alikes read as Latin: one that mixes Latin letters — any, not only
  * ASCII (`ММł`) — with them (`twеnty`), one of Latin variants only (`ᴛᴡᴇɴᴛʏ`), or one of two letters or more made only
  * of look-alikes (`ММ`, `тімеѕ`). Other Cyrillic words stay Cyrillic ("В логах" is not
  * "B"); a lone look-alike letter is `LOOKALIKE_LETTER_MULTIPLIER`'s to judge.
  */
-const readsAsLatin = (w: string) =>
-  /[^\x00-\x7f]/.test(w) && (/\p{Script=Latin}/u.test(w) || ([...w].length > 1 && [...w].every((c) => lookAlike(c) !== undefined)));
+const readsAsLatin = (w: string) => {
+  const letters = [...w].filter((c) => !APOSTROPHES.includes(c));
+  return /[^\x00-\x7f]/.test(w) && (/\p{Script=Latin}/u.test(w) || (letters.length > 1 && letters.every((c) => lookAlike(c) !== undefined)));
+};
 /**
  * Compatibility forms (`ｔ`) and accents (`é`) folded; letters that look like punctuation —
  * modifier letters (`ʼ ʻ ˈ ꓸ ꓹ`), the clicks (`ǀ ǁ ǂ ǃ`) and the saltillo (`ꞌ Ꞌ`) — read as spaces, so `ʼtwentyʼ`
@@ -211,7 +217,7 @@ const asLatin = (text: string) =>
   withVariants(folded(text))
     .replace(LONE_OTHER_LETTER, '—')
     // Words of Latin, Cyrillic and Greek letters; a CJK run or a symbol (`͵`) beside one does not join it.
-    .replace(new RegExp(`(?:${LCG_LETTER})+`, 'gu'), (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
+    .replace(LCG_WORD, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
 /**
  * GitHub inline math (`$9 . 26)$` renders as 9.26), LaTeX braces or backslashes, and a
  * whole emoji shortcode (`:x:` — not the `::sync::` of a Rust path or `ws:pr:sha`).

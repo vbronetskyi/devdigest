@@ -459,6 +459,10 @@ describe('facts and the number check (AC-7)', () => {
     const pl = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'Міграція: poprawka błędu ММ тімеѕ ѕіх ᶴ ß Кеш х' }] });
     for (const line of ['Cost of finished runs: $9 ММł up from $0.0179.', 'Review runs grew 3 тімеѕᶴ this week.', 'Review runs rose by ѕіхł this week.', 'Review runs rose by łѕіх this week.', 'Review runs grew 3 тімеѕß.', "Cost of finished runs: $9 М'up from $0.0179.", 'Cost of finished runs: $9 М’up from $0.0179.', "Review runs: 9 К'up from 26.", 'Review runs grew 3 х’the most this quarter.'])
       expect([line, checkHighlight(line, pl)]).toEqual([line, null]);
+    // An apostrophe-joined word made only of look-alikes reads as Latin: `$9 М’ѕ up` is `$9 M’s up`.
+    const aps = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'М К х κ ѕ а Кеш' }] });
+    for (const line of ['Cost of finished runs: $9 М’ѕ up from $0.0179.', "Cost of finished runs: $9 М'ѕ up from $0.0179.", 'Review runs: 9 К’ѕ up from 26.', 'Review runs: 9 κ’ѕ up from 26.', 'Review runs grew 3 х’ѕ.', 'Cost of finished runs: $9 М’ѕ.', 'Cost of finished runs: $9 М’а up from $0.0179.'])
+      expect([line, checkHighlight(line, aps)]).toEqual([line, null]);
     const myake = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'М’яке видалення' }] });
     expect(checkHighlight('PR #3 М’яке видалення is still open.', myake)).not.toBeNull();
     // Capital Latin variants read as their letter too.

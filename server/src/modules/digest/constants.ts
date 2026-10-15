@@ -57,7 +57,8 @@ export const MULTIPLIER = new RegExp(
 export const LETTER_MULTIPLIER = new RegExp(String.raw`${NUMBER_START}${CLOSING}\s*[xkmbt](?![a-z0-9]|[-‐‑&_][a-z0-9])`, 'iu');
 /**
  * The same with a Cyrillic or Greek look-alike (`3 х.`, `9 К runs`) — unless a Cyrillic
- * or Greek word follows, or an apostrophe and a letter: `3 К релізу`, `М’яке`.
+ * or Greek word follows, or an apostrophe and a Cyrillic letter: `3 К релізу`, `М’яке`.
+ * (`М’ѕ`, all look-alikes, reads as `m’s` and is caught by `LETTER_MULTIPLIER`.)
  */
 export const LOOKALIKE_LETTER_MULTIPLIER = new RegExp(
   String.raw`${NUMBER_START}${CLOSING}\s*[хкмвтχκμβτ](?![a-z0-9]|(?=\p{L})[\p{Script=Cyrillic}\p{Script=Greek}]|[-‐‑_][\p{L}\p{N}])(?!\s+[\p{Script=Cyrillic}\p{Script=Greek}])(?![’'ʼ](?=\p{L})\p{Script=Cyrillic})`,
