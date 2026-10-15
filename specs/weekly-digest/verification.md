@@ -140,3 +140,25 @@ A probe of 30 real-looking Ukrainian and English titles in four line shapes keep
 lines; 11 more mutations, all fail a test (two first survived — the small-caps attack was
 already caught by the mapping, and the `п` test had only a capital `П` in its facts — and
 were pinned with `ꝁ`, `ʞ` and a lower-case title). Three live calls kept 5 of 5 lines each.
+
+## Pass 7 — at `430125f`
+
+**Verdict: not ready — AC-7 only.** The pass-6 items held. The probe grew to 1,297
+lines (100 PR titles in 9 shapes, 30 finding titles, 20 paths, 20 agent names, 26
+everyday lines).
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| `twentyone`, `fiftyone` — "one" was allowed only as a prefix of run-together words | security | `one` may follow any stem | `2120c4f`, `b8c2a45` |
+| Greek capitals inside a mixed word were looked up by their small form: `TWEΝTY` (Ν→ν→v), `ΗUNDRED`, `$9 ΜM`, `ΖERO` | security | capitals looked up first (Η h, Μ m, Ν n, Υ y, Ζ z) | `2120c4f`, `b8c2a45` |
+| Honest identifiers read as a number with a one-letter multiplier: `B2B`, `M2M`, `Y2K`, `OAuth2` (since pass 2) | honest lines dropped | digits glued to a letter before them are not a number for the multiplier rules | `2120c4f`, `b8c2a45` |
+| The spec had no hyphen exception after a one-letter multiplier, the code did (`x-axis`, `X-Forwarded-For`) | spec gap | AC-7 states hyphenated words as accepted | `2120c4f` |
+| Words made only of Cyrillic look-alikes passed (`$9 ММ`, `3 тімеѕ`) wherever a Ukrainian title supplied the letters; a non-breaking hyphen, `↓`, `≈` dropped honest lines | security / honest lines | such words of two letters or more read as Latin, while a lone look-alike letter is judged against the next word as written (`В тестах…` stays Ukrainian); arrows, `≈` and `‐ ‑` are typography | `b8c2a45` |
+
+Left as accepted or not worth a rule: an unquoted Cyrillic preposition before a Latin word
+(`PR #3 В CI…` — quoted shapes keep it), `-ish`, `9 OOO`, `9, 000`, multipliers inside
+quoted English titles (`"Retry 3 times"`, `4K`, `@2x`, `1M`). The probe after the change:
+1,289 of 1,297 kept — the eight drops are those unquoted prepositions and a bare
+`PR #3 X API client`; 120 of 120 on the second set. 8 more mutations, all fail a test (one
+first survived — the unquoted `В тестах` shape was missing — and is now in the test).
+Three live calls kept 5 of 5 lines each.
