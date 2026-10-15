@@ -368,3 +368,19 @@ as AC-7 reads; a backtick between letters is removed (`` times`this ``).
 4 more mutations fail a test (one first survived — the test's facts lacked a lower-case
 `х` — and was pinned). Three live calls kept 5 of 5 lines each. Accepted: the look-alike
 rule has no `&` exemption (`9 К&C` drops — stricter only).
+
+## Pass 21 — at `a336919`
+
+**Verdict: not ready — two regressions of mine.** No honest-line regression (nine probes
+byte-identical to pass 20). A new scan compared every code point as a two-character or
+mixed run next to each multiplier kind, and inside number words, against `94c7153`.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| `\p{Script=…}` classes include symbols, so a Greek or Cyrillic symbol joined a look-alike word or continued a look-alike multiplier: `9 К͵ up`, `$9 М͵ up`, `3 тімеѕ͵`, `ѕіх͵`, `$9 ММ͵` (also `꙳ ҂ ϶ ꙾`) — the Latin twins dropped | security (regression from `9914a01`) | letters only in script runs and edges; a look-alike multiplier continues only into an ASCII letter or digit or a Cyrillic or Greek letter (`9 Кꞏup`, `9 Кʱ up` now drop too) | `9522e3d` |
+| `LATIN_VARIANTS` was looked up in exact case: `TWƐNTY`, `SEVEŊ`, `THƦEE`, `twℇnty` kept | security (regression from `9914a01`) | either case | `9522e3d` |
+
+5 more mutations; one survived — applying the Latin variants on the look-alike path, which
+the new continuation rule makes redundant — and that call was removed. Of four live calls,
+three kept 5 of 5 lines; one failed on a network reset at the provider (502, as intended).
+Accepted: a superscript at a word's edge folds into the word, as AC-7 reads (`3 timesˢ`).
