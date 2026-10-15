@@ -271,3 +271,19 @@ the one drop, an unquoted `PR #3 Kʼs`, drops with an ASCII apostrophe too).
 5 of 5 lines each. Accepted: an unquoted title that starts with a digit right after
 `PR #3` (`PR #3 3つの…`) joins into `33`, as in English (`PR #3 3 x-axis…`); `՚3՚`, `⸲ ⹁`,
 `🙶3🙷` (a box in most fonts), `9 …K` with a space before the ellipsis.
+
+## Pass 15 — at `f2d08e4`
+
+**Verdict: not ready — the dash-like letter list.** No honest-line regression: every
+honest probe byte-identical to the `57881e0` snapshot, and the pass-14 CJK probe has 0 new
+drops.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| `ㅣ` was in the list but did nothing — NFKD turns it into `ᅵ` first; `ㄧ` (Bopomofo, drawn like `一`), `ⵏ`, `ꓲ`, `ߊ`, `ا` were missing: `3 ㅣtimesㅣ`, `$9 ㄧbn` kept | security | no list: a lone letter of a script other than Latin, Cyrillic or Greek, with none beside it, reads as a dash; runs of them (real CJK, Hangul, Arabic words) stay words — the CJK probe still has 0 new drops | `590820e` |
+| ASCII `|` and other bars between a digit and a multiplier (`3 |times|`, no title needed) | nit | bars added | `590820e` |
+
+4 more mutations fail a test, including treating whole runs as dashes. Three live calls
+kept 5 of 5 lines each. Accepted: box-drawing and minus symbols that are not dashes
+(`┄ ➖ ⎯`), parenthesised ideographs (`㈀`), a one-character other-script title read as a
+dash.
