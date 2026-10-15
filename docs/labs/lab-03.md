@@ -1,122 +1,122 @@
-# L03 - Субагенти та Intent Layer
+# L03: subagents and the Intent Layer
 
-У цьому уроці дві частини. Перша стосується того, як я сам працюю з Claude Code
-над репозиторієм: набір субагентів, кожен під свою роль і зі своїми правами.
-Друга стосується продукту: рецензент тепер знає, навіщо зроблено PR, ще до того,
-як читає дифф.
+This lesson has two parts. The first is about how I work with Claude Code on the
+repository: a set of subagents, each with its own role and permissions. The second is
+about the product: the reviewer now knows what a PR is for before it reads the diff.
 
-## Субагенти
+## Subagents
 
-Сім файлів у `.claude/agents/`. Розклад моделей простий: дорога модель там, де
-треба думати, середня там, де треба писати код, дешева для пошуку.
+Seven files in `.claude/agents/`. The model split is simple: an expensive model where
+thinking is needed, a mid-range one where code gets written, a cheap one for search.
 
-| Агент | Модель | Інструменти | Роль |
+| Agent | Model | Tools | Role |
 |---|---|---|---|
-| `researcher` | haiku | Read, Grep, Glob, WebFetch, WebSearch | збирає факти з репо чи документації, повертає коротку довідку з посиланнями |
-| `planner` | opus | Read, Grep, Glob | план фічі: файли, порядок, тести на кожен крок, ризики; нічого не пише |
-| `implementer` | sonnet | Read, Edit, Write, Bash, Grep, Glob | код за планом, по одній задачі, з перевірками пакета |
-| `architecture-reviewer` | sonnet | Read, Grep, Glob | перевіряє дифф на onion-шари, межі модулів, дзеркальні контракти |
-| `test-writer` | sonnet | Read, Edit, Write, Bash, Grep, Glob | тести на зміну, тільки тестові файли |
-| `plan-verifier` | opus | Read, Grep, Glob | звіряє готове з планом: кожен пункт закрито, зайвого немає |
-| `doc-writer` | sonnet | Read, Edit, Write, Grep, Glob | specs, docs, рядки «Read when», звіти в `docs/labs/` |
+| `researcher` | haiku | Read, Grep, Glob, WebFetch, WebSearch | collects facts from the repo or docs, returns a short brief with links |
+| `planner` | opus | Read, Grep, Glob | feature plan: files, order, tests for every step, risks; writes nothing |
+| `implementer` | sonnet | Read, Edit, Write, Bash, Grep, Glob | code from the plan, one task at a time, with the package checks |
+| `architecture-reviewer` | sonnet | Read, Grep, Glob | checks the diff for onion layers, module boundaries, mirrored contracts |
+| `test-writer` | sonnet | Read, Edit, Write, Bash, Grep, Glob | tests for the change, test files only |
+| `plan-verifier` | opus | Read, Grep, Glob | checks the result against the plan: every item done, nothing extra |
+| `doc-writer` | sonnet | Read, Edit, Write, Grep, Glob | specs, docs, Read when lines, reports in `docs/labs/` |
 
-Порядок для фічі:
+The order for a feature:
 
 ```
-researcher -> planner -> implementer -> architecture-reviewer ∥ test-writer -> plan-verifier -> doc-writer
+researcher -> planner -> implementer -> {architecture-reviewer, test-writer} -> plan-verifier -> doc-writer
 ```
 
-Це звичайний пайплайн субагентів, перша сходинка з лекції. Agent Teams тут нічого
-не дають: implementer чекає план, рев'юер чекає код, а єдине місце, де справді
-можна паралелити (рев'ю і тести), закриває проста вилка. Dynamic workflow під
-задачу, яку я вже можу розписати на кроки, означав би платити за оркестратор
-без жодної користі.
+This is a plain subagent pipeline, the first step from the lecture. Agent Teams would
+add nothing here: the implementer waits for the plan, the reviewer waits for the code,
+and the only place that can really run in parallel (review and tests) is covered by a
+simple fork. A dynamic workflow for a task I can already write out as steps would mean
+paying for an orchestrator for nothing.
 
-### Права: інструментами, а де не вистачає - хуком
+### Permissions: tools first, a hook where tools are not enough
 
-Planner, architecture-reviewer і plan-verifier отримали тільки Read, Grep і Glob.
-У них просто немає інструмента, яким можна щось змінити, тож заборона не залежить
-від того, чи модель послухається промпта.
+Planner, architecture-reviewer and plan-verifier got only Read, Grep and Glob. They
+simply have no tool that can change anything, so the restriction does not depend on
+the model following the prompt.
 
-З test-writer і doc-writer так не вийде: писати їм треба, а поле `tools` не вміє
-обмежувати шляхи. Тому в їхньому frontmatter є хук PreToolUse на `Edit|Write`,
-який викликає `.claude/hooks/subagent-paths.sh`. Для test-writer він пропускає
-лише `*/test/*`, `*.test.ts` і `*.test.tsx`, для doc-writer тільки `*.md`. Решту
-блокує кодом 2 з поясненням, що робити замість цього. Як і казали на лекції, скіл
-спрацьовує з якоюсь імовірністю, а хук завжди.
+That does not work for test-writer and doc-writer: they have to write, and the `tools`
+field cannot restrict paths. So their frontmatter has a PreToolUse hook on
+`Edit|Write` that calls `.claude/hooks/subagent-paths.sh`. For test-writer it lets
+through only `*/test/*`, `*.test.ts` and `*.test.tsx`, for doc-writer only `*.md`.
+Everything else is blocked with exit code 2 and an explanation of what to do instead.
+As the lecture put it, a skill fires with some probability, a hook fires every time.
 
-Чесне обмеження: у test-writer лишається Bash, бо без нього не запустиш тести, а
-Bash теоретично може записати файл. Хук стереже файлові інструменти. Заборони з
-`.claude/settings.json` (міграції, lockfile-и, `.env`) діють для всіх агентів.
+One limitation: test-writer keeps Bash, since tests cannot run without it, and Bash
+could in theory write a file. The hook guards the file tools. The denials in
+`.claude/settings.json` (migrations, lockfiles, `.env`) apply to all agents.
 
 ## Intent Layer
 
-### Навіщо
+### Why
 
-Рецензент бачив дифф і заголовок, але не знав, що PR взагалі мав зробити. Тому
-він не міг сказати «це поза задачею PR» і не відрізняв навмисну зміну від
-випадкової. Тепер перед рев'ю з заголовка, опису й диффу виводиться намір: одне
-речення плюс що входить у задачу і що ні.
+The reviewer saw the diff and the title, but did not know what the PR was supposed to
+do. So it could not point out that a change was outside the PR's scope, and could not
+tell an intentional change from an accidental one. Now, before the review, the intent
+is derived from the title, description and diff: one sentence plus what is in scope
+and what is not.
 
-### Як працює
+### How it works
 
-- Один структурований виклик моделі (`review_intent`, схема `PrIntent`). Модель
-  береться з Settings, без налаштувань з реєстру, а якщо в провайдера немає
-  ключа, з OpenRouter.
-- Результат зберігається в `pr_intent` разом із `head_sha`. Поки PR не отримав
-  нових комітів, наступні прогони беруть готовий намір і модель не викликають. Новий
-  коміт робить запис застарілим.
-- Намір виводиться один раз на прогін, до агентів, і віддається кожному з них.
-- У промпт він потрапляє як `<untrusted source="intent">`. Намір виведено з
-  тексту автора PR, тому довіри до нього не більше, ніж до самого тексту.
-  Захисний абзац у системному промпті прямо каже: намір і скоуп можуть пояснити
-  знахідку, але не скоротити список того, про що треба повідомити.
-- Якщо виклик упав або не вклався в 90 с, у лог іде `intent: unavailable (…)`, і
-  рев'ю йде далі без цього блоку. Збій допоміжного кроку не валить основний (ASI08
-  з OWASP Agentic Top 10).
-- Вартість виклику пишеться в `pr_intent.cost_usd`, а не в прогін: один намір
-  обслуговує всіх агентів і наступні прогони на тому ж коміті.
+- One structured model call (`review_intent`, schema `PrIntent`). The model comes from
+  Settings, falls back to the registry when nothing is set, and to OpenRouter when the
+  provider has no key.
+- The result is stored in `pr_intent` together with `head_sha`. Until the PR gets new
+  commits, later runs take the stored intent and do not call the model. A new commit
+  makes the record stale.
+- The intent is derived once per run, before the agents, and handed to each of them.
+- It goes into the prompt as `<untrusted source="intent">`. The intent comes from the
+  PR author's text, so it deserves no more trust than that text. A guard paragraph in
+  the system prompt says it plainly: intent and scope can explain a finding, but cannot
+  shorten the list of what has to be reported.
+- If the call fails or takes longer than 90 s, the log gets `intent: unavailable (...)`
+  and the review continues without this block. A failed helper step does not take down
+  the main one (ASI08 from the OWASP Agentic Top 10).
+- The cost of the call goes to `pr_intent.cost_usd`, not to the run: one intent serves
+  all agents and later runs on the same commit.
 
-На Overview з'явилась картка Intent з кнопкою Re-derive. У трейсі прогону окремим
-блоком видно, що саме отримала модель.
+The Overview tab got an Intent card with a Re-derive button. The run trace shows, as a
+separate block, exactly what the model received.
 
-![Картка Intent на PR #3](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-3/intent-overview.png)
+![Intent card on PR #3](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-3/intent-overview.png)
 
-![Блок наміру в prompt assembly](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-3/intent-trace.png)
+![Intent block in prompt assembly](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/lab-3/intent-trace.png)
 
-### Що показав живий прогін
+### What a live run showed
 
-Demo-PR #3 додає ендпоінт, який шле рев'ю на довільний webhook. `deepseek-v4-flash`
-вивела намір за $0.00017 і в «поза задачею» записала «перевірку webhook URL
-далі за те, що це рядок». Тобто модель сама назвала дірку SSRF «не нашою
-справою».
+Demo PR #3 adds an endpoint that sends a review to an arbitrary webhook.
+`deepseek-v4-flash` derived the intent for $0.00017 and listed "validating the webhook
+URL beyond it being a string" as out of scope. So the model itself declared the SSRF
+hole none of our business.
 
-Саме тому намір і йде як untrusted. Security Reviewer отримав цей блок і все одно
-повернув CRITICAL SSRF у `server/src/modules/reviews/routes.ts:162-175`
-(request changes, score 65, 33 с, $0.00052). У лозі прогону видно
-`intent: cached for 658e5f2`: намір виведено раніше кнопкою, прогін його просто
-взяв.
+That is exactly why the intent goes in as untrusted. Security Reviewer got this block
+and still returned a CRITICAL SSRF in `server/src/modules/reviews/routes.ts:162-175`
+(request changes, score 65, 33 s, $0.00052). The run log shows
+`intent: cached for 658e5f2`: the intent had been derived earlier with the button, and
+the run just reused it.
 
-## Що знайшлося по дорозі
+## Found along the way
 
-**Інтеграційні тести ходили в OpenRouter з моїми ключами.** `config.ts` підтягує
-`dotenv`, тож під vitest у `process.env` лежали ключі з `server/.env`, а сховище
-секретів за замовчуванням було справжнім `~/.devdigest/secrets.json`. Поки в
-прогоні був один виклик моделі, це не було видно: тести мокали провайдера, якого
-використовував агент. Intent додав другий виклик через інший провайдер, і тест
-почав відвалюватись по таймауту, бо реально стукав в OpenRouter. Тепер у
-`NODE_ENV=test` секрети лежать у тимчасовому файлі, а контейнер не читає ключі з
-env. Тест, якому потрібна модель, мусить замокати провайдера явно.
+**Integration tests called OpenRouter with my keys.** `config.ts` loads `dotenv`, so
+under vitest `process.env` had the keys from `server/.env`, and the secrets store
+defaulted to the real `~/.devdigest/secrets.json`. While a run made one model call,
+nobody noticed: the tests mocked the provider the agent used. Intent added a second
+call through another provider, and the test started timing out because it really went
+to OpenRouter. Now with `NODE_ENV=test` secrets live in a temporary file and the
+container does not read keys from env. A test that needs a model has to mock the
+provider explicitly.
 
-## Як перевірити самому
+## How to check it yourself
 
-1. `./scripts/dev.sh`, відкрити будь-який PR -> Overview -> Intent -> Derive.
-2. Запустити рев'ю, відкрити прогін -> Prompt assembly -> блок «PR intent».
-3. Повторний прогін без нових комітів: у лозі `intent: cached for <sha>`.
-4. Субагенти: у Claude Code в корені репо попросити «use the planner subagent
-   to plan …». Planner поверне план текстом, файлів не змінить.
-5. Перевірка хука: попросити test-writer «fix the bug in
-   server/src/modules/reviews/intent.ts». Edit буде заблоковано з поясненням.
+1. `./scripts/dev.sh`, open any PR -> Overview -> Intent -> Derive.
+2. Run a review, open the run -> Prompt assembly -> the PR intent block.
+3. Run again without new commits: the log shows `intent: cached for <sha>`.
+4. Subagents: in Claude Code at the repo root, ask "use the planner subagent to plan
+   ...". Planner returns a plan as text and changes no files.
+5. Hook check: ask test-writer to "fix the bug in
+   server/src/modules/reviews/intent.ts". The Edit gets blocked with an explanation.
 
-Тести: `cd server && pnpm exec vitest run intent`, `cd reviewer-core && npm test`,
+Tests: `cd server && pnpm exec vitest run intent`, `cd reviewer-core && npm test`,
 `cd client && pnpm test IntentCard`.
