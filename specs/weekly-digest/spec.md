@@ -110,7 +110,7 @@ Highlights (one model call)
     bracket or quote, primes or an ellipsis between (`(3) times`, `«3» times`, `【3】
     times`, `3–fold`, `3‑fold`, `$9 grand`, `10^3`); a one-letter one (`x`, `K`, `M`, `B`,
     `T`, or a Cyrillic or Greek look-alike) only right after the digit and any closing
-    brackets or quotes (`3x`, `9 K`, `«9» K`, `「9」K`, `3 х.`) — not when it starts a quoted
+    brackets, quotes or an ellipsis (`3x`, `9 K`, `«9» K`, `「9」K`, `9⋯K`, `3 х.`) — not when it starts a quoted
     title (`3 "X API client"`, `3 "В логах…"`), a Cyrillic word (`3 К релізу`) or a
     hyphenated word (`x-axis`, `X-Forwarded-For`, `B-tree`); a digit glued to a letter
     before it is part of an identifier, not a number with a multiplier (`B2B`, `M2M`,

@@ -184,8 +184,15 @@ const folded = (text: string) =>
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .replace(/[\p{Lm}ǀǁǂǃꞌꞋ]/gu, ' ');
-/** The text the number words and multipliers are matched on: folded, look-alikes read as Latin where `readsAsLatin`. */
-const asLatin = (text: string) => folded(text).replace(/\p{L}+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
+/**
+ * The text the number words and multipliers are matched on: folded, look-alikes read as
+ * Latin where `readsAsLatin`, and letters of scripts other than Latin, Cyrillic and Greek
+ * as spaces — in an English line they only separate (`ㅡtwentyㅡ`, `3 一times`).
+ */
+const asLatin = (text: string) =>
+  folded(text)
+    .replace(/\p{L}+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w))
+    .replace(/(?![\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}])\p{L}/gu, ' ');
 /**
  * GitHub inline math (`$9 . 26)$` renders as 9.26), LaTeX braces or backslashes, and a
  * whole emoji shortcode (`:x:` — not the `::sync::` of a Rust path or `ws:pr:sha`).
@@ -290,6 +297,7 @@ export function checkHighlight(raw: string, facts: FactsCheck): string | null {
   if (LOOKALIKE_LETTER_MULTIPLIER.test(folded(plain))) return null;
   // Compatibility forms count as their plain form here too (`9，000` is 9,000), with the marks
   // the fold leaves (`ͺ` becomes a space and a mark) removed.
-  const numbers = joinSplitDigits(line.normalize('NFKC').replace(/\p{M}/gu, '').replace(GROUP_SEPARATOR, '$1'));
+  // True hyphens (U+2010, U+2011) are `-` here: `9‑K` is checked like `9-K`.
+  const numbers = joinSplitDigits(line.normalize('NFKC').replace(/\p{M}/gu, '').replace(/[\u2010\u2011]/g, '-').replace(GROUP_SEPARATOR, '$1'));
   return tokensIn(numbers).every((t) => tokenChecks(t, facts)) ? line : null;
 }

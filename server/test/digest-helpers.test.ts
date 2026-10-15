@@ -409,6 +409,16 @@ describe('facts and the number check (AC-7)', () => {
     for (const line of ['Runs rose to ʼtwentyʼ.', 'Review runs grew 3 timesʼ.', 'Review runs grew 3 ʼtimes.', 'Review runs grew (3)ʼ times.', 'Review runs grew «3»ʼ times.', 'Review runs ʼdoubledʼ.', 'Cost of finished runs: $9 bnʼ', 'Review runs grew *3 timesʼ*.', 'Runs rose to ʻtwentyʻ.', 'Runs rose to twentyꓸ', 'Runs rose to twentyǃ', 'Review runs grew 3 timesˈ.', 'Runs rose to ꞌtwentyꞌ.'])
       expect([line, checkHighlight(line, apostrophe)]).toEqual([line, null]);
     expect(checkHighlight('PR #3 "Виправити обʼєкт конфігурації" still has 4 open critical findings.', apostrophe)).not.toBeNull();
+    // Any dash, bracket or quote between a digit and a multiplier — no title needed for the hyphens.
+    for (const line of ['Review runs fell 3‑fold, from 26 to 9.', 'Accepted findings rose 10‑fold.', 'Cost fell 3‐fold to $0.0049.', 'Cost hit $9‑bn.', 'Cost hit $9‐grand.', 'Review runs grew 3‑times.', 'Review runs grew 3 ‑ fold.', 'Review runs grew 3‑x‑fold.', 'Review runs: 9‑K.'])
+      expect([line, checkHighlight(line, allowed)]).toEqual([line, null]);
+    const cjk = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: '【WIP】「設定」《x》〈y〉‹z› ⟨a⟩ ❮b❯ ″c″ ❝d❞ 〝e〟 ‒ ― ⸺ ־ ⋯ ㅡ ㆍ 一 丨 ノ' }] });
+    for (const line of ['Review runs grew 【3】 times.', 'Review runs: 【9】K.', 'Review runs grew 「3」 times.', 'Review runs: 「9」K.', 'Review runs grew 《3》 times.', 'Review runs grew ‹3› times.', 'Review runs: ‹9› K.', 'Review runs grew 3‒fold.', 'Review runs grew 3―fold.', 'Review runs grew 3⸺fold.', 'Review runs grew 3־fold.', 'Review runs grew 3⋯times.', 'Review runs: 9⋯K.', 'Runs rose to ㅡtwentyㅡ.', 'Runs rose to ㆍtwentyㆍ.', 'Runs rose to 一twenty一.', 'Review runs ㅡdoubledㅡ this week.', 'Review runs grew 3 ㅡtimesㅡ.', 'Cost hit $9 ㅡbnㅡ.'])
+      expect([line, checkHighlight(line, cjk)]).toEqual([line, null]);
+    // Only an ASCII letter continues a number word or a multiplier: a glued Cyrillic letter that is no look-alike ends it.
+    const zh = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'жук у кеші' }] });
+    for (const line of ['Runs rose to жtwentyж.', 'Review runs grew 3 timesж.'])
+      expect([line, checkHighlight(line, zh)]).toEqual([line, null]);
     // Typography between digits keeps them apart.
     for (const line of ['Review runs went 26→9.', 'Review runs went 26–9.'])
       expect([line, checkHighlight(line, allowed)]).toEqual([line, line]);

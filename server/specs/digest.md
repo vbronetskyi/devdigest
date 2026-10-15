@@ -55,14 +55,17 @@ dropped if it has a non-ASCII character that is neither a Latin letter folding t
 `四十二`, `✕` or a Cyrillic `х` cannot come from nowhere), a numeral outside ASCII (`４`,
 `④`, `²`, `½`), a number word (`NUMBER_WORDS`: stems zero … trillion, also glued to
 `fold`; half, twice, thrice, doubled…) or a multiplier after a digit with spaces,
-brackets, quotes, dashes or an ellipsis between for a word multiplier (`MULTIPLIER`:
-`3×`, `(3) times`, `«3» times`, `3–fold`, `9 bln`, `9 MM`, `$9 grand`, `10^3`); a
-one-letter multiplier (`LETTER_MULTIPLIER`: x, k, m, b, t; `LOOKALIKE_LETTER_MULTIPLIER`:
-х, к, м, в, т and Greek) counts only right after the digit and its closing marks (`3x`,
-`9 K`, `«9» K`, `3 х.`) — `3 "X API client"`, `3 "В логах…"` and `3 К релізу` start a
-title or a Cyrillic word. Number words may run together (`fortytwo`). For these tests
+any Unicode dash, bracket or quote (by category: Pd, Ps, Pe, Pi, Pf), primes or an
+ellipsis between for a word multiplier (`MULTIPLIER`: `3×`, `(3) times`, `【3】 times`,
+`3‑fold`, `9 bln`, `9 MM`, `$9 grand`, `10^3`); a one-letter multiplier
+(`LETTER_MULTIPLIER`: x, k, m, b, t; `LOOKALIKE_LETTER_MULTIPLIER`: х, к, м, в, т and Greek)
+counts only right after the digit and its closing brackets, quotes or ellipsis (`3x`,
+`9 K`, `«9» K`, `「9」K`, `3 х.`) — `3 "X API client"`, `3 "В логах…"` and `3 К релізу` start a
+title or a Cyrillic word. Number words may run together (`fortytwo`), and a number word
+or multiplier ends at anything but an ASCII letter or digit (`жtwentyж`). For these tests
 backticks are ignored, compatibility and accented forms are folded (NFKD), letters that
-look like punctuation (`\p{Lm}` such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`, the saltillo `ꞌ`) read as spaces, and
+look like punctuation (`\p{Lm}` such as `ʼ ʻ ˈ ꓸ`, the clicks `ǀ ǃ`, the saltillo `ꞌ`) and
+letters of scripts other than Latin, Cyrillic and Greek (`ㅡ`, `一`) read as spaces, and
 look-alikes read as Latin only inside a word that mixes them with ASCII letters
 (`twеnty`), is all Latin variants (`ᴛᴡᴇɴᴛʏ`) or has two letters or more that are all
 look-alikes (`ММ`, `тімеѕ`); Greek capitals read as the Latin letter they look like (`Ν`
@@ -72,7 +75,8 @@ letter before them are an identifier, not a number with a multiplier (`B2B`, `Y2
 leading dot (`$.0049 M`) and a code span before the digit (`` `USD`9 M ``,
 `` `USD`.0049 M ``) do not make one: for these rules a backtick is a space, unless it sits
 inside a word (`` ti`mes `` is "times"). For the token check, compatibility forms are
-folded (`9，000`) with the marks the fold leaves removed, and digits split only by
+folded (`9，000`) with the marks the fold leaves removed, true hyphens read as `-` (`9‑K` like
+`9-K`), and digits split only by
 non-ASCII marks that are neither letters, digits, spaces nor listed typography are joined
 (`joinSplitDigits`: `9‚000`, `9·26`, `9・26`, `9٬000`, `9 ⋅000`; `26→9` and `4–12` stay
 apart). GitHub inline math (`$9 . 26)$`), LaTeX braces or backslashes and a whole
