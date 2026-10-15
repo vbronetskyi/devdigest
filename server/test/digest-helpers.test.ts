@@ -415,6 +415,18 @@ describe('facts and the number check (AC-7)', () => {
     const cjk = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: '【WIP】「設定」《x》〈y〉‹z› ⟨a⟩ ❮b❯ ″c″ ❝d❞ 〝e〟 ‒ ― ⸺ ־ ⋯ ㅡ ㆍ 一 丨 ノ' }] });
     for (const line of ['Review runs grew 【3】 times.', 'Review runs: 【9】K.', 'Review runs grew 「3」 times.', 'Review runs: 「9」K.', 'Review runs grew 《3》 times.', 'Review runs grew ‹3› times.', 'Review runs: ‹9› K.', 'Review runs grew 3‒fold.', 'Review runs grew 3―fold.', 'Review runs grew 3⸺fold.', 'Review runs grew 3־fold.', 'Review runs grew 3⋯times.', 'Review runs: 9⋯K.', 'Runs rose to ㅡtwentyㅡ.', 'Runs rose to ㆍtwentyㆍ.', 'Runs rose to 一twenty一.', 'Review runs ㅡdoubledㅡ this week.', 'Review runs grew 3 ㅡtimesㅡ.', 'Cost hit $9 ㅡbnㅡ.'])
       expect([line, checkHighlight(line, cjk)]).toEqual([line, null]);
+    // A closing quote Unicode files as initial, more ellipses, reversed primes, the swung dash.
+    const marks2 = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: '„Anführung“ ‚x‘ ›y‹ ⋮ ⋰ ⋱ ᠁ ‵ ‶ ⁓' }] });
+    for (const line of ['Review runs: »9« K.', 'Cost of finished runs: »$9« M.', 'Review runs grew »3« x.', 'Review runs: „9“ K.', 'Review runs: ‚9‘ K.', 'Review runs: ›9‹ K.', 'Review runs grew 3⋮ times.', 'Review runs: 9⋮K.', 'Review runs grew 3⋰ times.', 'Review runs grew 3⋱times.', 'Review runs grew 3᠁ times.', 'Review runs: 9᠁K.', 'Review runs grew ‶3‶ times.', 'Review runs grew 3‵fold.', 'Review runs: 9‵K.', 'Review runs grew 3⁓fold.', 'Cost hit $9⁓bn.'])
+      expect([line, checkHighlight(line, marks2)]).toEqual([line, null]);
+    // CJK and Hangul titles stay letters: a counter and a lone Latin letter, or a title before "times out", is not a multiplier.
+    for (const title of ['修复3个x轴标签', '支持4K视频', '支持1分钟K线', '3つのx軸ラベルを修正', '3개의 x축 라벨 수정', '認証トークンの更新', '修复登录超时', '세션 만료 처리']) {
+      const check = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: title }] });
+      // Unquoted, a title that starts with a digit would join "#3 3" into 33 — as in English.
+      const shapes = [`PR #3 "${title}" still has 4 open critical findings.`, `PR #3 "${title}" times out in CI and still has 4 open critical findings.`];
+      if (!/^\d/.test(title)) shapes.push(`PR #3 ${title} times out.`);
+      for (const line of shapes) expect([line, checkHighlight(line, check)]).toEqual([line, line]);
+    }
     // Only an ASCII letter continues a number word or a multiplier: a glued Cyrillic letter that is no look-alike ends it.
     const zh = factsCheck({ ...digest, open_criticals: [{ ...digest.open_criticals[0]!, pr_title: 'жук у кеші' }] });
     for (const line of ['Runs rose to жtwentyж.', 'Review runs grew 3 timesж.'])

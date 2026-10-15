@@ -184,15 +184,17 @@ const folded = (text: string) =>
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .replace(/[\p{Lm}ǀǁǂǃꞌꞋ]/gu, ' ');
+/** Letters that look like a dash or a bar: `3 ㅡtimesㅡ` reads as `3 -times-`. */
+const DASH_LIKE_LETTERS = /[ㅡᅳ一⼀丨ㅣノᐨㆍᆞᐧᛁᑊᐟᐩꞏ丶丿]/gu;
 /**
- * The text the number words and multipliers are matched on: folded, look-alikes read as
- * Latin where `readsAsLatin`, and letters of scripts other than Latin, Cyrillic and Greek
- * as spaces — in an English line they only separate (`ㅡtwentyㅡ`, `3 一times`).
+ * The text the number words and multipliers are matched on: folded, dash-like letters read
+ * as dashes, look-alikes read as Latin where `readsAsLatin`. Other letters of any script
+ * stay letters — `修复3个x轴` and `"認証…" times out` are a title, not a multiplier.
  */
 const asLatin = (text: string) =>
   folded(text)
-    .replace(/\p{L}+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w))
-    .replace(/(?![\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}])\p{L}/gu, ' ');
+    .replace(DASH_LIKE_LETTERS, '-')
+    .replace(/\p{L}+/gu, (w) => (readsAsLatin(w) ? w.replace(/./gu, (c) => lookAlike(c) ?? c) : w));
 /**
  * GitHub inline math (`$9 . 26)$` renders as 9.26), LaTeX braces or backslashes, and a
  * whole emoji shortcode (`:x:` — not the `::sync::` of a Rust path or `ws:pr:sha`).
