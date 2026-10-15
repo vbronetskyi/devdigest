@@ -195,3 +195,17 @@ drops all intended).
 Accepted, as the spec reads: `9…K`, `9 'K'`, `9 Ks`; Cyrillic multipliers (`9 млн`,
 `$9 тис.`) like the accepted non-English number words. The probes after the change: the
 same counts; one more mutation fails a test; three live calls kept 5 of 5 lines each.
+
+## Pass 10 — at `ec814c0`
+
+**Verdict: not ready — one character class.** No honest-line regression (all probes match
+the log); every pass-1 – 9 attack probe and their combinations are dropped.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| Hangul fillers (`ㅤ` U+3164, `ﾠ` U+FFA0, U+115F, U+1160) are letters to Unicode but invisible, so they survived the clean-up and broke word edges: `ㅤtwenty`, `3 timesㅤ`, `$9 ㅤM`, `9ㅤ000` (since pass 3) | security | default-ignorable characters and the braille blank (U+2800) removed with the others | `8e9d94f`, `7945706` |
+| A backtick inside a word split it once backticks became spaces: `` ti`mes` ``, `` twen`ty` `` | nit (from `8178cf8`) | a backtick between two letters is dropped | `8e9d94f`, `7945706` |
+| Look-alike separators from a title: `$9‚000`, `$9，000`, `$9․26`, `$9·26` | nit | compatibility forms folded for the token check; `‚` and `·` join digits | `8e9d94f`, `7945706` |
+
+The probes after the change: 120/120, 1,289/1,297, 458/480, 78/90 — unchanged. 5 more
+mutations, all fail a test; three live calls kept 5 of 5 lines each.
