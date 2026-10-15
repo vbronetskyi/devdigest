@@ -82,21 +82,26 @@ Highlights (one model call)
     checked like the rest, and backticks do not separate a digit from its multiplier;
     digits split only by a space or an apostrophe (`9 000`, `1'000`, `9 0000`) are one
     number, compared as written (`8.9999999999999999` is not 9);
-  - a character outside ASCII, Latin letters and common typography (— – ‘ ’ “ ” … − → «
-    ») must appear in the facts text — a title may be in any language, but `四十二`, `✕`
+  - a character outside ASCII, common typography (— – ‘ ’ “ ” … − → « ») and Latin
+    letters that fold to ASCII (`é`, `ﬁ`, `ｔ`) must appear in the facts text — `ᴛ`, `ĸ`, `ı`
+    included — a title may be in any language, but `四十二`, `✕`
     or a Cyrillic `х` cannot come from nowhere — and a numeral outside ASCII (`４２`, `④`,
-    `²`, `½`) drops the line, as do LaTeX braces or backslashes (GitHub renders
-    `$9{}000$` as math) and emoji shortcodes (`:heavy_multiplication_x:`); for the number
-    words and multipliers below, Cyrillic and Greek letters that look Latin and
-    compatibility or accented forms (`ｔ`, `é`, `ı`) are read as plain Latin — a quoted
-    Ukrainian title is not a number word;
+    `²`, `½`) drops the line, as do inline math, LaTeX braces or backslashes (GitHub
+    renders `$9 . 26)$` and `$9{}000$` as math) and a whole emoji shortcode (`:x:`, not
+    the `::sync::` of a Rust path); for the number words and multipliers below,
+    compatibility and accented forms are folded and, inside a word that mixes Latin with
+    Cyrillic or Greek letters (`twеnty`), the look-alikes read as Latin — a Cyrillic
+    word stays Cyrillic;
   - so does a number word — zero, two to twenty, the tens to ninety, dozen(s),
     hundred(s), thousand(s), million(s), billion(s), trillion(s), also run together
     (`fortytwo`, `onehundred`) and with `-fold`;
     half / halves / halved, twice, thrice, double / triple / quadruple and their -d / -s /
-    -ing forms — or a multiplier after a digit, with spaces, brackets, quotes, dashes or
-    an ellipsis between (`3×`, `3 x`, `(3) times`, `«3» times`, `3–fold`, `9 K`, `9 bn`,
-    `9 bln`, `9 MM`, `9 lakh`, `9 mil`, `$9 grand`, `10^3`).
+    -ing forms — or a multiplier after a digit: a word one (`times`, `fold`, `bn`, `bln`,
+    `MM`, `lakh`, `mil`, `grand`) or `×` / `^` with spaces, brackets, quotes, dashes or an
+    ellipsis between (`(3) times`, `«3» times`, `3–fold`, `$9 grand`, `10^3`); a one-letter
+    one (`x`, `K`, `M`, `B`, `T`, or a Cyrillic or Greek look-alike) only right after the
+    digit and its closing marks (`3x`, `9 K`, `«9» K`, `3 х.`) — not when it starts a quoted
+    title (`3 "X API client"`, `3 "В логах…"`) or a Cyrillic word (`3 К релізу`).
   The facts text states how many open criticals it lists ("5 listed"), so "5 of 12" can
   be checked.
 - **AC-8** The kept highlights shall be stored per workspace and week with the model,
@@ -205,3 +210,8 @@ model id `weekly_digest`.
   multipliers; `з` is a letter again and word edges are Unicode. LaTeX braces,
   backslashes and emoji shortcodes drop a line; compatibility and accented Latin forms
   read as plain Latin; number words run together; more multipliers.
+- 2026-10-15 — after the sixth verification: look-alikes read as Latin only inside mixed
+  words, so one-letter Ukrainian words ("В логах…") and quoted titles ("X API client")
+  are not multipliers; one-letter multipliers only right after the digit; Latin letters
+  that do not fold to ASCII (`ᴛ`, `ĸ`) need the facts; inline math drops a line; a
+  shortcode only as a whole.
