@@ -226,3 +226,16 @@ punctuation; honest probes unchanged; 3 more mutations fail a test. Of six live 
 three kept 5 of 5 lines; three hit the 60 s deadline at the provider (slow at the time;
 the check runs after the model answers) and answered 502, as AC-6 and AC-8 intend. Accepted: `𝅙` (no system font draws it, it shows as a box), digit-like
 letters (`ЗО`, `1∅∅`), CJK numerals from a CJK title, ``9,`000`` (the accepted `9, 000`).
+
+## Pass 12 — at `a3136e5`
+
+**Verdict: not ready — the visible sibling of pass 10.** No honest-line regression (all
+probes as logged, plus Ukrainian titles with `ʼ` in every quoting form); the code-point
+scan unchanged from pass 11's post-fix result.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| Letters that look like punctuation glue onto a word, so `ʼtwentyʼ`, `3 timesʼ`, `(3)ʼ times`, `$9 bnʼ` were kept wherever a title supplied the letter — `ʼ` is the standard Ukrainian apostrophe; likewise `ʻ ˈ ꓸ ꓹ ǃ ǀ` | security | modifier letters (`\p{Lm}`) and the clicks read as spaces for the number-word and multiplier tests | `9f2864c` |
+| Spaces around a separating mark kept digits apart: `$9 ⋅000`, `$9٬ 000` | nit | joined, as long as a mark is there | `9f2864c` |
+
+3 more mutations fail a test; three live calls kept 5 of 5 lines each.
