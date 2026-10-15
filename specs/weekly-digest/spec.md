@@ -291,3 +291,7 @@ model id `weekly_digest`.
   any non-letter does); Latin variants read as their letter in either case (`TWƐNTY`) and
   on the look-alike path too; a look-alike multiplier continues only into an ASCII letter
   or digit or a Cyrillic or Greek letter.
+- 2026-10-15 — after the twenty-second verification: a word mixes Latin with look-alikes
+  when it has any Latin letter, not only an ASCII one (`ММł`, `тімеѕᶴ`); the apostrophe
+  exemption after a look-alike multiplier is for a Cyrillic word only (`3 М’яке`, not
+  `$9 М'up`).

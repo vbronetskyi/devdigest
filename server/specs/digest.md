@@ -76,7 +76,7 @@ reads as an em dash (`ㅡ 一 ㅣ ㄧ ⵏ ا`), while a run of them is a word, s
 `"認証…" times out` are titles — and
 look-alikes read as Latin only inside a word — a run of Latin, Cyrillic and Greek letters
 (letters only: a CJK run or a symbol such as `͵` beside it does not join it) — that mixes
-them with ASCII letters
+them with Latin letters (any — `ММł` too)
 (`twеnty`), is all Latin variants (`ᴛᴡᴇɴᴛʏ`) or has two letters or more that are all
 look-alikes (`ММ`, `тімеѕ`); Greek capitals read as the Latin letter they look like (`Ν`
 is N). Other Cyrillic words stay Cyrillic, `з` is a letter, and a lone look-alike letter
