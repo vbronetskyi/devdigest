@@ -162,3 +162,22 @@ quoted English titles (`"Retry 3 times"`, `4K`, `@2x`, `1M`). The probe after th
 `PR #3 X API client`; 120 of 120 on the second set. 8 more mutations, all fail a test (one
 first survived — the unquoted `В тестах` shape was missing — and is now in the test).
 Three live calls kept 5 of 5 lines each.
+
+## Pass 8 — at `fe73a07`
+
+**Verdict: not ready — one regression from pass 7.** Every pass-7 item held; the existing
+probes matched the log and a new one (480 lines: titles and agent names built from
+look-alike letters, Greek and µ titles, words ending in "one", model typography) found no
+honest-line regression.
+
+| Finding | Kind | Resolution | Commit |
+|---|---|---|---|
+| The identifier exemption (`B2B`) also exempted a number with a leading dot and a digit right after a code span: `$.0049 M`, `$.0049 bn`, `.5 times`, `` `USD`9 M `` were kept | security (regression from `b8c2a45`) | a dot before the digits does not make an identifier, only a letter glued in the text as written; a code span ends a word | `c9198d8`, `9a6cfe0` |
+| `$9 lakhs`, `9 crores`, `9 mils`, `9 lac` | nit | plural forms added | `c9198d8`, `9a6cfe0` |
+| A double space in the spec's changelog; long prose lines in the package spec | nit | fixed | `c9198d8`, `9a6cfe0` |
+
+Accepted: `9 (K)` and `$.42 (M)` — an opening bracket before a one-letter multiplier is
+not covered, because `PR #3 (X API client)` must stay; `$9 ь`; typography outside the list
+(`·`, `≤`, `÷`, `✓`) drops a line, as written. The probes after the change: 120/120,
+1,289/1,297 (the accepted unquoted prepositions), 458/480 (the same 22 as before, all
+intended). 3 more mutations, all fail a test; three live calls kept 5 of 5 lines each.
