@@ -79,7 +79,8 @@ Highlights (one model call)
   - first, Markdown emphasis (`*`, `~`, `_` at a word's edge, not inside a path), HTML
     comments and invisible, control and combining characters are removed; an HTML
     character reference (`&times;`) before or after that drops the line; code spans are
-    checked like the rest, and backticks do not separate a digit from its multiplier;
+    checked like the rest — a backtick counts as a space, so it neither separates a digit
+    from its multiplier nor glues a word to a number;
     digits split only by a space or an apostrophe (`9 000`, `1'000`, `9 0000`) are one
     number, compared as written (`8.9999999999999999` is not 9);
   - a character outside ASCII, common typography (— – ‐ ‑ ‘ ’ “ ” … − → ← ↑ ↓ ≈ « ») and Latin
@@ -228,3 +229,6 @@ model id `weekly_digest`.
   a digit after a code span (`` `USD`9 M ``) are numbers for the multiplier rules too —
   only a letter glued in the text as written makes an identifier; plural multipliers
   (`lakhs`, `crores`, `mils`).
+- 2026-10-15 — after the ninth verification: a backtick is a word boundary for the
+  multiplier rules, so a code span before a number with a leading dot
+  (`` `USD`.0049 M ``) does not make an identifier either.
