@@ -49,7 +49,7 @@ None of the counters calls a model: they group findings that are already stored.
 the server it is a single `COUNT ... GROUP BY`, in the browser a count over the list
 that is already loaded.
 
-Video (43 s): [hw1-findings-by-severity.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-1/hw1-findings-by-severity.mp4).
+Video (44 s): [hw1-findings-by-severity.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-1/hw1-findings-by-severity.mp4).
 
 ## Insights get written on their own
 
