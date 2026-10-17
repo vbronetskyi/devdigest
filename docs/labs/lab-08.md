@@ -13,7 +13,7 @@ SPEC-05 needed four of them, SPEC-06 twenty-four. Specs, plans with a criterion 
 -> commit matrix and verification reports are in `specs/agent-performance/` (SPEC-05)
 and `specs/weekly-digest/` (SPEC-06).
 
-**Video (70 s):** [hw8-performance-digest.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-8/hw8-performance-digest.mp4):
+**Video (73 s):** [hw8-performance-digest.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-8/hw8-performance-digest.mp4):
 the agent cards and table for 7 / 30 / 90 days, an agent's latest runs with a jump into
 the PR, the cost breakdown. Then the digest: a real model call on Rewrite, the jump
 from an open critical finding into the diff, neighboring weeks and copying as Markdown.
