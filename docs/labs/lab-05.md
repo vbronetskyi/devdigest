@@ -208,7 +208,7 @@ touched these files. **SPEC-04 git-why** answers why a line is the way it is: wh
 changed it last and in which PR. Specs, plans and verification reports are in
 `specs/risk-brief/` and `specs/git-why/`.
 
-**Video (78 s):** [hw5-brief-why.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-5/hw5-brief-why.mp4):
+**Video (76 s):** [hw5-brief-why.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-5/hw5-brief-why.mp4):
 generating a brief on PR #9, an expanded risk, the jump into the diff, the history of
 PR #5 and git-why on a line from PR #4.
 
