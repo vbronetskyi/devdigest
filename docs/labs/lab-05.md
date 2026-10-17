@@ -24,8 +24,8 @@ spec-creator -> researcher -> implementation-planner -> implementer -> {architec
 - spec-creator and implementation-planner can only write inside `specs/`: the same
   `subagent-paths.sh` hook from L03 guards that, now with a `specs` mode.
 
-The spec is committed before the code, and `git log` shows it: `f832555` (specs) comes
-before `21b3f33` (the first code).
+The spec is committed before the code, and `git log` shows it: `aa13787` (specs) comes
+before `8369eee` (the first code).
 
 ### Reviewing the spec before the code
 
@@ -80,7 +80,7 @@ How it works:
 ### What live runs showed
 
 Security Reviewer with two documents (`server/docs/architecture.md`,
-`server/specs/review-flow.md`) read them from `7c410c6`, about 1 700 tokens, and found
+`server/specs/review-flow.md`) read them from `e4f1a7d`, about 1 700 tokens, and found
 the CRITICAL SSRF on demo PR #3, same as without them.
 
 General Reviewer with `architecture.md` twice answered that no diff was sent and
