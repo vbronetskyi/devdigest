@@ -176,7 +176,7 @@ criteria. Then a separate agent checked the code and the course design against i
 Everything it found is fixed and covered by tests. The spec, plan and verification
 reports are in `specs/conventions/` (SPEC-07).
 
-**Video (57 s):** [hw2-conventions.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-2/hw2-conventions.mp4).
+**Video (56 s):** [hw2-conventions.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-2/hw2-conventions.mp4).
 It shows a real scan of this repository, the summary and counters, Edit first with an
 attempt to sneak an extra section into a rule, Reject all, and the summary still in
 place after a reload.
