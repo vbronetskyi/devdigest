@@ -94,7 +94,7 @@ hole none of our business.
 That is exactly why the intent goes in as untrusted. Security Reviewer got this block
 and still returned a CRITICAL SSRF in `server/src/modules/reviews/routes.ts:162-175`
 (request changes, score 65, 33 s, $0.00052). The run log shows
-`intent: cached for 658e5f2`: the intent had been derived earlier with the button, and
+`intent: cached for 78d54bd`: the intent had been derived earlier with the button, and
 the run just reused it.
 
 ## Found along the way
