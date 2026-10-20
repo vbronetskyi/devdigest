@@ -12,7 +12,7 @@ or a PR diff.
 - `hw-2/`: conventions extractor screencast, 56 seconds (PR #13)
 - `lab-3/`: the PR intent card and the intent block in the trace (PR #9)
 - `hw-3/`: smart diff: smart and original order, wiring with reasons, findings on
-  the lines (PR #10)
+  the lines, and a 62-second screencast (PR #10)
 - `lab-4/`: devdigest-mcp in MCP Inspector: the five tools and a list_agents result (PR #7)
 - `hw-4/`: blast radius tree and graph on PR #5, a route file on PR #3, and a
   51-second screencast (PR #8)
