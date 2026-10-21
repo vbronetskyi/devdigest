@@ -3,6 +3,7 @@ import type { SmartDiffReason, SmartDiffRole } from '@devdigest/shared';
 /** The role each classification reason puts a file in. */
 export const ROLE_OF: Record<SmartDiffReason, SmartDiffRole> = {
   source: 'core',
+  agent_instructions: 'core',
   entrypoint: 'wiring',
   imports_only: 'wiring',
   config: 'wiring',
@@ -10,8 +11,8 @@ export const ROLE_OF: Record<SmartDiffReason, SmartDiffRole> = {
   infra: 'wiring',
   lockfile: 'boilerplate',
   generated: 'boilerplate',
-  test: 'boilerplate',
-  docs: 'boilerplate',
+  test: 'tests',
+  docs: 'docs',
   i18n: 'boilerplate',
   assets: 'boilerplate',
   styles: 'boilerplate',
@@ -20,7 +21,10 @@ export const ROLE_OF: Record<SmartDiffReason, SmartDiffRole> = {
 };
 
 /** Review order of the groups: the substance first, the mechanical last. */
-export const ROLE_ORDER: readonly SmartDiffRole[] = ['core', 'wiring', 'boilerplate'];
+export const ROLE_ORDER: readonly SmartDiffRole[] = ['core', 'wiring', 'tests', 'docs', 'boilerplate'];
+
+/** Roles a path alone decides; wiring paths still lose to a rename or a generated banner. */
+export const PATH_DECIDES: ReadonlySet<SmartDiffRole> = new Set(['core', 'tests', 'docs', 'boilerplate']);
 
 export const LOCKFILES = new Set([
   'package-lock.json',
@@ -38,15 +42,24 @@ export const LOCKFILES = new Set([
 ]);
 
 /**
- * Path rules, checked in this order after lockfiles; the first match wins.
- * Tests come before docs and config so `test/fixtures/x.json` stays a test.
+ * Path rules, checked in this order after lockfiles; the first match wins. The
+ * order is the decision for files that fit two rules:
+ * 1. generated before everything — a snapshot under `test/` is machine output,
+ *    not a test anyone wrote (`__snapshots__/x.snap`, `migrations/meta/*.json`);
+ *    binary assets next — a screenshot under `docs/` or `e2e/` is still a picture;
+ * 2. agent instructions before docs — `.claude/skills/x/SKILL.md` is Markdown, but
+ *    it is what an agent will do, so it is core and read line by line;
+ * 3. docs before tests — `e2e/README.md` explains the tests, it is not one;
+ * 4. tests before config — `test/fixtures/x.json` stays a test;
+ * 5. the mechanical kinds (assets, translations) before the wiring ones.
  */
 export const PATH_RULES: ReadonlyArray<readonly [SmartDiffReason, RegExp]> = [
   ['generated', /(^|\/)(dist|build|out|coverage|\.next)\/|(^|\/)__snapshots__\/|\.snap$|\.min\.(js|css)$|\.generated\.|(^|\/)migrations\/meta\//],
-  ['test', /(^|\/)(test|tests|__tests__|e2e)\/|\.(test|spec)\.[cm]?[jt]sx?$|_test\.go$|(^|\/)test_[^/]+\.py$/],
   ['assets', /\.(png|jpe?g|gif|webp|svg|ico|woff2?|ttf|eot|mp4|webm|pdf)$/i],
-  ['i18n', /(^|\/)(messages|locales|i18n|translations)\/.+\.(json|ya?ml|po)$/],
+  ['agent_instructions', /(^|\/)\.claude\/(agents|skills|commands)\/|(^|\/)(AGENTS|CLAUDE)\.md$/],
   ['docs', /\.(md|mdx|rst|txt)$|(^|\/)(LICENSE|CHANGELOG)[^/]*$|^docs\//i],
+  ['test', /(^|\/)(test|tests|__tests__|e2e)\/|\.(test|spec)\.[cm]?[jt]sx?$|_test\.go$|(^|\/)test_[^/]+\.py$/],
+  ['i18n', /(^|\/)(messages|locales|i18n|translations)\/.+\.(json|ya?ml|po)$/],
   ['migration', /(^|\/)migrations?\/.+\.sql$/],
   ['infra', /(^|\/)\.github\/|(^|\/)Dockerfile[^/]*$|(^|\/)docker-compose[^/]*\.ya?ml$|(^|\/)\.mcp\.json$|(^|\/)\.claude\/settings[^/]*\.json$/],
   ['tooling', /(^|\/)(package\.json|tsconfig[^/]*\.json|\.gitignore|\.npmrc|\.nvmrc|\.editorconfig|\.prettierrc[^/]*|\.eslintrc[^/]*|eslint\.config\.[cm]?[jt]s|[^/]+\.config\.[cm]?[jt]s|\.[^/]+\.[cm]?js)$/],

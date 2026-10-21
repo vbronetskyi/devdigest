@@ -79,12 +79,14 @@ export const PrHistory = z.object({
 export type PrHistory = z.infer<typeof PrHistory>;
 
 // ---- Smart Diff ----
-export const SmartDiffRole = z.enum(['core', 'wiring', 'boilerplate']);
+/** Review order: the substance, what connects it, its tests, its docs, the mechanical rest. */
+export const SmartDiffRole = z.enum(['core', 'wiring', 'tests', 'docs', 'boilerplate']);
 export type SmartDiffRole = z.infer<typeof SmartDiffRole>;
 
 /** Why a file got its role — the rule that matched, so the UI can say it. */
 export const SmartDiffReason = z.enum([
   'source',
+  'agent_instructions',
   'entrypoint',
   'imports_only',
   'config',

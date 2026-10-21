@@ -9,6 +9,7 @@ import {
   wiringShare,
   type DiffFileInput,
 } from '../src/modules/smart-diff/helpers.js';
+import { PATH_RULES, ROLE_OF } from '../src/modules/smart-diff/constants.js';
 
 const file = (path: string, patch: string | null = '@@ -1,1 +1,2 @@\n x\n+const y = compute(x);', additions = 1, deletions = 0): DiffFileInput => ({
   path,
@@ -18,26 +19,53 @@ const file = (path: string, patch: string | null = '@@ -1,1 +1,2 @@\n x\n+const 
 });
 
 describe('classifyFile', () => {
+  it('checks the path rules in a fixed order — the order decides files that fit two rules', () => {
+    expect(PATH_RULES.map(([reason]) => reason)).toEqual([
+      'generated',
+      'assets',
+      'agent_instructions',
+      'docs',
+      'test',
+      'i18n',
+      'migration',
+      'infra',
+      'tooling',
+      'styles',
+      'entrypoint',
+      'config',
+    ]);
+  });
+
+  // The three disputed cases first: each fits two rules, and the order above picks one.
   it.each([
-    ['server/pnpm-lock.yaml', 'lockfile'],
-    ['server/src/db/migrations/meta/0012_snapshot.json', 'generated'],
-    ['client/src/a/__snapshots__/Card.test.tsx.snap', 'generated'],
-    ['server/test/fixtures/pr.json', 'test'],
-    ['client/src/a/Card.test.tsx', 'test'],
-    ['docs/labs/lab-03.md', 'docs'],
-    ['client/messages/en/prReview.json', 'i18n'],
-    ['pr-assets/shot.png', 'assets'],
-    ['client/src/a/_components/Card/styles.ts', 'styles'],
-    ['server/package.json', 'tooling'],
-    ['client/vitest.config.ts', 'tooling'],
-    ['server/.dependency-cruiser.cjs', 'tooling'],
-    ['server/src/db/migrations/0012_superb_nighthawk.sql', 'migration'],
-    ['.github/workflows/ci.yml', 'infra'],
-    ['server/src/modules/index.ts', 'entrypoint'],
-    ['server/src/platform/config.ts', 'config'],
-    ['server/src/modules/reviews/intent.ts', 'source'],
-  ])('%s → %s', (path, reason) => {
-    expect(classifyFile(file(path))).toBe(reason);
+    ['server/test/__snapshots__/smart-diff.test.ts.snap', 'generated', 'boilerplate'], // a snapshot under test/: machine output
+    ['.claude/skills/security/SKILL.md', 'agent_instructions', 'core'], // Markdown, but it is what an agent will do
+    ['e2e/README.md', 'docs', 'docs'], // under e2e/, but it explains the tests
+    ['server/pnpm-lock.yaml', 'lockfile', 'boilerplate'],
+    ['server/src/db/migrations/meta/0012_snapshot.json', 'generated', 'boilerplate'],
+    ['client/src/a/__snapshots__/Card.test.tsx.snap', 'generated', 'boilerplate'],
+    ['e2e/screenshots/pr-list.png', 'assets', 'boilerplate'],
+    ['.claude/agents/security-reviewer.md', 'agent_instructions', 'core'],
+    ['server/AGENTS.md', 'agent_instructions', 'core'],
+    ['server/test/fixtures/pr.json', 'test', 'tests'],
+    ['client/src/a/Card.test.tsx', 'test', 'tests'],
+    ['e2e/tests/pr-list.spec.ts', 'test', 'tests'],
+    ['docs/labs/lab-03.md', 'docs', 'docs'],
+    ['client/messages/en/prReview.json', 'i18n', 'boilerplate'],
+    ['pr-assets/shot.png', 'assets', 'boilerplate'],
+    ['client/src/a/_components/Card/styles.ts', 'styles', 'boilerplate'],
+    ['server/package.json', 'tooling', 'boilerplate'],
+    ['client/vitest.config.ts', 'tooling', 'boilerplate'],
+    ['server/.dependency-cruiser.cjs', 'tooling', 'boilerplate'],
+    ['server/src/db/migrations/0012_superb_nighthawk.sql', 'migration', 'wiring'],
+    ['.github/workflows/ci.yml', 'infra', 'wiring'],
+    ['server/src/modules/index.ts', 'entrypoint', 'wiring'],
+    ['server/src/platform/config.ts', 'config', 'wiring'],
+    ['server/src/modules/reviews/intent.ts', 'source', 'core'],
+  ])('%s → %s (%s)', (path, reason, role) => {
+    const got = classifyFile(file(path));
+    expect(got).toBe(reason);
+    expect(ROLE_OF[got]).toBe(role);
   });
 
   it('calls a source file with no line changes a rename, but keeps a binary asset an asset', () => {
@@ -161,9 +189,31 @@ describe('buildSmartDiff', () => {
     expect(result.split_suggestion).toMatchObject({ too_big: false, total_lines: 234, reviewable_lines: 124 });
   });
 
+  it('puts files in five groups, in review order, and sizes the PR by core and wiring only', () => {
+    const result = buildSmartDiff(
+      [
+        file('README.md', undefined, 300),
+        file('server/pnpm-lock.yaml', undefined, 900),
+        file('server/test/a.test.ts', undefined, 200),
+        file('server/src/modules/index.ts', undefined, 3),
+        file('server/src/modules/a/service.ts', undefined, 50),
+      ],
+      [],
+      { used: 0, stale: false },
+    );
+    expect(result.groups.map((g) => [g.role, g.files.map((f) => f.path)])).toEqual([
+      ['core', ['server/src/modules/a/service.ts']],
+      ['wiring', ['server/src/modules/index.ts']],
+      ['tests', ['server/test/a.test.ts']],
+      ['docs', ['README.md']],
+      ['boilerplate', ['server/pnpm-lock.yaml']],
+    ]);
+    expect(result.split_suggestion).toMatchObject({ reviewable_lines: 53, total_lines: 1453, too_big: false });
+  });
+
   it('omits empty groups, and never calls markers stale when there are none', () => {
     const result = buildSmartDiff([file('docs/a.md')], [], { used: 0, stale: true });
-    expect(result.groups.map((g) => g.role)).toEqual(['boilerplate']);
+    expect(result.groups.map((g) => g.role)).toEqual(['docs']);
     expect(result.markers_stale).toBe(false);
   });
 });

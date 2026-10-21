@@ -14,6 +14,7 @@ import {
   GENERIC_DIRS,
   LOCKFILES,
   MAX_SPLITS,
+  PATH_DECIDES,
   PATH_RULES,
   ROLE_OF,
   ROLE_ORDER,
@@ -79,15 +80,16 @@ export function wiringShare(lines: string[]): number | null {
 }
 
 /**
- * Why a file is core, wiring or boilerplate. Deterministic and explainable:
- * lockfile → path rules for mechanical files → no line changes (rename/mode) →
- * generated banner → remaining path rules → what the changed lines look like.
+ * Why a file is in its group. Deterministic and explainable: lockfile → the
+ * first matching path rule when it is not a wiring one → no line changes
+ * (rename/mode) → generated banner → a wiring path rule → what the changed lines
+ * look like (imports and registration → wiring, anything else → core).
  */
 export function classifyFile(file: DiffFileInput): SmartDiffReason {
   const name = file.path.slice(file.path.lastIndexOf('/') + 1);
   if (LOCKFILES.has(name)) return 'lockfile';
   const byPath = PATH_RULES.find(([, re]) => re.test(file.path))?.[0];
-  if (byPath && ROLE_OF[byPath] === 'boilerplate') return byPath;
+  if (byPath && PATH_DECIDES.has(ROLE_OF[byPath])) return byPath;
   if (file.additions + file.deletions === 0) return 'rename';
   if (looksGenerated(file.patch)) return 'generated';
   if (byPath) return byPath;
@@ -178,8 +180,11 @@ function proposeSplits(files: readonly SizedFile[], reviewable: number): Propose
   }));
 }
 
+/** Groups whose lines count towards the size verdict: code someone reads to review. */
+const REVIEWABLE: ReadonlySet<SmartDiffRole> = new Set(['core', 'wiring']);
+
 export function suggestSplit(files: readonly SizedFile[]): SmartDiff['split_suggestion'] {
-  const reviewableFiles = files.filter((f) => f.role !== 'boilerplate');
+  const reviewableFiles = files.filter((f) => REVIEWABLE.has(f.role));
   const reviewable = reviewableFiles.reduce((n, f) => n + f.lines, 0);
   const tooBig = reviewable > SPLIT_REVIEWABLE_LINES;
   return {
