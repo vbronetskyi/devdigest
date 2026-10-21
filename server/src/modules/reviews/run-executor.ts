@@ -8,7 +8,7 @@ import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './reposit
 import { REVIEW_STRATEGY } from './constants.js';
 import { taskLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
-import { IntentDeriver, toIntentPart } from './intent.js';
+import { IntentDeriver, intentLogLines, toIntentPart } from './intent.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -114,7 +114,8 @@ export class ReviewRunExecutor {
     // A failure here costs the reviewers their intent block, never the run.
     let intent: IntentPart | undefined;
     try {
-      const got = await runLog.step('Deriving PR intent', () => this.intents.ensure(workspaceId, pull, diff), {
+      const ref = { owner: repo.owner, name: repo.name };
+      const got = await runLog.step('Deriving PR intent', () => this.intents.ensure(workspaceId, pull, ref, diff), {
         kind: 'tool',
       });
       intent = toIntentPart(got.record);
@@ -124,6 +125,7 @@ export class ReviewRunExecutor {
           ? `intent: cached for ${pull.headSha.slice(0, 7)}`
           : `intent: derived with ${got.record.model}${cost}`,
       );
+      for (const line of intentLogLines(got.record, got.stats)) runLog.info(line);
     } catch (err) {
       runLog.info(`intent: unavailable (${(err as Error).message}) — reviewing without it`);
     }

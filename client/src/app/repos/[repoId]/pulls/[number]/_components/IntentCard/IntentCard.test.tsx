@@ -27,6 +27,8 @@ const INTENT: PrIntentRecord = {
   intent: "Let users forward a finished review to their own webhook",
   in_scope: ["POST /reviews/:id/share"],
   out_of_scope: [],
+  sources: ["title", "description", "changed files", "hunk headers"],
+  missing_context: [],
   head_sha: "abcdef1234",
   model: "deepseek/deepseek-v4-flash",
   cost_usd: 0.00042,
@@ -57,7 +59,14 @@ describe("IntentCard", () => {
     expect(screen.getByText("POST /reviews/:id/share")).toBeInTheDocument();
     expect(screen.getByText("Nothing stated")).toBeInTheDocument();
     expect(screen.getByText("Derived by deepseek/deepseek-v4-flash · $0.00042 · for abcdef1")).toBeInTheDocument();
+    expect(screen.getByText("Read: title, description, changed files, hunk headers")).toBeInTheDocument();
     expect(screen.queryByRole("note")).toBeNull();
+  });
+
+  it("says which linked context it could not read instead of hiding the gap", () => {
+    h.intent = { ...INTENT, missing_context: ["#12 (not found or not readable: Not Found)"] };
+    renderCard();
+    expect(screen.getByRole("note")).toHaveTextContent("Derived without #12 (not found or not readable: Not Found)");
   });
 
   it("flags an intent derived for an older head", () => {

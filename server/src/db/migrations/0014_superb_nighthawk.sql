@@ -1,3 +1,5 @@
+ALTER TABLE "pr_intent" ADD COLUMN "sources" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "pr_intent" ADD COLUMN "missing_context" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
 ALTER TABLE "pr_intent" ADD COLUMN "head_sha" text;--> statement-breakpoint
 ALTER TABLE "pr_intent" ADD COLUMN "model" text;--> statement-breakpoint
 ALTER TABLE "pr_intent" ADD COLUMN "cost_usd" double precision;--> statement-breakpoint

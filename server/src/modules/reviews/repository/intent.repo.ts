@@ -12,7 +12,17 @@ export async function getIntent(db: Db, prId: string): Promise<IntentRow | undef
 /** One intent per PR: a new derivation replaces the old one. */
 export async function upsertIntent(
   db: Db,
-  values: { prId: string; intent: string; inScope: string[]; outOfScope: string[]; headSha: string; model: string; costUsd: number | null },
+  values: {
+    prId: string;
+    intent: string;
+    inScope: string[];
+    outOfScope: string[];
+    sources: string[];
+    missingContext: string[];
+    headSha: string;
+    model: string;
+    costUsd: number | null;
+  },
 ): Promise<IntentRow> {
   const [row] = await db
     .insert(t.prIntent)
@@ -23,6 +33,8 @@ export async function upsertIntent(
         intent: values.intent,
         inScope: values.inScope,
         outOfScope: values.outOfScope,
+        sources: values.sources,
+        missingContext: values.missingContext,
         headSha: values.headSha,
         model: values.model,
         costUsd: values.costUsd,

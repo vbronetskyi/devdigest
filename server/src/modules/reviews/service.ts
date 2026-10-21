@@ -191,7 +191,8 @@ export class ReviewService {
     const repo = await this.repo.getRepo(pull.repoId);
     if (!repo) throw new NotFoundError('Repo not found');
     const diff = await loadDiff(this.container, this.repo, workspaceId, pull, repo);
-    return { intent: await this.intents.derive(workspaceId, pull, diff) };
+    const { record } = await this.intents.derive(workspaceId, pull, { owner: repo.owner, name: repo.name }, diff);
+    return { intent: record };
   }
 
   async getRunTrace(runId: string): Promise<RunTrace | undefined> {

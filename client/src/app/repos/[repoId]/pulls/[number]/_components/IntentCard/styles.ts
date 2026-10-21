@@ -20,6 +20,8 @@ export const s = {
   none: { fontSize: 12.5, color: "var(--text-muted)" } satisfies CSSProperties,
   foot: { display: "flex", alignItems: "center", gap: 10, marginTop: 14, flexWrap: "wrap" } satisfies CSSProperties,
   meta: { fontSize: 11.5, color: "var(--text-muted)", flex: 1 } satisfies CSSProperties,
+  sources: { fontSize: 11.5, color: "var(--text-muted)", margin: "12px 0 0" } satisfies CSSProperties,
+  missing: { fontSize: 12, color: "var(--warn)", background: "var(--warn-bg)", borderRadius: 6, padding: "6px 10px", marginTop: 8 } satisfies CSSProperties,
   stale: { fontSize: 12, color: "var(--warn)", background: "var(--warn-bg)", borderRadius: 6, padding: "6px 10px", marginTop: 12 } satisfies CSSProperties,
   empty: { fontSize: 13, color: "var(--text-secondary)", margin: 0, flex: 1 } satisfies CSSProperties,
   error: { fontSize: 12.5, color: "var(--crit)", marginTop: 10 } satisfies CSSProperties,

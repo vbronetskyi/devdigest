@@ -59,6 +59,10 @@ export type ReviewRunResponse = z.infer<typeof ReviewRunResponse>;
 /** Intent persisted for a PR (the Intent plus the pr_id it scopes). */
 export const PrIntentRecord = Intent.extend({
   pr_id: z.string(),
+  /** What the intent rests on: title, description, linked issues/plans, files, hunk headers. */
+  sources: z.array(z.string()).default([]),
+  /** Linked context that could not be read — the intent was derived without it. */
+  missing_context: z.array(z.string()).default([]),
   /** Head commit it was derived for; differs from the PR's head → stale. */
   head_sha: z.string().nullish(),
   model: z.string().nullish(),

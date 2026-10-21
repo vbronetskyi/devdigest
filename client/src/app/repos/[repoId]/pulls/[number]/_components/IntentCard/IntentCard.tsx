@@ -52,6 +52,12 @@ export function IntentCard({ prId, headSha }: { prId: string; headSha: string | 
               <Column title={t("intent.inScope")} items={intent.in_scope} color="var(--ok)" icon="Check" none={t("intent.noneStated")} />
               <Column title={t("intent.outOfScope")} items={intent.out_of_scope} color="var(--text-muted)" icon="X" none={t("intent.noneStated")} muted />
             </div>
+            {intent.sources.length > 0 && <p style={s.sources}>{t("intent.sources", { list: intent.sources.join(", ") })}</p>}
+            {intent.missing_context.length > 0 && (
+              <p style={s.missing} role="note">
+                {t("intent.missing", { list: intent.missing_context.join("; ") })}
+              </p>
+            )}
             {stale && (
               <p style={s.stale} role="note">
                 {t("intent.stale")}

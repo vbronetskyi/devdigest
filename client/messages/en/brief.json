@@ -26,6 +26,8 @@
     "deriving": "Deriving…",
     "cost": "One model call",
     "meta": "Derived by {model} · {cost} · for {sha}",
+    "sources": "Read: {list}",
+    "missing": "Derived without {list} - the link could not be read, so the intent does not guess what it says.",
     "stale": "The PR has new commits since this was derived. The next review derives it again.",
     "failed": "Could not derive the intent: {message}",
     "loadError": "Could not load the intent."

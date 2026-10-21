@@ -29,7 +29,7 @@ d('L03 intent layer (Testcontainers pg)', () => {
     await pg?.stop();
   });
 
-  async function setup(intentFixture: unknown) {
+  async function setup(intentFixture: unknown, body = 'Adds a share endpoint.') {
     const llm = new MockLLMProvider('openai', { structured: REVIEW, structuredBySchema: { PrIntent: intentFixture } });
     const app = await buildApp({
       config: config(),
@@ -40,7 +40,7 @@ d('L03 intent layer (Testcontainers pg)', () => {
     const [repo] = await pg.handle.db.insert(t.repos).values({ workspaceId, owner: 'acme', name, fullName: `acme/${name}` }).returning();
     const [pr] = await pg.handle.db
       .insert(t.pullRequests)
-      .values({ workspaceId, repoId: repo!.id, number: 3, title: 'Share reviews', author: 'a', branch: 'b', base: 'main', headSha: 'head1', status: 'needs_review', body: 'Adds a share endpoint.' })
+      .values({ workspaceId, repoId: repo!.id, number: 3, title: 'Share reviews', author: 'a', branch: 'b', base: 'main', headSha: 'head1', status: 'needs_review', body })
       .returning();
     const agent = (await app.inject({ method: 'POST', url: '/agents', payload: { name: `Sec ${seq}`, provider: 'openai', model: 'gpt-4.1', system_prompt: 'sec' } })).json();
     const review = async () => {
@@ -77,6 +77,24 @@ d('L03 intent layer (Testcontainers pg)', () => {
     await pg.handle.db.update(t.pullRequests).set({ headSha: 'head2' }).where(eq(t.pullRequests.id, pr.id));
     await review();
     expect(intentCalls()).toBe(2);
+    await app.close();
+  });
+
+  it('reads the linked issue, says which links it could not read, and logs what the prompt was made of', async () => {
+    const body = 'Closes #12. Plan: specs/share/plan.md. Background: https://example.com/post';
+    const { app, pr, review } = await setup(INTENT, body);
+    const trace = await review();
+    const intent = (await app.inject({ method: 'GET', url: `/pulls/${pr.id}/intent` })).json().intent;
+    expect(intent.sources).toEqual(['title', 'description', '#12', 'changed files', 'hunk headers']);
+    expect(intent.missing_context).toEqual([
+      'specs/share/plan.md (missing or empty in the clone)',
+      'https://example.com/post (external link, not fetched)',
+    ]);
+    expect(trace.prompt_assembly.intent).toContain('Derived without (unreadable, do not assume what they say):');
+    const log: string[] = trace.log.map((l: { msg: string }) => l.msg);
+    expect(log.find((m) => m.startsWith('intent prompt:'))).toMatch(/title \d+ ch, description \d+ ch, linked #12 \d+ ch, unavailable context \d+ ch, changed files \d+ ch, hunk headers \d+ ch · ~\d+ tokens/);
+    expect(log).toContain('intent sources: title, description, #12, changed files, hunk headers');
+    expect(log.find((m) => m.startsWith('intent missing context:'))).toContain('specs/share/plan.md');
     await app.close();
   });
 

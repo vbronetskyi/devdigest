@@ -884,6 +884,20 @@
           "notNull": true,
           "default": "'[]'::jsonb"
         },
+        "sources": {
+          "name": "sources",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "missing_context": {
+          "name": "missing_context",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
         "head_sha": {
           "name": "head_sha",
           "type": "text",

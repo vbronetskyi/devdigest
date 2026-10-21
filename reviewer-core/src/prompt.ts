@@ -55,12 +55,18 @@ export interface IntentPart {
   intent: string;
   in_scope: string[];
   out_of_scope: string[];
+  /** Linked issues or plans the intent could not read. */
+  missing_context?: string[];
 }
 
 /** Render the intent as plain lines for its untrusted block. */
 export function renderIntent(intent: IntentPart): string {
   const list = (items: string[]) => (items.length ? items.map((i) => `- ${i}`).join('\n') : '- (none stated)');
-  return `Intent: ${intent.intent}\nIn scope:\n${list(intent.in_scope)}\nOut of scope:\n${list(intent.out_of_scope)}`;
+  const base = `Intent: ${intent.intent}\nIn scope:\n${list(intent.in_scope)}\nOut of scope:\n${list(intent.out_of_scope)}`;
+  const missing = intent.missing_context ?? [];
+  return missing.length === 0
+    ? base
+    : `${base}\nDerived without (unreadable, do not assume what they say):\n${list(missing)}`;
 }
 
 export function wrapUntrusted(label: string, content: string): string {
