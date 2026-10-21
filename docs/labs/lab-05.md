@@ -11,7 +11,7 @@ an onboarding tour built from facts, not made up by a model.
 The subagent set from L03 was rebuilt for SDD:
 
 ```
-spec-creator -> researcher -> implementation-planner -> implementer -> {architecture-reviewer, test-writer} -> plan-verifier -> doc-writer
+spec-creator -> researcher -> (brainstorm) -> implementation-planner -> implementer -> {architecture-reviewer, security-reviewer, test-writer} -> plan-verifier -> doc-writer
 ```
 
 - **spec-creator** (new) writes `specs/<feature>/spec.md`: the problem, goals and
@@ -24,8 +24,8 @@ spec-creator -> researcher -> implementation-planner -> implementer -> {architec
 - spec-creator and implementation-planner can only write inside `specs/`: the same
   `subagent-paths.sh` hook from L03 guards that, now with a `specs` mode.
 
-The spec is committed before the code, and `git log` shows it: `aa13787` (specs) comes
-before `8369eee` (the first code).
+The spec is committed before the code, and `git log` shows it: `9580b66` (specs) comes
+before `5c8e8be` (the first code).
 
 ### Reviewing the spec before the code
 
