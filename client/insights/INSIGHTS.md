@@ -49,6 +49,13 @@ rejected) refreshes the finding markers with no new wiring. The flip side: code
 that reads all `["reviews", …]` queries at once would now also get a SmartDiff.
 Evidence: `src/lib/hooks/smart-diff.ts:11`, `src/lib/hooks/reviews.ts:68`
 
+### 2026-10-22 — The diff viewer renders page cards through a render prop
+`components/diff-viewer` sits below the PR page and must not import its `FindingCard`
+or hooks. DiffTab owns the findings (`usePrReviews`) and the action (`useFindingAction`)
+and passes a `DiffFindingApi` (`visible`, `render(finding)`); the viewer only decides
+where a card goes: under the anchored line or in the off-patch list at the file end.
+Evidence: `src/components/diff-viewer/helpers.ts:55`, `src/app/repos/[repoId]/pulls/[number]/_components/DiffTab/DiffTab.tsx:58`
+
 ## Tool & Library Notes
 
 ### 2026-10-07 — `messages/en/runs.json` is not uniformly indented

@@ -41,6 +41,15 @@
     "viewOnGitHub": "View on GitHub",
     "postedToGitHub": "Posts to GitHub immediately",
     "outdatedTitle": "{count} comment(s) on older revisions",
-    "findings": "{count, plural, one {# finding} other {# findings}}"
+    "findings": "{count, plural, one {# finding} other {# findings}}",
+    "severity": {
+      "CRITICAL": "blocker",
+      "WARNING": "warning",
+      "SUGGESTION": "suggestion",
+      "INFO": "info"
+    },
+    "findingToggle": "Open or close the finding: {label}",
+    "outsideTitle": "{count, plural, one {# finding} other {# findings}} on lines this diff does not show",
+    "lineRef": "line {lines}"
   }
 }

@@ -169,6 +169,8 @@ export default function PRDetailPage() {
             filesCount={pr.files_count}
             files={pr.files}
             canComment={pr.status === "open"}
+            repoFullName={repoFullName}
+            headSha={pr.head_sha}
           />
         )}
       </div>

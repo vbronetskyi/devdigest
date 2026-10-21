@@ -1,4 +1,4 @@
-import type { PrFile, SmartDiff, SmartDiffReason, SmartDiffRole } from "@devdigest/shared";
+import type { PrFile, Severity, SmartDiff, SmartDiffFinding, SmartDiffReason, SmartDiffRole } from "@devdigest/shared";
 import type { FileAnnotation } from "@/components/diff-viewer";
 import type { DiffOrder } from "./constants";
 
@@ -50,6 +50,13 @@ export function annotationsFor(
     }
   }
   return out;
+}
+
+const SEVERITY_RANK: Record<Severity, number> = { CRITICAL: 0, WARNING: 1, SUGGESTION: 2 };
+
+/** The worst severity among findings, or null when there are none. */
+export function worstSeverity(findings: readonly SmartDiffFinding[]): Severity | null {
+  return findings.reduce<Severity | null>((w, f) => (w === null || SEVERITY_RANK[f.severity] < SEVERITY_RANK[w] ? f.severity : w), null);
 }
 
 /** The last two path segments — enough to tell files apart in a one-line list. */

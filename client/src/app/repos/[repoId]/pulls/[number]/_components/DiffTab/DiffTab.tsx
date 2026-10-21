@@ -1,16 +1,19 @@
 /* DiffTab — the PR's changed files. Smart order (HW L03) groups them core →
-   wiring → boilerplate with the latest findings pinned to their lines and a
-   split nudge for oversized PRs; Original order is the list as GitHub gives it. */
+   wiring → tests → docs → boilerplate with the latest findings pinned to their
+   lines (a click opens the finding card with Accept / Dismiss right there) and a
+   split nudge for oversized PRs; Original order is the list as GitHub gives it.
+   One toggle shows or hides both GitHub comments and findings. */
 "use client";
 
 import React from "react";
 import { useTranslations } from "next-intl";
 import { SectionLabel, Button, Skeleton } from "@devdigest/ui";
-import { DiffViewer, type DiffCommentApi } from "@/components/diff-viewer";
-import { usePrComments, useCreatePrComment } from "@/lib/hooks/reviews";
+import { DiffViewer, type DiffCommentApi, type DiffFindingApi } from "@/components/diff-viewer";
+import { usePrComments, useCreatePrComment, usePrReviews, useFindingAction } from "@/lib/hooks/reviews";
 import { useSmartDiff } from "@/lib/hooks/smart-diff";
 import { notify } from "@/lib/toast";
-import type { PrFile } from "@devdigest/shared";
+import type { FindingRecord, PrFile } from "@devdigest/shared";
+import { FindingCard } from "../FindingCard";
 import { ORDERS, type DiffOrder } from "./constants";
 import { annotationsFor, roleSections } from "./helpers";
 import { RoleGroup } from "./_components/RoleGroup";
@@ -23,18 +26,52 @@ interface DiffTabProps {
   files: PrFile[];
   /** Inline commenting is offered only on open PRs (GitHub rejects otherwise). */
   canComment?: boolean;
+  /** For the finding cards' links to the file on GitHub. */
+  repoFullName?: string | null;
+  headSha?: string | null;
 }
 
-export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
+export function DiffTab({ prId, filesCount, files, canComment, repoFullName, headSha }: DiffTabProps) {
   const t = useTranslations("prReview");
   const { data: comments } = usePrComments(prId);
   const create = useCreatePrComment(prId);
   const smart = useSmartDiff(prId);
-  // Comments start hidden so the diff is clean by default — toggle to reveal.
-  const [showComments, setShowComments] = React.useState(false);
+  const { data: reviews } = usePrReviews(prId);
+  const action = useFindingAction();
+  // One switch for everything layered on the code — GitHub comments and findings —
+  // so the diff can be read clean. Shown by default: the markers are the point.
+  const [showComments, setShowComments] = React.useState(true);
   const [order, setOrder] = React.useState<DiffOrder>("smart");
 
   const commentCount = comments?.length ?? 0;
+  const findingCount = (smart.data?.groups ?? []).reduce((n, g) => n + g.files.reduce((m, f) => m + (f.findings?.length ?? 0), 0), 0);
+  const overlayCount = commentCount + findingCount;
+
+  // Full findings (rationale, suggestion, accepted/dismissed) by id, from the same
+  // reviews the Agent runs tab shows; the smart diff only carries the markers.
+  const findingById = React.useMemo(() => {
+    const map = new Map<string, FindingRecord>();
+    for (const r of reviews ?? []) for (const f of r.findings) map.set(f.id, f);
+    return map;
+  }, [reviews]);
+
+  const findingApi: DiffFindingApi = {
+    visible: showComments,
+    render: (marker) => {
+      const f = findingById.get(marker.id);
+      if (!f) return null;
+      return (
+        <FindingCard
+          f={f}
+          defaultExpanded
+          repoFullName={repoFullName}
+          headSha={headSha}
+          pending={action.isPending && action.variables?.findingId === f.id}
+          onAction={(act) => action.mutate({ findingId: f.id, action: act, prId: prId ?? undefined })}
+        />
+      );
+    },
+  };
 
   const commenting: DiffCommentApi = {
     comments: comments ?? [],
@@ -66,14 +103,15 @@ export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
       <SectionLabel
         icon="Code"
         right={
-          commentCount > 0 ? (
+          overlayCount > 0 ? (
             <Button
               kind="ghost"
               size="sm"
               icon={showComments ? "EyeOff" : "Eye"}
+              aria-pressed={!showComments}
               onClick={() => setShowComments((v) => !v)}
             >
-              {t(showComments ? "smartDiff.hideComments" : "smartDiff.showComments", { count: commentCount })}
+              {t(showComments ? "smartDiff.hideComments" : "smartDiff.showComments", { count: overlayCount })}
             </Button>
           ) : undefined
         }
@@ -109,10 +147,17 @@ export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
           {data && <SplitBanner split={data.split_suggestion} />}
           {shown === "smart" && data ? (
             roleSections(data, files).map((sec) => (
-              <RoleGroup key={sec.role} role={sec.role} files={sec.files} annotations={annotations} commenting={commenting} />
+              <RoleGroup
+                key={sec.role}
+                role={sec.role}
+                files={sec.files}
+                annotations={annotations}
+                commenting={commenting}
+                findingApi={findingApi}
+              />
             ))
           ) : (
-            <DiffViewer files={files} commenting={commenting} annotations={annotations} />
+            <DiffViewer files={files} commenting={commenting} annotations={annotations} findingApi={findingApi} />
           )}
         </>
       )}

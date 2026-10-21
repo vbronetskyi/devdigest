@@ -1,12 +1,14 @@
 /* CodeLine — one rendered diff line: gutter number, +/- sign, text, plus the
    hover "+" affordance, any anchored comment threads, an inline composer and,
-   in the Smart Diff, the marker of a finding covering the line. */
+   in the Smart Diff, the marker of a finding covering the line. The marker's
+   severity word opens the finding card right under the line. */
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Icon, SEV } from "@devdigest/ui";
 import { commentTargetFor, type CommentThread, type DiffCommentApi, cs } from "../comments";
-import { type Line, type LineMark } from "../helpers";
+import { type DiffFindingApi, type Line, type LineMark } from "../helpers";
 import { s, findingBarFor, findingLabelFor, lineRowFor, lineSignFor } from "../styles";
 import { CommentThreadView } from "../CommentThreadView";
 import { InlineComposer } from "../InlineComposer";
@@ -16,16 +18,20 @@ export function CodeLine({
   path,
   threads,
   commenting,
-  mark,
+  mark: rawMark,
+  findings,
 }: {
   ln: Line;
   path: string;
   threads: CommentThread[];
   commenting?: DiffCommentApi;
   mark?: LineMark | null;
+  findings?: DiffFindingApi;
 }) {
   const [hover, setHover] = React.useState(false);
   const [composing, setComposing] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(false);
+  const mark = findings?.visible === false ? null : rawMark;
 
   if (ln.kind === "hunk") {
     return (
@@ -67,8 +73,18 @@ export function CodeLine({
         <span className="mono" style={s.lineText}>
           {ln.text || " "}
         </span>
-        {mark && mark.starting.length > 0 && <FindingLabel mark={mark} />}
+        {mark && mark.starting.length > 0 && (
+          <FindingLabel mark={mark} expanded={expanded} onToggle={findings ? () => setExpanded((v) => !v) : undefined} />
+        )}
       </div>
+
+      {mark && expanded && findings && (
+        <div style={s.findingDetails}>
+          {mark.starting.map((f) => (
+            <React.Fragment key={f.id}>{findings.render(f)}</React.Fragment>
+          ))}
+        </div>
+      )}
 
       {commenting &&
         commenting.showComments &&
@@ -89,17 +105,41 @@ export function CodeLine({
   );
 }
 
-/** The most severe finding starting here, by title; more than one adds "+N". */
-function FindingLabel({ mark }: { mark: LineMark }) {
+/**
+ * The most severe finding anchored here, as its severity word (blocker /
+ * warning / suggestion) so it reads without the colour; more than one adds
+ * "+N". The titles are in the tooltip; a click opens the cards below the line.
+ */
+function FindingLabel({ mark, expanded, onToggle }: { mark: LineMark; expanded: boolean; onToggle?: () => void }) {
+  const t = useTranslations("shell");
   const [top, ...rest] = mark.starting;
   const meta = SEV[top!.severity];
   const I = Icon[meta.icon];
-  const all = mark.starting.map((f) => `${f.severity}: ${f.title}`).join("\n");
-  return (
-    <span style={findingLabelFor(meta.c)} title={all}>
+  const all = mark.starting.map((f) => `${t(`diffViewer.severity.${f.severity}`)}: ${f.title}`).join("\n");
+  const body = (
+    <>
       <I size={11} aria-hidden style={{ flexShrink: 0 }} />
-      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{top!.title}</span>
+      <span>{t(`diffViewer.severity.${top!.severity}`)}</span>
       {rest.length > 0 && <span className="tnum">+{rest.length}</span>}
-    </span>
+    </>
+  );
+  if (!onToggle) {
+    return (
+      <span style={findingLabelFor(meta.c)} title={all}>
+        {body}
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      style={{ ...findingLabelFor(meta.c), ...s.findingLabelButton }}
+      title={all}
+      aria-expanded={expanded}
+      aria-label={t("diffViewer.findingToggle", { label: all })}
+      onClick={onToggle}
+    >
+      {body}
+    </button>
   );
 }

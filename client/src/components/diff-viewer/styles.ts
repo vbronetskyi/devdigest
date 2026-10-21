@@ -3,6 +3,15 @@ import type { Line } from "./helpers";
 
 /** Co-located styles for the DiffViewer (extracted from inline styles). */
 export const s = {
+  /** Finding cards opened under a line or in the outside-the-diff list. */
+  findingDetails: { padding: "8px 12px 10px 52px", background: "var(--bg-surface)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 } satisfies CSSProperties,
+  /** Resets a <button> to look like the inline finding label. */
+  findingLabelButton: { background: "none", border: "none", cursor: "pointer", font: "inherit", fontSize: 11.5, fontWeight: 600, textTransform: "lowercase" } satisfies CSSProperties,
+  outsideWrap: { borderTop: "1px solid var(--border)", padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 } satisfies CSSProperties,
+  outsideTitle: { fontSize: 11.5, fontWeight: 600, color: "var(--text-muted)" } satisfies CSSProperties,
+  outsideRow: { display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", padding: "3px 0", cursor: "pointer", textAlign: "left", font: "inherit" } satisfies CSSProperties,
+  outsideText: { fontSize: 12.5, color: "var(--text-secondary)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } satisfies CSSProperties,
+  outsideLine: { fontSize: 11.5, color: "var(--text-muted)" } satisfies CSSProperties,
   list: { display: "flex", flexDirection: "column", gap: 10 } satisfies CSSProperties,
   empty: { padding: "24px", fontSize: 14, color: "var(--text-muted)", textAlign: "center" } satisfies CSSProperties,
   fileCard: {
@@ -92,9 +101,9 @@ export function lineSignFor(kind: Line["kind"]): CSSProperties {
   };
 }
 
-/** Header chip with the file's finding count, in its worst severity's colour. */
-export function findingCountFor(color: string): CSSProperties {
-  return { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color };
+/** Header dot: the file has findings, in its worst severity's colour. */
+export function findingDotFor(color: string): CSSProperties {
+  return { width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 };
 }
 
 /** Left gutter bar on lines a finding covers. */

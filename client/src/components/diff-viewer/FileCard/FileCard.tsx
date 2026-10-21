@@ -1,6 +1,6 @@
 /* FileCard — one collapsible file in the diff: header (path, +/- stat, comment
-   count, Smart Diff finding count and role note) and, when open, its parsed
-   lines plus any outdated comments. */
+   count, Smart Diff finding dot and role note) and, when open, its parsed lines,
+   the findings on lines the patch does not show, and any outdated comments. */
 "use client";
 
 import React from "react";
@@ -9,7 +9,7 @@ import { Icon, SEV } from "@devdigest/ui";
 import type { Severity } from "@devdigest/shared";
 import type { PrFile } from "@/lib/types";
 import { AUTO_EXPAND_MAX_LINES } from "../constants";
-import { bySeverity, markFor, parsePatch, type FileAnnotation, type Line } from "../helpers";
+import { anchorFindings, bySeverity, markFor, parsePatch, type DiffFindingApi, type FileAnnotation, type Line } from "../helpers";
 import {
   buildThreads,
   keysForLine,
@@ -17,9 +17,10 @@ import {
   type CommentThread,
   type DiffCommentApi,
 } from "../comments";
-import { s, chevronFor, findingCountFor } from "../styles";
+import { s, chevronFor, findingDotFor } from "../styles";
 import { CodeLine } from "../CodeLine";
 import { OutdatedComments } from "../OutdatedComments";
+import { OutsideFindings } from "../OutsideFindings";
 
 /** Threads anchored to a given parsed line (RIGHT=new, LEFT=old). */
 function threadsForLine(ln: Line, matched: Map<string, CommentThread[]>): CommentThread[] {
@@ -36,10 +37,12 @@ export function FileCard({
   file,
   commenting,
   annotation,
+  findingApi,
 }: {
   file: PrFile;
   commenting?: DiffCommentApi;
   annotation?: FileAnnotation;
+  findingApi?: DiffFindingApi;
 }) {
   const t = useTranslations("shell");
   const [open, setOpen] = React.useState(
@@ -47,6 +50,7 @@ export function FileCard({
   );
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
   const findings = annotation?.findings ?? [];
+  const anchors = React.useMemo(() => anchorFindings(lines, findings), [lines, findings]);
   const worst = findings.length > 0 ? [...findings].sort(bySeverity)[0]!.severity : null;
 
   // Group this file's comments into threads, then split into ones we can anchor
@@ -72,7 +76,7 @@ export function FileCard({
         <span className="mono" style={s.filePath}>
           {file.path}
         </span>
-        {worst && <FindingCount severity={worst} label={t("diffViewer.findings", { count: findings.length })} />}
+        {worst && <FindingDot severity={worst} label={t("diffViewer.findings", { count: findings.length })} />}
         {annotation?.note && <span style={s.fileNote}>{annotation.note}</span>}
         <span className="mono tnum" style={s.fileStat}>
           <span style={s.addText}>+{file.additions}</span>{" "}
@@ -99,10 +103,12 @@ export function FileCard({
                 path={file.path}
                 threads={threadsForLine(ln, matched)}
                 commenting={commenting}
-                mark={markFor(ln, findings)}
+                mark={markFor(ln, findings, anchors)}
+                findings={findingApi}
               />
             ))
           )}
+          {findingApi && <OutsideFindings findings={anchors.outside} api={findingApi} />}
           {commenting && commenting.showComments && <OutdatedComments threads={outdated} />}
         </div>
       )}
@@ -110,13 +116,7 @@ export function FileCard({
   );
 }
 
-function FindingCount({ severity, label }: { severity: Severity; label: string }) {
-  const meta = SEV[severity];
-  const I = Icon[meta.icon];
-  return (
-    <span style={findingCountFor(meta.c)} data-severity={severity}>
-      <I size={12} aria-hidden />
-      {label}
-    </span>
-  );
+/** A plain dot in the worst severity's colour; the count is in its label, not on screen. */
+function FindingDot({ severity, label }: { severity: Severity; label: string }) {
+  return <span role="img" aria-label={label} title={label} style={findingDotFor(SEV[severity].c)} data-severity={severity} />;
 }

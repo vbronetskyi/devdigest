@@ -65,10 +65,14 @@
     },
     "coreLabel": "Core logic",
     "wiringLabel": "Wiring",
+    "testsLabel": "Tests",
+    "docsLabel": "Docs",
     "boilerplateLabel": "Boilerplate",
     "coreDesc": "The substance of the change — review closely",
     "wiringDesc": "Hooks the core into the app",
-    "boilerplateDesc": "Tests, docs, generated and mechanical files — skim",
+    "testsDesc": "What checks the change — read after the code it tests",
+    "docsDesc": "What explains it — check it says what the code does",
+    "boilerplateDesc": "Generated, lockfiles, translations and other mechanical files — skim",
     "largeTitle": "This PR is large: {reviewable} changed lines to review ({total} in total)",
     "largeBody": "Consider splitting it into smaller, focused PRs for easier review:",
     "noCleanSplit": "Its changes sit in one area, so there is no clean cut. Review core logic first, then wiring.",
@@ -79,8 +83,8 @@
     "markers": "{count, plural, =0 {No review yet — finding markers appear after a run.} one {Finding markers from the latest review.} other {Finding markers from the latest review of each of # agents.}}",
     "markersStale": "Markers are from a review of an earlier commit: lines may have shifted since.",
     "unavailable": "Smart order is unavailable, so files are shown as GitHub lists them.",
-    "showComments": "Show comments ({count})",
-    "hideComments": "Hide comments ({count})",
+    "showComments": "Show comments and findings ({count})",
+    "hideComments": "Hide comments and findings ({count})",
     "commentError": "Couldn't post the comment to GitHub.",
     "reason": {
       "entrypoint": "entry point",
@@ -96,8 +100,10 @@
       "assets": "asset",
       "styles": "styles",
       "tooling": "tooling config",
-      "rename": "renamed, no line changes"
-    }
+      "rename": "renamed, no line changes",
+      "agent_instructions": "agent instructions"
+    },
+    "withFindings": "{count, plural, one {# file with findings} other {# files with findings}}"
   },
   "list": {
     "breadcrumb": "Pull Requests",

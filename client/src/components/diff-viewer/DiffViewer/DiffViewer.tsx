@@ -10,7 +10,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import type { PrFile } from "@/lib/types";
 import { type DiffCommentApi } from "../comments";
-import type { FileAnnotation } from "../helpers";
+import type { DiffFindingApi, FileAnnotation } from "../helpers";
 import { s } from "../styles";
 import { FileCard } from "../FileCard";
 
@@ -18,11 +18,14 @@ export function DiffViewer({
   files,
   commenting,
   annotations,
+  findingApi,
 }: {
   files: PrFile[];
   commenting?: DiffCommentApi;
   /** Keyed by file path. */
   annotations?: Record<string, FileAnnotation>;
+  /** Finding cards and their visibility (Smart Diff). */
+  findingApi?: DiffFindingApi;
 }) {
   const t = useTranslations("shell");
   if (!files || files.length === 0) {
@@ -31,7 +34,7 @@ export function DiffViewer({
   return (
     <div style={s.list}>
       {files.map((f, i) => (
-        <FileCard key={f.path || i} file={f} commenting={commenting} annotation={annotations?.[f.path]} />
+        <FileCard key={f.path || i} file={f} commenting={commenting} annotation={annotations?.[f.path]} findingApi={findingApi} />
       ))}
     </div>
   );
