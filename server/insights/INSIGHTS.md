@@ -70,6 +70,14 @@ the same head. Tests that count model calls per run must skip `schemaName ===
 'PrIntent'`.
 Evidence: `src/modules/reviews/run-executor.ts:113`, `src/modules/reviews/intent.ts:138`
 
+### 2026-10-22 — An unreadable link is context the intent lacks, not a link to drop
+A description that says "Closes #12" makes #12 part of the PR's purpose. When the issue
+404s or a linked plan is not in the clone, dropping the link silently lets the model fill
+the hole from the title. `gatherLinked` turns every unreadable link into a gap, the prompt
+lists the gaps under Unavailable context, and the record keeps them in `missing_context`
+so the card and the reviewers see what the intent was derived without.
+Evidence: `src/modules/reviews/intent-context.ts:127`, `src/modules/reviews/intent.ts:93`
+
 ## Tool & Library Notes
 
 ### 2026-10-07 — OpenRouter usage counters lag behind the generation
