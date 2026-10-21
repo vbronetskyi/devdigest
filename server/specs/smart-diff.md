@@ -7,27 +7,44 @@ Rules only: no model call, no repo index, no clone access.
 
 ## Roles
 
-Every file gets one reason; the reason fixes the role. First match wins:
+Every file gets one reason; the reason fixes the role. The path rules are
+checked in a fixed order (`PATH_RULES` in `constants.ts`, pinned by a test) and
+the first match wins:
 
 1. Lockfile by name → `lockfile`.
-2. Path rules for mechanical files: `generated` (dist/build, snapshots,
-   `migrations/meta/`), `test`, `assets`, `i18n` (`messages/`, `locales/`),
-   `docs` (`*.md`, `docs/`), `styles` (`*.css`, `styles.ts`), `tooling`
-   (`package.json`, `tsconfig*.json`, `*.config.ts`, dotfile configs).
-3. No line changes (rename, mode change) → `rename`.
-4. A new file whose first lines say `@generated` / `do not edit` → `generated`.
-5. Path rules for wiring: `migration` (`*.sql`), `infra` (`.github/`, Docker,
-   `.mcp.json`), `entrypoint` (`index|main|app|server|container|bootstrap`),
-   `config` (`config|env|settings.ts`, other JSON/YAML/TOML).
-6. ≥ 60 % of the meaningful changed lines are imports, re-exports, `require`,
-   `.register(` / `.use(` or a bare registry entry → `imports_only`.
-7. Everything else → `source`.
+2. `generated` — dist/build output, `__snapshots__/`, `*.snap`, `migrations/meta/`.
+3. `assets` — images, fonts, video, PDF.
+4. `agent_instructions` — `.claude/agents|skills|commands/`, `AGENTS.md`, `CLAUDE.md`.
+5. `docs` — `*.md|mdx|rst|txt`, LICENSE/CHANGELOG, `docs/`.
+6. `test` — `test/`, `tests/`, `__tests__/`, `e2e/`, `*.test|spec.*`, `_test.go`.
+7. `i18n` (`messages/`, `locales/`…), then `migration` (`*.sql`), `infra`
+   (`.github/`, Docker, `.mcp.json`), `tooling` (`package.json`, `tsconfig*.json`,
+   `*.config.ts`, dotfile configs), `styles` (`*.css`, `styles.ts`), `entrypoint`
+   (`index|main|app|server|container|bootstrap`), `config` (`config|env|settings.ts`,
+   other JSON/YAML/TOML).
+
+A path match decides at once unless its role is wiring; then (and when nothing
+matched) no line changes → `rename`, a `@generated` / `do not edit` banner at the
+top of a new file → `generated`, the wiring path match, ≥ 60 % of the meaningful
+changed lines being imports, re-exports, `require`, `.register(` / `.use(` or a
+bare registry entry → `imports_only`, everything else → `source`.
+
+The order is the decision for files that fit two rules. The disputed cases,
+each a row in the test table:
+
+| File | Fits | Goes to | Why |
+|---|---|---|---|
+| `server/test/__snapshots__/x.test.ts.snap` | generated, test | boilerplate | machine output, nobody reviews it line by line |
+| `.claude/skills/security/SKILL.md` | agent_instructions, docs | core | Markdown, but it is what an agent will do — read it like code |
+| `e2e/README.md` | docs, test | docs | it explains the tests, it is not one |
 
 | Role | Reasons | UI |
 |---|---|---|
-| `core` | source | first, open |
+| `core` | source, agent_instructions | first, open |
 | `wiring` | entrypoint, imports_only, config, migration, infra | second |
-| `boilerplate` | lockfile, generated, test, docs, i18n, assets, styles, tooling, rename | last, folded |
+| `tests` | test | third |
+| `docs` | docs | fourth |
+| `boilerplate` | lockfile, generated, i18n, assets, styles, tooling, rename | last, folded |
 
 Inside a group: files with the most severe finding first, then the biggest
 change, then the path. Empty groups are omitted.
@@ -38,6 +55,8 @@ From the newest `kind = 'review'` record of each agent on the PR (older reviews
 by the same agent are superseded); rejected findings (`dismissed_at`) are left
 out. Each file carries `findings` (`id`, `start_line`, `end_line`, severity,
 title) on new-side line numbers, and `finding_lines` (distinct start lines).
+The client takes the details (rationale, suggestion, Accept / Reject) from
+`GET /pulls/:id/reviews` by id.
 `reviews_used` says how many reviews that was — 0 before the first run.
 
 Reviews store no head commit of their own. `markers_stale` is true when the

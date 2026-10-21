@@ -142,38 +142,66 @@ provider explicitly.
 ## Homework: Smart Diff
 
 The Files changed tab now shows files in the order worth reading them: logic first,
-then what wires it in, and everything mechanical at the end. GitHub sorts
-alphabetically, so on PR #9 the seven subagent markdown files come first and
+then what wires it in, then its tests and docs, and everything mechanical at the end.
+GitHub sorts alphabetically, so on PR #9 the subagent markdown files come first and
 `intent.ts` is lost somewhere in the middle.
 
 **Video (62 s):** [hw3-smart-diff.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/hw-3/hw3-smart-diff.mp4)
 
 ![Smart order on PR #9](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-3/smart-pr9-top.png)
 
-### Three groups
+### Five groups
 
 | Group | What goes there | How it is shown |
 |---|---|---|
-| Core logic | code that changes behavior | first, files expanded |
+| Core logic | code that changes behavior, and agent instructions (`.claude/agents`, skills, `AGENTS.md`) | first, files expanded |
 | Wiring | entry points, module registration, config, migrations, CI | second, with the reason |
-| Boilerplate | lockfiles, generated code, tests, docs, translations, styles, tool configs | last, collapsed |
+| Tests | test files and fixtures | third |
+| Docs | Markdown, `docs/`, LICENSE, CHANGELOG | fourth |
+| Boilerplate | lockfiles, generated code and snapshots, translations, styles, assets, tool configs | last, collapsed |
+
+Each group header has its own label, how closely to read it, how many of its files
+carry findings and the file count. The same five roles are in both copies of the
+contract (`SmartDiffRole` in `brief.ts`), so the client and the server name the same
+groups.
 
 Classification is rule-based, there is no model here. Every file gets a reason
-(`lockfile`, `entry point`, `imports and registration`...), shown in the file header.
-That is what makes the grouping trustworthy: you can see why a file ended up where it
-is. A file with an ordinary name also goes to wiring if at least 60% of its changed
-lines are imports and registration.
+(`lockfile`, `entry point`, `agent instructions`...), shown in the file header. That is
+what makes the grouping trustworthy: you can see why a file ended up where it is. A
+file with an ordinary name also goes to wiring if at least 60% of its changed lines are
+imports and registration.
 
-I put tests in boilerplate, as in the design: in a review they are read after the code
-they test. It is debatable, so the `test` reason is shown explicitly.
+The path rules run in a fixed order, and a test pins that order, because the order is
+what decides a file that fits two rules. The three disputed cases are rows in the test
+table:
+
+| File | Fits | Goes to | Why |
+|---|---|---|---|
+| `server/test/__snapshots__/x.test.ts.snap` | generated, tests | Boilerplate | machine output, nobody reads it line by line |
+| `.claude/skills/security/SKILL.md` | agent instructions, docs | Core logic | it is Markdown, but it is what an agent will do, so it is read like code |
+| `e2e/README.md` | docs, tests | Docs | it explains the tests, it is not one |
+
+The order: lockfile, generated, assets, agent instructions, docs, tests, translations,
+migrations, CI, tool configs, styles, entry points, config.
 
 ![Wiring with reasons](https://raw.githubusercontent.com/vbronetskyi/devdigest/pr-assets/hw-3/smart-pr9-wiring.png)
 
 ### Findings right in the diff
 
-A colored bar marks the lines a finding covers, and its title sits at the end of the
-first such line. The file header shows how many findings the file has. The latest
-review of each agent is used, and rejected findings are not shown. If the PR got new
+A colored bar marks the lines a finding covers, and the severity sits at the end of
+the first such line as a word: `blocker`, `warning` or `suggestion`, so it reads
+without the color too. The title is in the tooltip. A click on the word opens the same
+finding card as on the Agent runs tab right under the line: the explanation, the
+suggested fix and Accept / Reject, so a decision does not need a trip out of the diff.
+The file header has a dot in the worst severity's color, the group header says how
+many files have findings.
+
+A finding on a line the patch does not show (outside every hunk) is not lost: it is
+listed at the end of its file with its lines and opens the same card. One switch,
+Hide comments and findings, hides GitHub comments and all of this together when you
+want to read the code clean.
+
+The latest review of each agent is used, and rejected findings are not shown. If the PR got new
 commits after the review, the panel warns that lines may have shifted. Reviews do not
 store a commit themselves, but the PR remembers `last_reviewed_sha`, and that is enough
 for the warning.
@@ -183,7 +211,7 @@ for the warning.
 ### Suggesting a split
 
 The 400-line limit counts only core and wiring: nobody reads a regenerated lockfile in
-a review. PR #9 changes 4789 lines, and 637 of them need review. A split is suggested
+a review, and neither do tests or docs. PR #9 changes 4789 lines, and 637 of them need review. A split is suggested
 by package (server / client), and inside one package by feature (`modules/<x>`,
 `_components/<X>`). Chunks under 10% are merged into the largest one. If there is no
 clean boundary, the banner says so instead of inventing a split.
@@ -197,6 +225,14 @@ clean boundary, the banner says so instead of inventing a split.
 - There is no Generate split PRs button. A branch cannot be cut safely by a machine,
   and a button that does nothing is worse than no button.
 
+### After the review
+
+The first version had three groups with tests and docs inside Boilerplate, a finding
+count on the file instead of a dot, the finding title on the line, no card under the
+line and no Accept / Reject there, no place for findings outside the patch, a separate
+switch for comments only, and the disputed files were not pinned by tests. All of that
+is changed as described above.
+
 ## How to check it yourself
 
 1. `./scripts/dev.sh`, open any PR -> Overview -> Intent -> Derive.
@@ -209,6 +245,9 @@ clean boundary, the banner says so instead of inventing a split.
 6. Put `Closes #12` and a path to a plan that does not exist into a PR description and
    derive the intent: the card shows what was read and what was not, and the run log
    has the `intent prompt`, `intent sources` and `intent missing context` lines.
+7. Smart Diff: any PR -> Files changed. Five groups in Smart order, a Smart order /
+   Original order toggle, and markers after the first review: click `blocker` on a
+   line to open the finding, Accept or Reject it there.
 
-Tests: `cd server && pnpm exec vitest run intent`, `cd reviewer-core && npm test`,
-`cd client && pnpm test IntentCard`.
+Tests: `cd server && pnpm exec vitest run intent smart-diff`, `cd reviewer-core && npm test`,
+`cd client && pnpm test IntentCard DiffTab diff-viewer`.
