@@ -7,6 +7,12 @@ installed like a dependency, not copied around in `.claude/` folders.
 - **Catalog with search (GitHub Pages):** https://vbronetskyi.github.io/team-ai-marketplace/
 - **Installed in another project:** https://github.com/vbronetskyi/notes-api/tree/try/team-marketplace
 
+**Video (80 s):** [l08-marketplace.mp4](https://github.com/vbronetskyi/devdigest/blob/pr-assets/lab-8/l08-marketplace.mp4):
+a search in the catalog with facets, the `sdd-engineering` page with its components,
+dependencies and changelog, the `spec-creator` agent page, ⌘K to `run-plan`, getting
+started; then the releases and tags on GitHub, and in `notes-api` the `settings.json`
+with all four plugins, the record of the SDD run and its commits.
+
 ## Four plugins
 
 | Plugin | What it gives | Depends on |
