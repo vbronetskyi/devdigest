@@ -1,4 +1,122 @@
-# L08 homework: Agent Performance and Weekly Digest
+# L08: plugins and a team marketplace
+
+The reusable part of this repository's AI harness now lives in its own repository and is
+installed like a dependency, not copied around in `.claude/` folders.
+
+- **Marketplace:** https://github.com/vbronetskyi/team-ai-marketplace
+- **Catalog with search (GitHub Pages):** https://vbronetskyi.github.io/team-ai-marketplace/
+- **Installed in another project:** https://github.com/vbronetskyi/notes-api/tree/try/team-marketplace
+
+## Four plugins
+
+| Plugin | What it gives | Depends on |
+|---|---|---|
+| engineering-paved-path | React, Next.js App Router, Fastify, onion and frontend architecture, React Testing Library, security skills | - |
+| research-tools | a read-only `researcher` agent | - |
+| architecture-review | a read-only `architecture-reviewer` that preloads the paved-path architecture skills | engineering-paved-path `^1.0.0` |
+| sdd-engineering | `spec-creator`, `implementation-planner`, `implementer`, `plan-verifier`, the `run-plan` and `workflow-retro` skills, the method (`rules/`, `references/`, `scripts/check-trace.mjs`) and evals | all three, `^1.0.0` |
+
+They started as this repository's `.claude/agents` and `.claude/skills`. Everything
+DevDigest-specific was taken out: no `server/src` paths, no package names, "the project's
+`CLAUDE.md` / `AGENTS.md` wins" instead. Product specs, secrets and caches stayed here.
+Skills of other plugins are referred to by namespace
+(`engineering-paved-path:onion-architecture`), agents preload them with `skills:`, and
+scripts run through `${CLAUDE_SKILL_DIR}`, so they work from the plugin cache. Two things
+could not move as they were: plugin agents cannot carry hooks, so the path guards of the
+L03/L05 agents became instructions and review (written down in `docs/SECURITY.md`); and
+the Next.js skill from vercel-labs has no license, so the plugin has its own.
+
+## The repository
+
+`.claude-plugin/marketplace.json` is the catalog, `plugins/<name>/` the sources, each with
+`plugin.json`, a README and a CHANGELOG. Next to them: `README.md`, `CONTRIBUTING.md`,
+`CODEOWNERS`, `docs/PLUGIN-GUIDELINES.md` (layout, manifest, dependencies, namespaces),
+`docs/SECURITY.md` (permissions, secrets, scripts, injection), `docs/RELEASES.md` (SemVer,
+tags, update, rollback).
+
+CI on every push and pull request runs `scripts/validate.mjs` (structure, versions,
+dependency ranges and cycles, namespaced references, explicit agent tools, no Bash in
+read-only agents, secrets) and `claude plugin validate` for the marketplace and every
+plugin. A second workflow builds `catalog-index.json` from the manifests, READMEs,
+changelogs and component files and publishes `site/` to GitHub Pages. The catalog follows
+the lesson's design: fuzzy search over descriptions, frontmatter and Markdown bodies,
+facets by kind, keyword and author, a page per plugin (components, dependencies, README,
+changelog, install command) and per skill or agent, what's new, getting started, ⌘K.
+
+## Releases
+
+Dependencies first, then `sdd-engineering`; tags `<plugin>--v<version>` on the
+marketplace repository, which is what Claude Code resolves the `^1.0.0` ranges against.
+
+| Release | Tags | Evidence |
+|---|---|---|
+| 1.0.0 | `engineering-paved-path--v1.0.0`, `research-tools--v1.0.0`, `architecture-review--v1.0.0`, `sdd-engineering--v1.0.0` | [releases/1.0.0.md](https://github.com/vbronetskyi/team-ai-marketplace/blob/main/releases/1.0.0.md) |
+| 1.1.0 | `sdd-engineering--v1.1.0` | [releases/sdd-engineering-1.1.0.md](https://github.com/vbronetskyi/team-ai-marketplace/blob/main/releases/sdd-engineering-1.1.0.md) |
+
+1.1.0 is a backward-compatible change in `spec-creator`: every criterion carries its EARS
+pattern (`AC-3 [unwanted] IF …`); untagged 1.0.0 specs still pass the traceability check.
+It came with a new eval, `ears-tags`.
+
+Evals run with `claude plugin eval`. It loads extra plugins only from inside the plugin
+under test, so `scripts/eval.sh` copies `sdd-engineering` and its dependencies into
+`.eval-deps/` first. Three cases: `namespaces` (every agent and skill reachable as
+`sdd-engineering:<name>`), `spec-from-request` and `ears-tags` (the spec step goes to
+`sdd-engineering:spec-creator` and produces EARS criteria, checked by regex graders and
+an LLM judge). All at 1.00 over two runs each; the evidence files have the numbers and
+costs. Two graders needed fixing on the way: an LLM judge sees only the last message, not
+the file, and `match: count:3` means exactly three.
+
+Update check: `claude plugin marketplace update team-ai-marketplace`, then
+`claude plugin update sdd-engineering@team-ai-marketplace` -> "updated from 1.0.0 to
+1.1.0", and a new session's init event lists `sdd-engineering 1.1.0`.
+
+## Installed in another project
+
+[vbronetskyi/notes-api](https://github.com/vbronetskyi/notes-api) is a small notes API with
+its own `CLAUDE.md`, conventions and tests, nothing to do with DevDigest. On the branch
+[`try/team-marketplace`](https://github.com/vbronetskyi/notes-api/tree/try/team-marketplace):
+
+- `claude plugin install sdd-engineering@team-ai-marketplace --scope project` installed it
+  with "(+ 3 dependencies: engineering-paved-path, research-tools, architecture-review)";
+  the dependencies were resolved from the marketplace tags (`1.0.0-5a5367b567cf`).
+- [`.claude/settings.json`](https://github.com/vbronetskyi/notes-api/blob/try/team-marketplace/.claude/settings.json)
+  declares the marketplace (`extraKnownMarketplaces`) and enables all four plugins.
+- One headless session built "note tags" with the plugin's own components, in order:
+  `sdd-engineering:spec-creator` (24 EARS criteria, tagged as in 1.1.0),
+  `sdd-engineering:implementation-planner` (3 tasks), `/sdd-engineering:run-plan`
+  (`sdd-engineering:implementer` once per task, a commit each),
+  `architecture-review:architecture-reviewer` (no blockers),
+  `sdd-engineering:plan-verifier` (PASS WITH NOTES), `/sdd-engineering:workflow-retro`.
+  12 minutes, $3.26; 27/27 tests after it; the trace check finds all 24 criteria traced to
+  commits. The session's init event lists `sdd-engineering 1.1.0`.
+- It found a real problem: headless, the agents could not read the plugin's own templates
+  in the plugin cache. The project now allows `Read(~/.claude/plugins/**)`, and the
+  marketplace README says so for CI and `claude -p`.
+
+The whole record, with the commits per step:
+[docs/team-marketplace.md](https://github.com/vbronetskyi/notes-api/blob/try/team-marketplace/docs/team-marketplace.md).
+
+## How to check it yourself
+
+1. Open the catalog, search for "spec" or "architecture", open `sdd-engineering`.
+2. In any repository:
+   ```bash
+   claude plugin marketplace add vbronetskyi/team-ai-marketplace
+   claude plugin install sdd-engineering@team-ai-marketplace --scope project
+   claude plugin list
+   ```
+   The install line ends with "(+ 3 dependencies: engineering-paved-path, research-tools,
+   architecture-review)"; the list shows the dependencies as `1.0.0-5a5367b567cf`, the
+   version from the tag plus its commit.
+3. In the marketplace clone: `node scripts/validate.mjs`, `claude plugin validate .`,
+   `scripts/eval.sh sdd-engineering --runs 1 --ablation none --allow-tools Write Edit`.
+
+---
+
+# Extra: Agent Performance and Weekly Digest
+
+Built before the marketplace, as the dashboard and digest from the course's L08 list. It
+is an addition to the lab above, not a replacement for it.
 
 Two pages that answer a team lead's questions rather than a PR author's. **Agent
 Performance** shows which reviewers are actually useful: how many runs, what they cost,
